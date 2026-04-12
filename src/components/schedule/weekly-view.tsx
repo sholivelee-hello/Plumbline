@@ -3,34 +3,27 @@
 import { useState } from "react";
 import { TimeBlock } from "./time-block";
 import { BlockActionSheet } from "./block-action-sheet";
-import { PresetPicker } from "./preset-picker";
-import { generateTimeSlots, formatDateKR } from "@/lib/utils/date";
-import type { SchedulePlan, ScheduleActual, SchedulePreset } from "@/types/database";
+import { generateTimeSlots } from "@/lib/utils/date";
+import type { SchedulePlan, ScheduleActual } from "@/types/database";
 
 interface WeeklyViewProps {
   weekDates: string[];
   plans: SchedulePlan[];
   actuals: ScheduleActual[];
-  presets: SchedulePreset[];
   dayStartTime: string;
   dayEndTime: string;
   timeUnit: number;
   onCompletePlan: (plan: SchedulePlan) => void;
   onEditComplete: (plan: SchedulePlan) => void;
   onDeletePlan: (planId: string) => void;
-  onAddPlan: (data: any) => void;
-  onAddActual: (data: any) => void;
-  onSelectPreset: (preset: SchedulePreset, date: string, time: string, column: "plan" | "actual") => void;
 }
 
 export function WeeklyView({
-  weekDates, plans, actuals, presets,
+  weekDates, plans, actuals,
   dayStartTime, dayEndTime, timeUnit,
   onCompletePlan, onEditComplete, onDeletePlan,
-  onAddPlan, onAddActual, onSelectPreset,
 }: WeeklyViewProps) {
   const [selectedPlan, setSelectedPlan] = useState<SchedulePlan | null>(null);
-  const [showPresets, setShowPresets] = useState(false);
   const timeSlots = generateTimeSlots(dayStartTime, dayEndTime, timeUnit);
   const slotHeight = 48;
   const days = ["월", "화", "수", "목", "금", "토", "일"];
@@ -76,7 +69,7 @@ export function WeeklyView({
                 <div
                   className="relative bg-cream-100 rounded-lg"
                   style={{ height: `${totalHeight}px` }}
-                  onClick={() => setShowPresets(true)}
+                  onClick={() => {}}
                 >
                   {dayPlans.map((p) => (
                     <TimeBlock
