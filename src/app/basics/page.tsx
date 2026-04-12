@@ -1,12 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { useBasics } from "@/lib/hooks/use-basics";
 import { useSettings } from "@/lib/hooks/use-settings";
 import { BasicsList } from "@/components/basics/basics-list";
+import { BasicsStats } from "@/components/basics/basics-stats";
 import { formatDateKR } from "@/lib/utils/date";
 import Link from "next/link";
 
 export default function BasicsPage() {
+  const [tab, setTab] = useState<"check" | "stats">("check");
   const { settings } = useSettings();
   const { templates, logs, loading, today, toggleCheck, updateValue } =
     useBasics(settings?.day_start_time);
@@ -28,12 +31,35 @@ export default function BasicsPage() {
       </div>
       <p className="text-sm text-warm-400">{formatDateKR(today)}</p>
 
-      <BasicsList
-        templates={templates}
-        logs={logs}
-        onToggle={toggleCheck}
-        onUpdateValue={updateValue}
-      />
+      <div className="flex gap-2">
+        <button
+          onClick={() => setTab("check")}
+          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
+            tab === "check" ? "bg-warm-500 text-white" : "bg-warm-100 text-warm-400"
+          }`}
+        >
+          체크
+        </button>
+        <button
+          onClick={() => setTab("stats")}
+          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
+            tab === "stats" ? "bg-warm-500 text-white" : "bg-warm-100 text-warm-400"
+          }`}
+        >
+          통계
+        </button>
+      </div>
+
+      {tab === "check" ? (
+        <BasicsList
+          templates={templates}
+          logs={logs}
+          onToggle={toggleCheck}
+          onUpdateValue={updateValue}
+        />
+      ) : (
+        <BasicsStats />
+      )}
     </div>
   );
 }
