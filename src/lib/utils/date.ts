@@ -1,4 +1,14 @@
 /**
+ * Format a Date object as a local YYYY-MM-DD string (no UTC conversion).
+ */
+function toLocalDateString(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/**
  * Get the "logical date" based on day_start_time.
  * If current time is before day_start_time, the logical date is yesterday.
  * Example: at 02:00 with day_start=04:00, logical date is previous day.
@@ -13,7 +23,7 @@ export function getLogicalDate(dayStartTime: string = "04:00"): string {
     now.setDate(now.getDate() - 1);
   }
 
-  return now.toISOString().split("T")[0];
+  return toLocalDateString(now);
 }
 
 /**
@@ -36,7 +46,7 @@ export function getWeekStart(dateStr: string): string {
   const day = date.getDay();
   const diff = date.getDate() - day + (day === 0 ? -6 : 1);
   date.setDate(diff);
-  return date.toISOString().split("T")[0];
+  return toLocalDateString(date);
 }
 
 /**
@@ -48,7 +58,7 @@ export function getWeekDates(dateStr: string): string[] {
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday + "T00:00:00");
     d.setDate(d.getDate() + i);
-    dates.push(d.toISOString().split("T")[0]);
+    dates.push(toLocalDateString(d));
   }
   return dates;
 }
