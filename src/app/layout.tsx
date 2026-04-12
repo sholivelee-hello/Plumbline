@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { TabNav } from "@/components/ui/tab-nav";
+import { OfflineBanner } from "@/components/ui/offline-banner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -23,6 +24,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className="bg-cream-50 text-warm-700 antialiased">
+        <OfflineBanner />
         <main className="max-w-lg mx-auto pb-20 min-h-screen">
           {children}
         </main>
