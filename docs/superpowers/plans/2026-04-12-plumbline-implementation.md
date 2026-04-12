@@ -125,6 +125,8 @@ plumbline/
 
 ```bash
 cd "C:/Users/MIR-NOT-DXD-003/Desktop/위클리"
+# Note: this directory already has docs/ folder. create-next-app will scaffold around it.
+# If it fails due to non-empty dir, move docs/ out, scaffold, then move docs/ back.
 npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --use-npm
 ```
 
@@ -141,8 +143,8 @@ Expected: Dev server starts at localhost:3000, default Next.js page loads.
 - [ ] **Step 3: Install dependencies**
 
 ```bash
-npm install @supabase/supabase-js @supabase/ssr next-pwa
-npm install -D supabase
+npm install @supabase/supabase-js @supabase/ssr @serwist/next lucide-react recharts
+npm install -D supabase vitest @testing-library/react @testing-library/jest-dom jsdom
 ```
 
 - [ ] **Step 4: Configure Tailwind with warm pastel theme**
@@ -2002,9 +2004,197 @@ git commit -m "feat: add basics template management (add/delete)"
 
 ---
 
+### Task 9: Basics Statistics
+
+**Files:**
+- Create: `src/components/basics/basics-stats.tsx`
+- Create: `src/lib/hooks/use-basics-stats.ts`
+- Modify: `src/app/basics/page.tsx`
+
+- [ ] **Step 1: Create useBasicsStats hook**
+
+Create `src/lib/hooks/use-basics-stats.ts`:
+
+```typescript
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+
+interface BasicsStat {
+  templateId: string;
+  title: string;
+  category: string;
+  streak: number;
+  weeklyRate: number;
+  monthlyRate: number;
+}
+
+export function useBasicsStats() {
+  const [stats, setStats] = useState<BasicsStat[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  const loadStats = useCallback(async () => {
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(today.getDate() - 7);
+
+    const { data: templates } = await supabase
+      .from("basics_templates")
+      .select("id, title, category")
+      .eq("is_active", true);
+
+    const { data: logs } = await supabase
+      .from("basics_logs")
+      .select("template_id, date, completed")
+      .gte("date", thirtyDaysAgo.toISOString().split("T")[0])
+      .order("date", { ascending: false });
+
+    if (!templates || !logs) { setLoading(false); return; }
+
+    const result = templates.map((t) => {
+      const tLogs = logs.filter((l) => l.template_id === t.id);
+      const weekLogs = tLogs.filter(
+        (l) => new Date(l.date) >= sevenDaysAgo
+      );
+      const monthLogs = tLogs;
+
+      // Calculate streak
+      let streak = 0;
+      const sorted = tLogs
+        .filter((l) => l.completed)
+        .map((l) => l.date)
+        .sort()
+        .reverse();
+      if (sorted.length > 0) {
+        const d = new Date(today);
+        for (let i = 0; i < sorted.length; i++) {
+          const expected = d.toISOString().split("T")[0];
+          if (sorted[i] === expected) {
+            streak++;
+            d.setDate(d.getDate() - 1);
+          } else break;
+        }
+      }
+
+      return {
+        templateId: t.id,
+        title: t.title,
+        category: t.category,
+        streak,
+        weeklyRate: weekLogs.length > 0
+          ? Math.round((weekLogs.filter((l) => l.completed).length / weekLogs.length) * 100)
+          : 0,
+        monthlyRate: monthLogs.length > 0
+          ? Math.round((monthLogs.filter((l) => l.completed).length / monthLogs.length) * 100)
+          : 0,
+      };
+    });
+
+    setStats(result);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { loadStats(); }, [loadStats]);
+
+  return { stats, loading };
+}
+```
+
+- [ ] **Step 2: Create BasicsStats component**
+
+Create `src/components/basics/basics-stats.tsx`:
+
+```tsx
+"use client";
+
+import { useBasicsStats } from "@/lib/hooks/use-basics-stats";
+import { Card } from "@/components/ui/card";
+import { ProgressBar } from "@/components/ui/progress-bar";
+
+export function BasicsStats() {
+  const { stats, loading } = useBasicsStats();
+
+  if (loading) return <p className="text-warm-400 text-center text-sm">통계 로딩 중...</p>;
+
+  const spiritual = stats.filter((s) => s.category === "spiritual");
+  const physical = stats.filter((s) => s.category === "physical");
+  const avgWeekly = stats.length > 0
+    ? Math.round(stats.reduce((a, s) => a + s.weeklyRate, 0) / stats.length)
+    : 0;
+  const avgMonthly = stats.length > 0
+    ? Math.round(stats.reduce((a, s) => a + s.monthlyRate, 0) / stats.length)
+    : 0;
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <h3 className="font-semibold text-warm-600 mb-3">달성률</h3>
+        <div className="flex gap-4 mb-3">
+          <div className="flex-1 text-center">
+            <p className="text-2xl font-bold text-warm-700">{avgWeekly}%</p>
+            <p className="text-xs text-warm-400">주간</p>
+          </div>
+          <div className="flex-1 text-center">
+            <p className="text-2xl font-bold text-warm-700">{avgMonthly}%</p>
+            <p className="text-xs text-warm-400">월간</p>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div>
+            <div className="flex justify-between text-sm text-warm-500 mb-1">
+              <span>영적</span>
+              <span>{spiritual.length > 0 ? Math.round(spiritual.reduce((a, s) => a + s.weeklyRate, 0) / spiritual.length) : 0}%</span>
+            </div>
+            <ProgressBar percent={spiritual.length > 0 ? Math.round(spiritual.reduce((a, s) => a + s.weeklyRate, 0) / spiritual.length) : 0} color="bg-sky-300" />
+          </div>
+          <div>
+            <div className="flex justify-between text-sm text-warm-500 mb-1">
+              <span>신체적</span>
+              <span>{physical.length > 0 ? Math.round(physical.reduce((a, s) => a + s.weeklyRate, 0) / physical.length) : 0}%</span>
+            </div>
+            <ProgressBar percent={physical.length > 0 ? Math.round(physical.reduce((a, s) => a + s.weeklyRate, 0) / physical.length) : 0} color="bg-sage-300" />
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <h3 className="font-semibold text-warm-600 mb-3">연속 달성 (스트릭)</h3>
+        <div className="space-y-2">
+          {stats.map((s) => (
+            <div key={s.templateId} className="flex items-center justify-between py-1">
+              <span className="text-warm-600 text-sm">{s.title}</span>
+              <span className={`text-sm font-semibold ${s.streak > 0 ? "text-sage-500" : "text-warm-300"}`}>
+                {s.streak > 0 ? `${s.streak}일 연속` : "-"}
+              </span>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 3: Add stats tab to Basics page**
+
+Modify `src/app/basics/page.tsx` — add a toggle between "체크" and "통계" views. When "통계" is selected, render `<BasicsStats />`.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/lib/hooks/use-basics-stats.ts src/components/basics/basics-stats.tsx src/app/basics/page.tsx
+git commit -m "feat: add basics statistics (weekly/monthly rates, streaks, category comparison)"
+```
+
+---
+
 ## Phase 3: Schedule Feature
 
-### Task 9: Schedule Hooks
+### Task 10: Schedule Hooks
 
 **Files:**
 - Create: `src/lib/hooks/use-schedule.ts`
@@ -2012,11 +2202,199 @@ git commit -m "feat: add basics template management (add/delete)"
 
 - [ ] **Step 1: Create useSchedule hook**
 
-Create `src/lib/hooks/use-schedule.ts` with CRUD for plans, actuals, and presets. Include plan-to-actual transition logic (complete, edit & complete). Preset usage_count increment on use.
+Create `src/lib/hooks/use-schedule.ts`:
+
+```typescript
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { getWeekDates } from "@/lib/utils/date";
+import type { SchedulePlan, ScheduleActual, SchedulePreset } from "@/types/database";
+
+export function useSchedule(weekStartDate: string) {
+  const [plans, setPlans] = useState<SchedulePlan[]>([]);
+  const [actuals, setActuals] = useState<ScheduleActual[]>([]);
+  const [presets, setPresets] = useState<SchedulePreset[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+  const weekDates = getWeekDates(weekStartDate);
+
+  const loadWeek = useCallback(async () => {
+    const [plansRes, actualsRes] = await Promise.all([
+      supabase.from("schedule_plans").select("*")
+        .in("date", weekDates).order("start_time"),
+      supabase.from("schedule_actuals").select("*")
+        .in("date", weekDates).order("start_time"),
+    ]);
+    if (plansRes.data) setPlans(plansRes.data);
+    if (actualsRes.data) setActuals(actualsRes.data);
+    setLoading(false);
+  }, [weekStartDate]);
+
+  const loadPresets = useCallback(async () => {
+    const { data } = await supabase.from("schedule_presets").select("*")
+      .order("usage_count", { ascending: false });
+    if (data) setPresets(data);
+  }, []);
+
+  useEffect(() => { loadWeek(); loadPresets(); }, [loadWeek, loadPresets]);
+
+  // Plan-to-Actual: Complete (as-is)
+  async function completePlan(plan: SchedulePlan) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("schedule_actuals").insert({
+      user_id: user.id,
+      plan_id: plan.id,
+      date: plan.date,
+      start_time: plan.start_time,
+      end_time: plan.end_time,
+      title: plan.title,
+      color: plan.color,
+      is_from_plan: true,
+    });
+    await loadWeek();
+  }
+
+  // Plan-to-Actual: Edit & Complete
+  async function editAndComplete(
+    plan: SchedulePlan,
+    edits: { start_time?: string; end_time?: string; title?: string }
+  ) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("schedule_actuals").insert({
+      user_id: user.id,
+      plan_id: plan.id,
+      date: plan.date,
+      start_time: edits.start_time ?? plan.start_time,
+      end_time: edits.end_time ?? plan.end_time,
+      title: edits.title ?? plan.title,
+      color: plan.color,
+      is_from_plan: true,
+    });
+    await loadWeek();
+  }
+
+  // Add plan block (from preset or manual)
+  async function addPlan(data: {
+    date: string; start_time: string; end_time: string;
+    title: string; color: string; preset_id?: string;
+  }) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("schedule_plans").insert({ user_id: user.id, ...data });
+    // Increment preset usage
+    if (data.preset_id) {
+      await supabase.rpc("increment_preset_usage", { p_id: data.preset_id });
+    }
+    await loadWeek();
+  }
+
+  // Add actual-only block (unplanned)
+  async function addActual(data: {
+    date: string; start_time: string; end_time: string;
+    title: string; color: string;
+  }) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("schedule_actuals").insert({
+      user_id: user.id, ...data, is_from_plan: false,
+    });
+    await loadWeek();
+  }
+
+  // Save new preset
+  async function savePreset(data: { title: string; duration: number; color: string }) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("schedule_presets").insert({ user_id: user.id, ...data });
+    await loadPresets();
+  }
+
+  // Delete plan
+  async function deletePlan(planId: string) {
+    await supabase.from("schedule_plans").delete().eq("id", planId);
+    await loadWeek();
+  }
+
+  return {
+    plans, actuals, presets, loading, weekDates,
+    completePlan, editAndComplete, addPlan, addActual,
+    savePreset, deletePlan,
+  };
+}
+```
+
+Note: Add a Supabase RPC function `increment_preset_usage` in a new migration if needed, or use a direct update:
+
+```sql
+-- Alternative: add to 00003_schedule.sql
+CREATE OR REPLACE FUNCTION increment_preset_usage(p_id UUID)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE schedule_presets
+  SET usage_count = usage_count + 1, last_used_at = now()
+  WHERE id = p_id;
+END;
+$$ LANGUAGE plpgsql;
+```
 
 - [ ] **Step 2: Create useEvents hook**
 
-Create `src/lib/hooks/use-events.ts` with CRUD for events. Include query for upcoming events (next 14 days, limit 5).
+Create `src/lib/hooks/use-events.ts`:
+
+```typescript
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { Event } from "@/types/database";
+
+export function useEvents() {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [upcoming, setUpcoming] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  const loadEvents = useCallback(async () => {
+    const { data } = await supabase.from("events").select("*").order("start_date");
+    if (data) setEvents(data);
+    setLoading(false);
+  }, []);
+
+  const loadUpcoming = useCallback(async () => {
+    const today = new Date().toISOString().split("T")[0];
+    const twoWeeks = new Date();
+    twoWeeks.setDate(twoWeeks.getDate() + 14);
+    const { data } = await supabase.from("events").select("*")
+      .gte("end_date", today)
+      .lte("start_date", twoWeeks.toISOString().split("T")[0])
+      .order("start_date")
+      .limit(5);
+    if (data) setUpcoming(data);
+  }, []);
+
+  useEffect(() => { loadEvents(); loadUpcoming(); }, [loadEvents, loadUpcoming]);
+
+  async function addEvent(event: Omit<Event, "id" | "user_id">) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("events").insert({ user_id: user.id, ...event });
+    await loadEvents();
+    await loadUpcoming();
+  }
+
+  async function deleteEvent(eventId: string) {
+    await supabase.from("events").delete().eq("id", eventId);
+    await loadEvents();
+    await loadUpcoming();
+  }
+
+  return { events, upcoming, loading, addEvent, deleteEvent };
+}
+```
 
 - [ ] **Step 3: Commit**
 
@@ -2027,45 +2405,305 @@ git commit -m "feat: add schedule and events hooks with plan-to-actual transitio
 
 ---
 
-### Task 10: Weekly View Component
+### Task 11: Weekly View Components
 
 **Files:**
-- Create: `src/components/schedule/weekly-view.tsx`
 - Create: `src/components/schedule/time-block.tsx`
 - Create: `src/components/schedule/block-action-sheet.tsx`
 - Create: `src/components/schedule/preset-picker.tsx`
 - Create: `src/components/schedule/block-form.tsx`
+- Create: `src/components/schedule/weekly-view.tsx`
 
 - [ ] **Step 1: Build TimeBlock component**
 
-Renders a single time block with title, time range, and background color. Tappable.
+Create `src/components/schedule/time-block.tsx`:
+
+```tsx
+import type { SchedulePlan, ScheduleActual } from "@/types/database";
+import { formatTime } from "@/lib/utils/format";
+
+interface TimeBlockProps {
+  block: SchedulePlan | ScheduleActual;
+  timeUnit: number;
+  dayStartTime: string;
+  onClick: () => void;
+}
+
+export function TimeBlock({ block, timeUnit, dayStartTime, onClick }: TimeBlockProps) {
+  // Calculate position and height based on time
+  const [startH, startM] = block.start_time.split(":").map(Number);
+  const [endH, endM] = block.end_time.split(":").map(Number);
+  const [dayH, dayM] = dayStartTime.split(":").map(Number);
+
+  const startMinutes = startH * 60 + startM - (dayH * 60 + dayM);
+  const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+  const pixelsPerMinute = 48 / timeUnit; // 48px per time unit slot
+
+  const top = startMinutes * pixelsPerMinute;
+  const height = Math.max(durationMinutes * pixelsPerMinute, 20);
+
+  return (
+    <div
+      onClick={onClick}
+      className="absolute left-1 right-1 rounded-lg px-1.5 py-1 cursor-pointer overflow-hidden text-xs leading-tight"
+      style={{
+        top: `${top}px`,
+        height: `${height}px`,
+        backgroundColor: block.color + "40",
+        borderLeft: `3px solid ${block.color}`,
+      }}
+    >
+      <p className="font-medium truncate" style={{ color: block.color }}>
+        {block.title}
+      </p>
+      {height > 30 && (
+        <p className="opacity-60" style={{ color: block.color, fontSize: "10px" }}>
+          {formatTime(block.start_time)}-{formatTime(block.end_time)}
+        </p>
+      )}
+    </div>
+  );
+}
+```
 
 - [ ] **Step 2: Build BlockActionSheet**
 
-Action sheet with 3 options: Complete, Edit & Complete, Not Done. Appears on plan block tap.
+Create `src/components/schedule/block-action-sheet.tsx`:
+
+```tsx
+"use client";
+
+import { Modal } from "@/components/ui/modal";
+import type { SchedulePlan } from "@/types/database";
+
+interface BlockActionSheetProps {
+  plan: SchedulePlan | null;
+  onClose: () => void;
+  onComplete: (plan: SchedulePlan) => void;
+  onEditComplete: (plan: SchedulePlan) => void;
+  onDelete: (planId: string) => void;
+}
+
+export function BlockActionSheet({ plan, onClose, onComplete, onEditComplete, onDelete }: BlockActionSheetProps) {
+  if (!plan) return null;
+
+  return (
+    <Modal isOpen={!!plan} onClose={onClose} title={plan.title}>
+      <div className="space-y-2">
+        <button
+          onClick={() => { onComplete(plan); onClose(); }}
+          className="w-full py-3 rounded-xl bg-sage-100 text-sage-600 font-medium hover:bg-sage-200"
+        >
+          완료 (계획대로)
+        </button>
+        <button
+          onClick={() => { onEditComplete(plan); }}
+          className="w-full py-3 rounded-xl bg-sky-100 text-sky-600 font-medium hover:bg-sky-200"
+        >
+          수정 후 완료
+        </button>
+        <button
+          onClick={() => { onDelete(plan.id); onClose(); }}
+          className="w-full py-3 rounded-xl bg-warm-100 text-warm-500 font-medium hover:bg-warm-200"
+        >
+          삭제
+        </button>
+        <button onClick={onClose} className="w-full py-2 text-warm-400 text-sm">
+          취소
+        </button>
+      </div>
+    </Modal>
+  );
+}
+```
 
 - [ ] **Step 3: Build PresetPicker**
 
-Popup listing presets sorted by usage_count desc. Tapping a preset creates a new block.
+Create `src/components/schedule/preset-picker.tsx`:
+
+```tsx
+"use client";
+
+import { Modal } from "@/components/ui/modal";
+import type { SchedulePreset } from "@/types/database";
+
+interface PresetPickerProps {
+  isOpen: boolean;
+  onClose: () => void;
+  presets: SchedulePreset[];
+  onSelect: (preset: SchedulePreset) => void;
+  onManual: () => void;
+}
+
+export function PresetPicker({ isOpen, onClose, presets, onSelect, onManual }: PresetPickerProps) {
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="활동 선택">
+      <div className="space-y-2 max-h-64 overflow-y-auto">
+        {presets.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => { onSelect(p); onClose(); }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-warm-50 transition-colors"
+          >
+            <div className="w-4 h-4 rounded-full" style={{ backgroundColor: p.color }} />
+            <span className="flex-1 text-left text-warm-700">{p.title}</span>
+            <span className="text-warm-400 text-sm">{p.duration}분</span>
+          </button>
+        ))}
+      </div>
+      <button
+        onClick={() => { onManual(); onClose(); }}
+        className="w-full mt-3 py-3 rounded-xl border-2 border-dashed border-warm-200 text-warm-400"
+      >
+        + 직접 입력
+      </button>
+    </Modal>
+  );
+}
+```
 
 - [ ] **Step 4: Build BlockForm**
 
-Form for creating/editing a time block: title, start/end time, color picker. Option to "save as preset".
+Create `src/components/schedule/block-form.tsx` — form with title input, start/end time selectors (using time unit increments), color picker (6 preset colors), "save as preset" checkbox. onSave returns block data.
 
 - [ ] **Step 5: Build WeeklyView**
 
-The main 7-day x 2-column grid. Left=plan, right=actual per day. Time range from user settings (04:00-00:00). Grid granularity from time_unit setting. "+" button on empty slots.
+Create `src/components/schedule/weekly-view.tsx`:
+
+```tsx
+"use client";
+
+import { useState } from "react";
+import { TimeBlock } from "./time-block";
+import { BlockActionSheet } from "./block-action-sheet";
+import { PresetPicker } from "./preset-picker";
+import { generateTimeSlots, formatDateKR } from "@/lib/utils/date";
+import type { SchedulePlan, ScheduleActual, SchedulePreset } from "@/types/database";
+
+interface WeeklyViewProps {
+  weekDates: string[];
+  plans: SchedulePlan[];
+  actuals: ScheduleActual[];
+  presets: SchedulePreset[];
+  dayStartTime: string;
+  dayEndTime: string;
+  timeUnit: number;
+  onCompletePlan: (plan: SchedulePlan) => void;
+  onEditComplete: (plan: SchedulePlan) => void;
+  onDeletePlan: (planId: string) => void;
+  onAddPlan: (data: any) => void;
+  onAddActual: (data: any) => void;
+  onSelectPreset: (preset: SchedulePreset, date: string, time: string, column: "plan" | "actual") => void;
+}
+
+export function WeeklyView({
+  weekDates, plans, actuals, presets,
+  dayStartTime, dayEndTime, timeUnit,
+  onCompletePlan, onEditComplete, onDeletePlan,
+  onAddPlan, onAddActual, onSelectPreset,
+}: WeeklyViewProps) {
+  const [selectedPlan, setSelectedPlan] = useState<SchedulePlan | null>(null);
+  const [showPresets, setShowPresets] = useState(false);
+  const timeSlots = generateTimeSlots(dayStartTime, dayEndTime, timeUnit);
+  const slotHeight = 48; // px per slot
+  const days = ["월", "화", "수", "목", "금", "토", "일"];
+
+  return (
+    <div className="overflow-x-auto">
+      <div style={{ minWidth: "800px" }}>
+        {/* Header */}
+        <div className="grid gap-px" style={{ gridTemplateColumns: "50px repeat(7, 1fr)" }}>
+          <div />
+          {weekDates.map((date, i) => (
+            <div key={date} className="text-center py-2">
+              <p className="text-sm font-semibold text-warm-600">{days[i]}</p>
+              <p className="text-xs text-warm-400">{date.slice(8)}</p>
+              <div className="flex justify-center gap-2 text-[10px] text-warm-300 mt-1">
+                <span>계획</span><span>실제</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Time grid */}
+        <div className="grid gap-px" style={{ gridTemplateColumns: "50px repeat(7, 1fr)" }}>
+          {/* Time labels */}
+          <div>
+            {timeSlots.map((t) => (
+              <div key={t} style={{ height: `${slotHeight}px` }}
+                className="text-[10px] text-warm-400 text-right pr-2 pt-0.5">
+                {t}
+              </div>
+            ))}
+          </div>
+
+          {/* Day columns */}
+          {weekDates.map((date) => {
+            const dayPlans = plans.filter((p) => p.date === date);
+            const dayActuals = actuals.filter((a) => a.date === date);
+            const totalHeight = timeSlots.length * slotHeight;
+
+            return (
+              <div key={date} className="grid grid-cols-2 gap-px">
+                {/* Plan column */}
+                <div
+                  className="relative bg-cream-100 rounded-lg"
+                  style={{ height: `${totalHeight}px` }}
+                  onClick={() => setShowPresets(true)}
+                >
+                  {dayPlans.map((p) => (
+                    <TimeBlock
+                      key={p.id}
+                      block={p}
+                      timeUnit={timeUnit}
+                      dayStartTime={dayStartTime}
+                      onClick={() => setSelectedPlan(p)}
+                    />
+                  ))}
+                </div>
+                {/* Actual column */}
+                <div
+                  className="relative bg-sage-50 rounded-lg"
+                  style={{ height: `${totalHeight}px` }}
+                >
+                  {dayActuals.map((a) => (
+                    <TimeBlock
+                      key={a.id}
+                      block={a}
+                      timeUnit={timeUnit}
+                      dayStartTime={dayStartTime}
+                      onClick={() => {}}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <BlockActionSheet
+        plan={selectedPlan}
+        onClose={() => setSelectedPlan(null)}
+        onComplete={onCompletePlan}
+        onEditComplete={onEditComplete}
+        onDelete={onDeletePlan}
+      />
+    </div>
+  );
+}
+```
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add src/components/schedule/
-git commit -m "feat: add weekly schedule view with plan/actual columns and presets"
+git commit -m "feat: add weekly schedule view with plan/actual columns, action sheet, and presets"
 ```
 
 ---
 
-### Task 11: Monthly View & Schedule Page
+### Task 12: Monthly View & Schedule Page
 
 **Files:**
 - Create: `src/components/schedule/monthly-view.tsx`
@@ -2073,11 +2711,99 @@ git commit -m "feat: add weekly schedule view with plan/actual columns and prese
 
 - [ ] **Step 1: Build MonthlyView**
 
-Calendar grid showing event bars spanning date ranges. Tap date navigates to weekly view for that date.
+Create `src/components/schedule/monthly-view.tsx` — standard calendar grid (6 rows x 7 cols). Events rendered as colored horizontal bars spanning their date range. Tap a date calls `onSelectDate(date)`. Uses `useEvents` hook for event data of the displayed month.
 
 - [ ] **Step 2: Build Schedule page**
 
-Tab toggle between weekly and monthly view. Week navigation (prev/next arrows). Month navigation for monthly view.
+Create `src/app/schedule/page.tsx`:
+
+```tsx
+"use client";
+
+import { useState } from "react";
+import { WeeklyView } from "@/components/schedule/weekly-view";
+import { MonthlyView } from "@/components/schedule/monthly-view";
+import { useSchedule } from "@/lib/hooks/use-schedule";
+import { useEvents } from "@/lib/hooks/use-events";
+import { useSettings } from "@/lib/hooks/use-settings";
+import { getWeekStart, getLogicalDate } from "@/lib/utils/date";
+
+export default function SchedulePage() {
+  const { settings } = useSettings();
+  const today = getLogicalDate(settings?.day_start_time);
+  const [view, setView] = useState<"weekly" | "monthly">("weekly");
+  const [weekStart, setWeekStart] = useState(getWeekStart(today));
+  const schedule = useSchedule(weekStart);
+  const { events, upcoming, addEvent, deleteEvent } = useEvents();
+
+  function prevWeek() {
+    const d = new Date(weekStart + "T00:00:00");
+    d.setDate(d.getDate() - 7);
+    setWeekStart(d.toISOString().split("T")[0]);
+  }
+  function nextWeek() {
+    const d = new Date(weekStart + "T00:00:00");
+    d.setDate(d.getDate() + 7);
+    setWeekStart(d.toISOString().split("T")[0]);
+  }
+
+  return (
+    <div className="p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-warm-700">일정</h1>
+        <div className="flex gap-1 bg-warm-100 rounded-xl p-1">
+          <button
+            onClick={() => setView("weekly")}
+            className={`px-3 py-1 rounded-lg text-sm ${view === "weekly" ? "bg-white text-warm-700 shadow-sm" : "text-warm-400"}`}
+          >주간</button>
+          <button
+            onClick={() => setView("monthly")}
+            className={`px-3 py-1 rounded-lg text-sm ${view === "monthly" ? "bg-white text-warm-700 shadow-sm" : "text-warm-400"}`}
+          >월간</button>
+        </div>
+      </div>
+
+      {view === "weekly" && (
+        <>
+          <div className="flex items-center justify-between">
+            <button onClick={prevWeek} className="text-warm-400 px-2">←</button>
+            <span className="text-warm-600 font-medium text-sm">
+              {schedule.weekDates[0]} ~ {schedule.weekDates[6]}
+            </span>
+            <button onClick={nextWeek} className="text-warm-400 px-2">→</button>
+          </div>
+          <WeeklyView
+            weekDates={schedule.weekDates}
+            plans={schedule.plans}
+            actuals={schedule.actuals}
+            presets={schedule.presets}
+            dayStartTime={settings?.day_start_time ?? "04:00"}
+            dayEndTime={settings?.day_end_time ?? "00:00"}
+            timeUnit={settings?.time_unit ?? 30}
+            onCompletePlan={schedule.completePlan}
+            onEditComplete={(plan) => schedule.editAndComplete(plan, {})}
+            onDeletePlan={schedule.deletePlan}
+            onAddPlan={schedule.addPlan}
+            onAddActual={schedule.addActual}
+            onSelectPreset={() => {}}
+          />
+        </>
+      )}
+
+      {view === "monthly" && (
+        <MonthlyView
+          events={events}
+          onSelectDate={(date) => {
+            setWeekStart(getWeekStart(date));
+            setView("weekly");
+          }}
+          onAddEvent={addEvent}
+        />
+      )}
+    </div>
+  );
+}
+```
 
 - [ ] **Step 3: Commit**
 
@@ -2090,7 +2816,7 @@ git commit -m "feat: add monthly calendar view and schedule page with view toggl
 
 ## Phase 4: Finance Feature
 
-### Task 12: Finance Hooks
+### Task 13: Finance Hooks
 
 **Files:**
 - Create: `src/lib/hooks/use-heaven-bank.ts`
@@ -2099,33 +2825,378 @@ git commit -m "feat: add monthly calendar view and schedule page with view toggl
 - Create: `src/lib/hooks/use-debts.ts`
 - Create: `src/lib/hooks/use-wants.ts`
 
-- [ ] **Step 1: Create useHeavenBank hook** — sow/reap CRUD, monthly/cumulative totals
-- [ ] **Step 2: Create useObligations hook** — monthly CRUD with auto-carry from previous month
-- [ ] **Step 3: Create useFinance hook** — transactions, budgets, accounts, surplus CRUD
-- [ ] **Step 4: Create useDebts hook** — debt + payment CRUD, progress calculation
-- [ ] **Step 5: Create useWants hook** — wishlist CRUD
+- [ ] **Step 1: Create useHeavenBank hook**
+
+Create `src/lib/hooks/use-heaven-bank.ts`:
+
+```typescript
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { HeavenBankEntry } from "@/types/database";
+
+export function useHeavenBank(month: string) {
+  const [entries, setEntries] = useState<HeavenBankEntry[]>([]);
+  const [monthlySow, setMonthlySow] = useState(0);
+  const [monthlyReap, setMonthlyReap] = useState(0);
+  const [cumulativeSow, setCumulativeSow] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  const load = useCallback(async () => {
+    // Monthly entries
+    const startDate = `${month}-01`;
+    const endDate = `${month}-31`;
+    const { data } = await supabase.from("heaven_bank").select("*")
+      .gte("date", startDate).lte("date", endDate)
+      .order("date");
+    if (data) {
+      setEntries(data);
+      setMonthlySow(data.filter(e => e.type === "sow").reduce((s, e) => s + e.amount, 0));
+      setMonthlyReap(data.filter(e => e.type === "reap").reduce((s, e) => s + e.amount, 0));
+    }
+    // Cumulative sow
+    const { data: allSow } = await supabase.from("heaven_bank").select("amount")
+      .eq("type", "sow");
+    if (allSow) setCumulativeSow(allSow.reduce((s, e) => s + e.amount, 0));
+    setLoading(false);
+  }, [month]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function addEntry(entry: Omit<HeavenBankEntry, "id" | "user_id">) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("heaven_bank").insert({ user_id: user.id, ...entry });
+    await load();
+  }
+
+  return { entries, monthlySow, monthlyReap, cumulativeSow, loading, addEntry };
+}
+```
+
+- [ ] **Step 2: Create useObligations hook with auto-carry**
+
+Create `src/lib/hooks/use-obligations.ts`:
+
+```typescript
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { FinanceObligation, FinanceCategory } from "@/types/database";
+
+export function useObligations(month: string) {
+  const [obligations, setObligations] = useState<(FinanceObligation & { category_title: string })[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  const load = useCallback(async () => {
+    const { data } = await supabase.from("finance_obligations").select(`
+      *, finance_categories(title)
+    `).eq("month", month).order("created_at");
+
+    if (data) {
+      setObligations(data.map((o: any) => ({
+        ...o,
+        category_title: o.finance_categories?.title ?? "",
+      })));
+    }
+    setLoading(false);
+  }, [month]);
+
+  // Auto-carry from previous month if current month is empty
+  const autoCarry = useCallback(async () => {
+    const { data: existing } = await supabase.from("finance_obligations")
+      .select("id").eq("month", month).limit(1);
+    if (existing && existing.length > 0) return; // already has data
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Get obligation categories with default amounts
+    const { data: categories } = await supabase.from("finance_categories")
+      .select("*").eq("type", "obligation").eq("user_id", user.id);
+
+    if (categories && categories.length > 0) {
+      const newObligations = categories.map((c) => ({
+        user_id: user.id,
+        month,
+        category_id: c.id,
+        amount: c.default_amount ?? 0,
+        is_paid: false,
+      }));
+      await supabase.from("finance_obligations").insert(newObligations);
+    }
+  }, [month]);
+
+  useEffect(() => {
+    async function init() {
+      await autoCarry();
+      await load();
+    }
+    init();
+  }, [autoCarry, load]);
+
+  async function togglePaid(obligationId: string, isPaid: boolean) {
+    await supabase.from("finance_obligations").update({
+      is_paid: isPaid,
+      paid_date: isPaid ? new Date().toISOString().split("T")[0] : null,
+    }).eq("id", obligationId);
+    await load();
+  }
+
+  async function updateAmount(obligationId: string, amount: number) {
+    await supabase.from("finance_obligations")
+      .update({ amount }).eq("id", obligationId);
+    await load();
+  }
+
+  return { obligations, loading, togglePaid, updateAmount };
+}
+```
+
+- [ ] **Step 3: Create useFinance hook with budget auto-carry**
+
+Create `src/lib/hooks/use-finance.ts`:
+
+```typescript
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { FinanceTransaction, FinanceBudget, FinanceAccount } from "@/types/database";
+
+export function useFinance(month: string) {
+  const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
+  const [budgets, setBudgets] = useState<FinanceBudget[]>([]);
+  const [accounts, setAccounts] = useState<FinanceAccount[]>([]);
+  const [surplusGoal, setSurplusGoal] = useState(0);
+  const [surplusSaved, setSurplusSaved] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  // Auto-carry necessity budgets from previous month
+  const autoCarryBudgets = useCallback(async () => {
+    const { data: existing } = await supabase.from("finance_budgets")
+      .select("id").eq("month", month).limit(1);
+    if (existing && existing.length > 0) return;
+
+    // Calculate previous month
+    const [y, m] = month.split("-").map(Number);
+    const prevMonth = m === 1
+      ? `${y - 1}-12`
+      : `${y}-${String(m - 1).padStart(2, "0")}`;
+
+    const { data: prevBudgets } = await supabase.from("finance_budgets")
+      .select("*").eq("month", prevMonth);
+
+    if (prevBudgets && prevBudgets.length > 0) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const newBudgets = prevBudgets.map((b) => ({
+        user_id: user.id,
+        category_id: b.category_id,
+        amount: b.amount,
+        month,
+      }));
+      await supabase.from("finance_budgets").insert(newBudgets);
+    }
+  }, [month]);
+
+  const load = useCallback(async () => {
+    const startDate = `${month}-01`;
+    const endDate = `${month}-31`;
+    const [txRes, budgetRes, acctRes] = await Promise.all([
+      supabase.from("finance_transactions").select("*")
+        .gte("date", startDate).lte("date", endDate).order("date", { ascending: false }),
+      supabase.from("finance_budgets").select("*").eq("month", month),
+      supabase.from("finance_accounts").select("*"),
+    ]);
+    if (txRes.data) setTransactions(txRes.data);
+    if (budgetRes.data) setBudgets(budgetRes.data);
+    if (acctRes.data) setAccounts(acctRes.data);
+
+    // Surplus: use the 'surplus' category budget as goal, sum of surplus transactions as saved
+    const { data: surplusCats } = await supabase.from("finance_categories")
+      .select("id").eq("type", "surplus");
+    if (surplusCats && surplusCats.length > 0) {
+      const surplusCatId = surplusCats[0].id;
+      const surplusBudget = budgetRes.data?.find(b => b.category_id === surplusCatId);
+      setSurplusGoal(surplusBudget?.amount ?? 0);
+      const surplusTx = txRes.data?.filter(t => t.category_id === surplusCatId && t.type === "income") ?? [];
+      setSurplusSaved(surplusTx.reduce((s, t) => s + t.amount, 0));
+    }
+
+    setLoading(false);
+  }, [month]);
+
+  useEffect(() => {
+    async function init() { await autoCarryBudgets(); await load(); }
+    init();
+  }, [autoCarryBudgets, load]);
+
+  async function addTransaction(tx: Omit<FinanceTransaction, "id" | "user_id" | "is_auto">) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("finance_transactions").insert({ user_id: user.id, ...tx });
+    await load();
+  }
+
+  async function addAccount(acct: Omit<FinanceAccount, "id" | "user_id" | "balance">) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("finance_accounts").insert({ user_id: user.id, ...acct });
+    await load();
+  }
+
+  return { transactions, budgets, accounts, surplusGoal, surplusSaved, loading, addTransaction, addAccount };
+}
+```
+
+Note on **Surplus Storage**: Surplus uses `finance_budgets` for the goal amount (a budget entry with the surplus category) and `finance_transactions` sum (income type with surplus category) for saved amount. No extra table needed.
+
+- [ ] **Step 4: Create useDebts hook**
+
+Create `src/lib/hooks/use-debts.ts`:
+
+```typescript
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+import type { FinanceDebt, FinanceDebtPayment } from "@/types/database";
+
+interface DebtWithProgress extends FinanceDebt {
+  total_paid: number;
+  percent: number;
+  payments: FinanceDebtPayment[];
+}
+
+export function useDebts() {
+  const [debts, setDebts] = useState<DebtWithProgress[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  const load = useCallback(async () => {
+    const { data: debtRows } = await supabase.from("finance_debts").select("*")
+      .order("is_completed").order("created_at");
+    const { data: payments } = await supabase.from("finance_debt_payments").select("*")
+      .order("date", { ascending: false });
+
+    if (debtRows) {
+      setDebts(debtRows.map((d) => {
+        const dPayments = (payments ?? []).filter((p) => p.debt_id === d.id);
+        const totalPaid = dPayments.reduce((s, p) => s + p.amount, 0);
+        return {
+          ...d,
+          total_paid: totalPaid,
+          percent: d.total_amount > 0 ? Math.min(Math.round((totalPaid / d.total_amount) * 100), 100) : 0,
+          payments: dPayments,
+        };
+      }));
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function addDebt(title: string, totalAmount: number) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("finance_debts").insert({ user_id: user.id, title, total_amount: totalAmount });
+    await load();
+  }
+
+  async function addPayment(debtId: string, amount: number, memo: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("finance_debt_payments").insert({
+      user_id: user.id, debt_id: debtId, amount,
+      date: new Date().toISOString().split("T")[0], memo,
+    });
+    // Check if fully repaid
+    const debt = debts.find((d) => d.id === debtId);
+    if (debt && debt.total_paid + amount >= debt.total_amount) {
+      await supabase.from("finance_debts").update({ is_completed: true }).eq("id", debtId);
+    }
+    await load();
+  }
+
+  return { debts, loading, addDebt, addPayment };
+}
+```
+
+- [ ] **Step 5: Create useWants hook**
+
+Create `src/lib/hooks/use-wants.ts`:
+
+```typescript
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { getCurrentMonth } from "@/lib/utils/date";
+import type { FinanceWant } from "@/types/database";
+
+export function useWants() {
+  const [wants, setWants] = useState<FinanceWant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  const load = useCallback(async () => {
+    const { data } = await supabase.from("finance_wants").select("*")
+      .order("is_purchased").order("created_month", { ascending: false });
+    if (data) setWants(data);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function addWant(title: string, estimatedPrice: number | null) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("finance_wants").insert({
+      user_id: user.id, title, estimated_price: estimatedPrice,
+      created_month: getCurrentMonth(),
+    });
+    await load();
+  }
+
+  async function togglePurchased(wantId: string, isPurchased: boolean) {
+    await supabase.from("finance_wants").update({
+      is_purchased: isPurchased,
+      purchased_date: isPurchased ? new Date().toISOString().split("T")[0] : null,
+    }).eq("id", wantId);
+    await load();
+  }
+
+  return { wants, loading, addWant, togglePurchased };
+}
+```
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add src/lib/hooks/use-heaven-bank.ts src/lib/hooks/use-obligations.ts src/lib/hooks/use-finance.ts src/lib/hooks/use-debts.ts src/lib/hooks/use-wants.ts
-git commit -m "feat: add all finance hooks (heaven bank, obligations, debts, wants)"
+git commit -m "feat: add all finance hooks with auto-carry and surplus tracking"
 ```
 
 ---
 
-### Task 13: Heaven Bank UI
+### Task 14: Heaven Bank UI
 
 **Files:**
 - Create: `src/components/finance/heaven-bank-ledger.tsx`
 - Create: `src/components/finance/heaven-bank-form.tsx`
 - Create: `src/app/finance/heaven-bank/page.tsx`
 
-- [ ] **Step 1: Build HeavenBankLedger** — passbook-style table with date, description, deposit (sow), withdrawal (reap) columns. Monthly/cumulative totals at bottom.
+- [ ] **Step 1: Build HeavenBankLedger** — passbook-style table component. Columns: date, description (target for sow / description for reap), deposit (sow amount), withdrawal (reap amount). Monthly totals row at bottom. Cumulative sow total shown above table. Use `<table>` with warm styling.
 
-- [ ] **Step 2: Build HeavenBankForm** — sow/reap toggle, target selection (poor/missions/kingdom), amount, description, date.
+- [ ] **Step 2: Build HeavenBankForm** — Modal form: sow/reap toggle buttons, target dropdown (poor/missions/kingdom projects) shown for sow, description text input shown for reap, amount number input, date picker. On submit calls `addEntry`.
 
-- [ ] **Step 3: Build Heaven Bank page** — month selector + ledger + add entry button.
+- [ ] **Step 3: Build Heaven Bank page** — month selector (← 2026년 4월 →), HeavenBankLedger, floating "+" button to open form.
 
 - [ ] **Step 4: Commit**
 
@@ -2136,7 +3207,7 @@ git commit -m "feat: add heaven bank passbook UI"
 
 ---
 
-### Task 14: Obligations & Debts UI
+### Task 15: Obligations & Debts UI
 
 **Files:**
 - Create: `src/components/finance/obligations-list.tsx`
@@ -2145,15 +3216,15 @@ git commit -m "feat: add heaven bank passbook UI"
 - Create: `src/components/finance/debt-payment-form.tsx`
 - Create: `src/app/finance/debts/page.tsx`
 
-- [ ] **Step 1: Build ObligationsList** — monthly list with paid/unpaid toggles, amounts, total progress. Auto-carry button.
+- [ ] **Step 1: Build ObligationsList** — Card per obligation item: title, amount (editable), paid/unpaid toggle, paid date. Total row at bottom with progress bar. When toggling a debt-repayment obligation to paid and it has `linked_debt_id`, show dialog asking which debt to apply to, then call `useDebts.addPayment`.
 
-- [ ] **Step 2: Build Obligations page** — month selector + obligations list + edit amounts.
+- [ ] **Step 2: Build Obligations page** — month selector + ObligationsList. Auto-carry happens on hook init.
 
-- [ ] **Step 3: Build DebtCard** — single debt with title, total, paid, remaining, progress bar.
+- [ ] **Step 3: Build DebtCard** — Card showing: debt title, total amount, paid amount, remaining, progress bar. Expand to show payment history. "상환 기록" button opens DebtPaymentForm.
 
-- [ ] **Step 4: Build DebtPaymentForm** — amount, date, memo. Linked from obligation "debt repayment" toggle.
+- [ ] **Step 4: Build DebtPaymentForm** — Modal: amount input, memo, date. On submit calls `addPayment`. Shows celebration animation when debt is fully repaid (confetti or large checkmark).
 
-- [ ] **Step 5: Build Debts page** — list of debts + add debt form + celebration on completion.
+- [ ] **Step 5: Build Debts page** — list of active debts (DebtCard each), completed debts section (collapsed), "빚 추가" button.
 
 - [ ] **Step 6: Commit**
 
@@ -2164,7 +3235,7 @@ git commit -m "feat: add obligations and debt management UI"
 
 ---
 
-### Task 15: Necessities, Wants, Surplus & Finance Overview
+### Task 16: Necessities, Wants, Surplus & Finance Overview
 
 **Files:**
 - Create: `src/components/finance/necessities-tracker.tsx`
@@ -2174,12 +3245,24 @@ git commit -m "feat: add obligations and debt management UI"
 - Create: `src/app/finance/accounts/page.tsx`
 - Create: `src/app/finance/page.tsx`
 
-- [ ] **Step 1: Build NecessitiesTracker** — category budget bars with spending amounts.
-- [ ] **Step 2: Build WantsList** — wishlist items with price, purchased toggle.
-- [ ] **Step 3: Build SurplusTracker** — goal amount + saved amount + progress bar.
-- [ ] **Step 4: Build AccountCard** — account name, type badge, balance, color.
-- [ ] **Step 5: Build Accounts page** — list accounts + add account form.
-- [ ] **Step 6: Build Finance overview page** — links to all finance sub-pages: heaven bank, obligations, necessities, wants, surplus, debts, accounts. Quick summary for each.
+- [ ] **Step 1: Build NecessitiesTracker** — Per-category card: title, budget amount, spent amount (sum of transactions with that category this month), progress bar. Color codes: green (<80%), yellow (80-100%), red (>100%).
+
+- [ ] **Step 2: Build WantsList** — List of want items: title, estimated price, purchased toggle. Add form at bottom: title + price input. Purchased items move to bottom with strikethrough.
+
+- [ ] **Step 3: Build SurplusTracker** — Goal amount (from finance_budgets with surplus category), saved amount (from transaction sum), progress bar, percentage.
+
+- [ ] **Step 4: Build AccountCard** — Card: account name, type badge ("은행" / "체크카드"), balance formatted as won, color stripe.
+
+- [ ] **Step 5: Build Accounts page** — list of AccountCards + "계좌 추가" form (name, type, color).
+
+- [ ] **Step 6: Build Finance overview page** — Priority-ordered sections:
+  1. 하늘은행 요약 (this month sowing total) → link to `/finance/heaven-bank`
+  2. 의무사항 요약 (paid/total) → link to `/finance/obligations`
+  3. 필요사항 요약 (budget bars) → inline
+  4. 요망사항 요약 (unpurchased count) → inline expandable
+  5. 여윳돈 (progress bar) → inline
+  6. 빚 관리 요약 → link to `/finance/debts`
+  7. 계좌 요약 → link to `/finance/accounts`
 
 - [ ] **Step 7: Commit**
 
@@ -2190,9 +3273,9 @@ git commit -m "feat: add necessities, wants, surplus, accounts, and finance over
 
 ---
 
-## Phase 5: Dashboard & PWA
+## Phase 5: Dashboard, Settings & PWA
 
-### Task 16: Dashboard
+### Task 17: Dashboard
 
 **Files:**
 - Create: `src/components/dashboard/basics-summary.tsx`
@@ -2200,10 +3283,48 @@ git commit -m "feat: add necessities, wants, surplus, accounts, and finance over
 - Create: `src/components/dashboard/finance-summary.tsx`
 - Modify: `src/app/page.tsx`
 
-- [ ] **Step 1: Build BasicsSummary** — today's completion count, progress bar, quick status per category.
-- [ ] **Step 2: Build EventsSummary** — upcoming 5 events within 14 days. "No upcoming events" fallback.
-- [ ] **Step 3: Build FinanceSummary** — heaven bank sowing total, obligations paid/total, necessities spent/budget, surplus saved.
-- [ ] **Step 4: Build Dashboard page** — header with "Plumbline" + date, three summary cards stacked vertically.
+- [ ] **Step 1: Build BasicsSummary** — Card: "오늘의 베이직", completion count (3/7), progress bar, inline list of items with check/unchecked icons grouped by category. Tap navigates to `/basics`.
+
+- [ ] **Step 2: Build EventsSummary** — Card: "다가오는 이벤트", up to 5 events within 14 days from `useEvents().upcoming`. Each row: date + title. Empty state: "예정된 이벤트가 없습니다". Tap navigates to `/schedule`.
+
+- [ ] **Step 3: Build FinanceSummary** — Card: "4월 재정", rows for heaven bank sowing total, obligations paid/total, necessities spent/budget, surplus saved. Tap navigates to `/finance`.
+
+- [ ] **Step 4: Build Dashboard page**
+
+Modify `src/app/page.tsx`:
+
+```tsx
+"use client";
+
+import { BasicsSummary } from "@/components/dashboard/basics-summary";
+import { EventsSummary } from "@/components/dashboard/events-summary";
+import { FinanceSummary } from "@/components/dashboard/finance-summary";
+import { useSettings } from "@/lib/hooks/use-settings";
+import { getLogicalDate, formatDateKR } from "@/lib/utils/date";
+import Link from "next/link";
+
+export default function DashboardPage() {
+  const { settings } = useSettings();
+  const today = getLogicalDate(settings?.day_start_time);
+
+  return (
+    <div className="p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-warm-700">Plumbline</h1>
+          <p className="text-sm text-warm-400">{formatDateKR(today)}</p>
+        </div>
+        <Link href="/settings" className="text-warm-400 hover:text-warm-600 text-xl">
+          ⚙️
+        </Link>
+      </div>
+      <BasicsSummary dayStartTime={settings?.day_start_time} />
+      <EventsSummary />
+      <FinanceSummary />
+    </div>
+  );
+}
+```
 
 - [ ] **Step 5: Commit**
 
@@ -2214,23 +3335,30 @@ git commit -m "feat: add dashboard with basics, events, and finance summary card
 
 ---
 
-### Task 17: Settings Page
+### Task 18: Settings Page
 
 **Files:**
 - Create: `src/app/settings/page.tsx`
 
-- [ ] **Step 1: Build Settings page** — day start/end time pickers, timezone, time unit selector (10/15/30/60), logout button. Uses useSettings hook.
+- [ ] **Step 1: Build Settings page**
+
+Create `src/app/settings/page.tsx` — uses `useSettings` hook. Sections:
+- 하루 시작 시간: time picker (default 04:00)
+- 하루 종료 시간: time picker (default 00:00)
+- 시간 단위: segmented control (10분/15분/30분/1시간)
+- 로그아웃 button (calls `supabase.auth.signOut()`, redirect to `/login`)
+- Back link to dashboard
 
 - [ ] **Step 2: Commit**
 
 ```bash
 git add src/app/settings/
-git commit -m "feat: add user settings page (time range, timezone, time unit)"
+git commit -m "feat: add user settings page with time config and logout"
 ```
 
 ---
 
-### Task 18: PWA Configuration
+### Task 19: PWA Configuration
 
 **Files:**
 - Create: `public/manifest.json`
@@ -2256,28 +3384,43 @@ git commit -m "feat: add user settings page (time range, timezone, time unit)"
 }
 ```
 
-- [ ] **Step 2: Configure next-pwa**
+- [ ] **Step 2: Configure @serwist/next**
+
+Install: `npm install @serwist/next` (already in Task 1 deps).
 
 Update `next.config.ts`:
 
 ```typescript
-import withPWA from "next-pwa";
+import withSerwist from "@serwist/next";
 
-const nextConfig = withPWA({
-  dest: "public",
-  register: true,
-  skipWaiting: true,
+const nextConfig = withSerwist({
+  swSrc: "src/sw.ts",
+  swDest: "public/sw.js",
   disable: process.env.NODE_ENV === "development",
 })({});
 
 export default nextConfig;
 ```
 
-- [ ] **Step 3: Create placeholder icons**
+Create `src/sw.ts`:
 
-Generate simple 192x192 and 512x512 PNG icons with "P" letter. These are placeholders to be replaced with proper branding later.
+```typescript
+import { defaultCache } from "@serwist/next/worker";
+import { Serwist } from "serwist";
 
-- [ ] **Step 4: Test PWA in production build**
+const serwist = new Serwist({
+  precacheEntries: self.__SW_MANIFEST,
+  skipWaiting: true,
+  clientsClaim: true,
+  runtimeCaching: defaultCache,
+});
+
+serwist.addEventListeners();
+```
+
+- [ ] **Step 3: Create placeholder icons** — simple 192 and 512 PNGs.
+
+- [ ] **Step 4: Test PWA**
 
 ```bash
 npm run build && npm start
@@ -2288,13 +3431,13 @@ Expected: Service worker registers, app installable from browser.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add public/manifest.json public/icons/ next.config.ts
-git commit -m "feat: configure PWA with manifest and service worker"
+git add public/manifest.json public/icons/ next.config.ts src/sw.ts
+git commit -m "feat: configure PWA with @serwist/next and manifest"
 ```
 
 ---
 
-### Task 19: Offline Banner
+### Task 20: Offline Banner
 
 **Files:**
 - Create: `src/components/ui/offline-banner.tsx`
@@ -2345,17 +3488,174 @@ git commit -m "feat: add offline status banner"
 
 ---
 
-## Phase 6: Polish & Deploy
+## Phase 6: Testing & Deploy
 
-### Task 20: Supabase Project Setup & Deploy
+### Task 21: Core Unit Tests
+
+**Files:**
+- Create: `vitest.config.ts`
+- Create: `src/lib/utils/__tests__/date.test.ts`
+- Create: `src/lib/utils/__tests__/format.test.ts`
+
+- [ ] **Step 1: Configure Vitest**
+
+Create `vitest.config.ts`:
+
+```typescript
+import { defineConfig } from "vitest/config";
+import path from "path";
+
+export default defineConfig({
+  test: {
+    environment: "jsdom",
+  },
+  resolve: {
+    alias: { "@": path.resolve(__dirname, "src") },
+  },
+});
+```
+
+Add to `package.json` scripts: `"test": "vitest run", "test:watch": "vitest"`
+
+- [ ] **Step 2: Write date utility tests**
+
+Create `src/lib/utils/__tests__/date.test.ts`:
+
+```typescript
+import { describe, it, expect, vi } from "vitest";
+import { getLogicalDate, getWeekStart, getWeekDates, generateTimeSlots } from "../date";
+
+describe("getLogicalDate", () => {
+  it("returns today when after day start", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-12T10:00:00"));
+    expect(getLogicalDate("04:00")).toBe("2026-04-12");
+    vi.useRealTimers();
+  });
+
+  it("returns yesterday when before day start", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-12T03:00:00"));
+    expect(getLogicalDate("04:00")).toBe("2026-04-11");
+    vi.useRealTimers();
+  });
+
+  it("returns today at exactly day start", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-12T04:00:00"));
+    expect(getLogicalDate("04:00")).toBe("2026-04-12");
+    vi.useRealTimers();
+  });
+});
+
+describe("getWeekStart", () => {
+  it("returns Monday for a Wednesday", () => {
+    expect(getWeekStart("2026-04-15")).toBe("2026-04-13"); // Wed -> Mon
+  });
+
+  it("returns same day for a Monday", () => {
+    expect(getWeekStart("2026-04-13")).toBe("2026-04-13");
+  });
+
+  it("returns previous Monday for a Sunday", () => {
+    expect(getWeekStart("2026-04-12")).toBe("2026-04-06"); // Sun -> prev Mon
+  });
+});
+
+describe("getWeekDates", () => {
+  it("returns 7 dates starting from Monday", () => {
+    const dates = getWeekDates("2026-04-15");
+    expect(dates).toHaveLength(7);
+    expect(dates[0]).toBe("2026-04-13"); // Monday
+    expect(dates[6]).toBe("2026-04-19"); // Sunday
+  });
+});
+
+describe("generateTimeSlots", () => {
+  it("generates 30-min slots from 04:00 to 06:00", () => {
+    const slots = generateTimeSlots("04:00", "06:00", 30);
+    expect(slots).toEqual(["04:00", "04:30", "05:00", "05:30"]);
+  });
+
+  it("handles midnight end time as 24:00", () => {
+    const slots = generateTimeSlots("23:00", "00:00", 30);
+    expect(slots).toEqual(["23:00", "23:30"]);
+  });
+});
+```
+
+- [ ] **Step 3: Write format utility tests**
+
+Create `src/lib/utils/__tests__/format.test.ts`:
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { formatWon, calcPercent } from "../format";
+
+describe("formatWon", () => {
+  it("formats with commas", () => {
+    expect(formatWon(1000000)).toBe("1,000,000");
+  });
+
+  it("formats zero", () => {
+    expect(formatWon(0)).toBe("0");
+  });
+});
+
+describe("calcPercent", () => {
+  it("calculates percentage", () => {
+    expect(calcPercent(3, 7)).toBe(43);
+  });
+
+  it("returns 0 when total is 0", () => {
+    expect(calcPercent(5, 0)).toBe(0);
+  });
+
+  it("caps at 100", () => {
+    expect(calcPercent(10, 5)).toBe(100);
+  });
+});
+```
+
+- [ ] **Step 4: Run tests**
+
+```bash
+npm test
+```
+
+Expected: All tests pass.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add vitest.config.ts src/lib/utils/__tests__/ package.json
+git commit -m "test: add unit tests for date and format utilities"
+```
+
+---
+
+### Task 22: Supabase Project Setup & Deploy
 
 - [ ] **Step 1: Create Supabase project** at supabase.com
 - [ ] **Step 2: Run migrations** against remote Supabase instance
+
+```bash
+npx supabase db push --linked
+```
+
 - [ ] **Step 3: Update .env.local** with actual Supabase URL and anon key
-- [ ] **Step 4: Test full flow locally** — sign up, add basics templates, check daily basics, create schedule, add finance entries
-- [ ] **Step 5: Deploy to Vercel** — connect GitHub repo, set environment variables
+- [ ] **Step 4: Test full flow locally** — sign up, add basics templates, check daily basics, create schedule plans and actuals, add heaven bank entries, test obligations auto-carry, add transactions, verify debt progress
+- [ ] **Step 5: Deploy to Vercel** — connect GitHub repo, set environment variables (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY)
 - [ ] **Step 6: Verify deployed app** — test login, all features on both PC and mobile browser
 - [ ] **Step 7: Add to mobile home screen** — verify PWA works as standalone app
+
+---
+
+## Notes
+
+- **Realtime sync** is deferred to post-MVP. Current implementation requires manual refresh for cross-device updates.
+- **Tab navigation** uses lucide-react icons (not emojis) for consistent cross-platform rendering.
+- **Surplus storage** uses `finance_budgets` (surplus category) for goal and `finance_transactions` sum for saved amount — no extra table needed.
 
 ---
 
@@ -2364,8 +3664,8 @@ git commit -m "feat: add offline status banner"
 | Phase | Tasks | Description |
 |-------|-------|-------------|
 | 1 | 1-5 | Project setup, Supabase schema, auth, types, shared UI |
-| 2 | 6-8 | Basics feature (hooks, daily check, template settings) |
-| 3 | 9-11 | Schedule feature (hooks, weekly/monthly views, presets) |
-| 4 | 12-15 | Finance feature (heaven bank, obligations, debts, necessities, wants, surplus) |
-| 5 | 16-19 | Dashboard, settings, PWA, offline banner |
-| 6 | 20 | Supabase setup, deploy to Vercel, verify |
+| 2 | 6-9 | Basics feature (hooks, daily check, template settings, statistics) |
+| 3 | 10-12 | Schedule feature (hooks, weekly 2-col view, monthly view, presets) |
+| 4 | 13-16 | Finance feature (heaven bank, obligations, debts, necessities, wants, surplus) |
+| 5 | 17-20 | Dashboard, settings, PWA, offline banner |
+| 6 | 21-22 | Unit tests, Supabase setup, deploy to Vercel |
