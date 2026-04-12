@@ -306,7 +306,7 @@ color             TEXT
 ### finance_categories
 ```
 id, user_id
-type              TEXT  -- 'sowing' | 'obligation' | 'necessity' | 'want' | 'surplus'
+type              TEXT  -- 'sowing' | 'obligation' | 'necessity' | 'surplus' (wants use finance_wants table)
 title             TEXT
 default_amount    NUMERIC  -- for obligations auto-carry
 sort_order        INTEGER
@@ -378,7 +378,7 @@ title             TEXT
 estimated_price   NUMERIC
 is_purchased      BOOLEAN DEFAULT false
 purchased_date    DATE
-month             TEXT  -- '2026-04'
+created_month     TEXT  -- '2026-04', month the item was added (not monthly scoping)
 ```
 
 ## 10. Data Lifecycle
@@ -400,6 +400,8 @@ Key composite indexes for query performance:
 | `heaven_bank` | `(user_id, date)` |
 | `finance_transactions` | `(user_id, date)` |
 | `finance_obligations` | `(user_id, month)` |
+| `finance_budgets` | `(user_id, month)` |
+| `finance_debt_payments` | `(user_id, debt_id)` |
 
 ## 12. Authentication
 
