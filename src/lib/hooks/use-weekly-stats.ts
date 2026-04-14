@@ -111,7 +111,6 @@ export function useWeeklyStats(
     } catch {
       // Fallback to demo data on error
       const today = getLogicalDate(dayStartTime);
-      const weekStart = getWeekStart(today);
       const dates = getWeekDates(today);
 
       const result: WeeklyItemStat[] = demoTemplates.map((template: BasicsTemplate) => {
