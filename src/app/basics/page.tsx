@@ -1,49 +1,106 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { Settings as SettingsIcon } from "lucide-react";
 import { useBasics } from "@/lib/hooks/use-basics";
+import { useBasicsStats } from "@/lib/hooks/use-basics-stats";
 import { useSettings } from "@/lib/hooks/use-settings";
 import { BasicsList } from "@/components/basics/basics-list";
 import { BasicsStats } from "@/components/basics/basics-stats";
+import { StatsView } from "@/components/basics/stats-view";
+import { CelebrateOverlay } from "@/components/ui/celebrate-overlay";
+import { SkeletonCard } from "@/components/ui/skeleton";
+import { useToast, vibrate } from "@/components/ui/toast";
+import { getStreakMilestone } from "@/lib/utils/streak";
 import { formatDateKR } from "@/lib/utils/date";
-import Link from "next/link";
 
 export default function BasicsPage() {
   const [tab, setTab] = useState<"check" | "stats">("check");
   const { settings } = useSettings();
   const { templates, logs, loading, today, toggleCheck, updateValue } =
     useBasics(settings?.day_start_time);
+  const { stats } = useBasicsStats();
+  const { toast } = useToast();
+
+  const [celebrateTick, setCelebrateTick] = useState(0);
+  const prevAllDone = useRef(false);
+  const didInit = useRef(false);
+
+  const completedCount = logs.filter((l) => l.completed).length;
+  const totalCount = templates.length;
+  const allDone = totalCount > 0 && completedCount === totalCount;
+
+  // 최고 스트릭
+  const topStreak = stats.reduce((max, s) => Math.max(max, s.streak), 0);
+  const milestone = getStreakMilestone(topStreak);
+
+  useEffect(() => {
+    if (!didInit.current) {
+      prevAllDone.current = allDone;
+      didInit.current = true;
+      return;
+    }
+    if (allDone && !prevAllDone.current) {
+      setCelebrateTick((t) => t + 1);
+      vibrate([20, 60, 20]);
+      toast("오늘의 베이직을 모두 완료했어요! 🎉");
+    }
+    prevAllDone.current = allDone;
+  }, [allDone, toast]);
 
   if (loading) {
-    return <div className="p-6 text-center text-warm-400">로딩 중...</div>;
+    return (
+      <div className="p-4 lg:p-8 space-y-4">
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+    );
   }
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 lg:p-8 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-warm-700">오늘의 베이직</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+          오늘의 베이직
+        </h1>
         <Link
           href="/basics/settings"
-          className="text-sm text-warm-400 hover:text-warm-600"
+          className="text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:hover:text-primary-300 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+          aria-label="베이직 설정"
         >
-          ⚙️ 설정
+          <SettingsIcon size={20} />
         </Link>
       </div>
-      <p className="text-sm text-warm-400">{formatDateKR(today)}</p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-400 dark:text-gray-500">
+          {formatDateKR(today)}
+        </p>
+        {milestone && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-heaven-50 dark:bg-heaven-700/20 px-2.5 py-1 text-xs font-semibold text-heaven-700 dark:text-heaven-300">
+            <span aria-hidden>{milestone.emoji}</span>
+            {milestone.label}
+          </span>
+        )}
+      </div>
 
       <div className="flex gap-2">
         <button
           onClick={() => setTab("check")}
-          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
-            tab === "check" ? "bg-warm-500 text-white" : "bg-warm-100 text-warm-400"
+          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors tap-press ${
+            tab === "check"
+              ? "bg-primary-500 text-white"
+              : "bg-gray-100 dark:bg-[#1f242e] text-gray-400 dark:text-gray-500"
           }`}
         >
           체크
         </button>
         <button
           onClick={() => setTab("stats")}
-          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
-            tab === "stats" ? "bg-warm-500 text-white" : "bg-warm-100 text-warm-400"
+          className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors tap-press ${
+            tab === "stats"
+              ? "bg-primary-500 text-white"
+              : "bg-gray-100 dark:bg-[#1f242e] text-gray-400 dark:text-gray-500"
           }`}
         >
           통계
@@ -51,15 +108,22 @@ export default function BasicsPage() {
       </div>
 
       {tab === "check" ? (
-        <BasicsList
-          templates={templates}
-          logs={logs}
-          onToggle={toggleCheck}
-          onUpdateValue={updateValue}
-        />
+        <>
+          <BasicsList
+            templates={templates}
+            logs={logs}
+            onToggle={toggleCheck}
+            onUpdateValue={updateValue}
+          />
+          <div className="mt-4">
+            <BasicsStats />
+          </div>
+        </>
       ) : (
-        <BasicsStats />
+        <StatsView dayStartTime={settings?.day_start_time || "04:00"} />
       )}
+
+      <CelebrateOverlay trigger={celebrateTick} />
     </div>
   );
 }
