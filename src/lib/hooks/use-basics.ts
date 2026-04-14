@@ -2,8 +2,10 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { FIXED_USER_ID } from "@/lib/constants";
 import { getLogicalDate } from "@/lib/utils/date";
 import type { BasicsTemplate, BasicsLog } from "@/types/database";
+import { demoTemplates, demoLogs } from "@/lib/demo-data";
 
 export function useBasics(dayStartTime: string = "04:00") {
   const [templates, setTemplates] = useState<BasicsTemplate[]>([]);
@@ -37,16 +39,16 @@ export function useBasics(dayStartTime: string = "04:00") {
       .select("template_id")
       .eq("date", today);
 
-    const existingIds = new Set((existing ?? []).map((l) => l.template_id));
+    const existingIds = new Set((existing ?? []).map((l: { template_id: string }) => l.template_id));
     const { data: active } = await supabase
       .from("basics_templates")
       .select("id, user_id")
       .eq("is_active", true);
 
-    const missing = (active ?? []).filter((t) => !existingIds.has(t.id));
+    const missing = (active ?? []).filter((t: { id: string; user_id: string }) => !existingIds.has(t.id));
     if (missing.length > 0) {
       await supabase.from("basics_logs").insert(
-        missing.map((t) => ({
+        missing.map((t: { id: string; user_id: string }) => ({
           user_id: t.user_id,
           template_id: t.id,
           date: today,
@@ -57,9 +59,15 @@ export function useBasics(dayStartTime: string = "04:00") {
 
   useEffect(() => {
     async function init() {
-      await loadTemplates();
-      await generateDailyLogs();
-      await loadLogs();
+      try {
+        await loadTemplates();
+        await generateDailyLogs();
+        await loadLogs();
+      } catch {
+        // Supabase 미연결 시 빈 상태
+        setTemplates(demoTemplates);
+        setLogs(demoLogs);
+      }
       setLoading(false);
     }
     init();
@@ -89,12 +97,10 @@ export function useBasics(dayStartTime: string = "04:00") {
     await loadLogs();
   }
 
-  async function addTemplate(template: Omit<BasicsTemplate, "id" | "user_id" | "created_at" | "is_active" | "sort_order">) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+  async function addTemplate(template: Omit<BasicsTemplate, "id" | "user_id" | "created_at" | "is_active" | "sort_order" | "deactivated_at">) {
     await supabase.from("basics_templates").insert({
       ...template,
-      user_id: user.id,
+      user_id: FIXED_USER_ID,
       sort_order: templates.length,
     });
     await loadTemplates();
@@ -105,7 +111,7 @@ export function useBasics(dayStartTime: string = "04:00") {
   async function deactivateTemplate(templateId: string) {
     await supabase
       .from("basics_templates")
-      .update({ is_active: false })
+      .update({ is_active: false, deactivated_at: new Date().toISOString() })
       .eq("id", templateId);
     await loadTemplates();
   }

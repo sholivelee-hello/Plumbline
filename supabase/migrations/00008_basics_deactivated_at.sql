@@ -1,0 +1,2 @@
+ALTER TABLE basics_templates
+ADD COLUMN deactivated_at TIMESTAMPTZ DEFAULT NULL;

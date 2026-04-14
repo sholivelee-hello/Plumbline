@@ -3,7 +3,6 @@ export type BasicType = "check" | "number";
 export type ScheduleTimeUnit = 10 | 15 | 30 | 60;
 export type HeavenBankEntryType = "sow" | "reap";
 export type FinanceCategoryType = "sowing" | "obligation" | "necessity" | "surplus";
-export type AccountType = "bank" | "debit_card";
 export type TransactionType = "income" | "expense";
 
 export interface UserSettings {
@@ -13,6 +12,7 @@ export interface UserSettings {
   day_end_time: string;
   timezone: string;
   time_unit: ScheduleTimeUnit;
+  salary_day?: number | null;
 }
 
 export interface BasicsTemplate {
@@ -25,6 +25,7 @@ export interface BasicsTemplate {
   target_value: number | null;
   sort_order: number;
   is_active: boolean;
+  deactivated_at: string | null;
   created_at: string;
 }
 
@@ -82,15 +83,6 @@ export interface ScheduleActual {
   is_from_plan: boolean;
 }
 
-export interface FinanceAccount {
-  id: string;
-  user_id: string;
-  name: string;
-  type: AccountType;
-  balance: number;
-  color: string;
-}
-
 export interface FinanceCategory {
   id: string;
   user_id: string;
@@ -124,7 +116,7 @@ export interface FinanceObligation {
 export interface FinanceTransaction {
   id: string;
   user_id: string;
-  account_id: string;
+  account_id?: string | null;
   type: TransactionType;
   amount: number;
   category_id: string | null;
@@ -167,4 +159,17 @@ export interface FinanceWant {
   is_purchased: boolean;
   purchased_date: string | null;
   created_month: string;
+}
+
+export interface FinanceInstallment {
+  id: string;
+  user_id: string;
+  title: string;
+  total_amount: number;
+  monthly_payment: number;
+  total_months: number;
+  paid_months: number;
+  start_date: string;
+  is_completed: boolean;
+  created_at: string;
 }
