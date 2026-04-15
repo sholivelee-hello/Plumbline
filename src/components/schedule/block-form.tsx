@@ -7,17 +7,21 @@ const COLOR_PRESETS = ["#d4c4b0", "#c8d4e8", "#c8dcc8", "#f0d4b4", "#e0e8f0", "#
 interface BlockFormProps {
   onSave: (data: {
     title: string;
+    date: string;
     start_time: string;
     end_time: string;
     color: string;
     saveAsPreset: boolean;
+    asActual: boolean;
   }) => void;
   onCancel: () => void;
   timeSlots: string[];
+  defaultDate: string;           // 필수: YYYY-MM-DD
   defaultStartTime?: string;
   defaultTitle?: string;
   defaultColor?: string;
   defaultDurationMinutes?: number;
+  defaultAsActual?: boolean;     // 기본 false (계획)
 }
 
 function addMinutes(time: string, minutes: number): string {
@@ -32,10 +36,12 @@ export function BlockForm({
   onSave,
   onCancel,
   timeSlots,
+  defaultDate,
   defaultStartTime,
   defaultTitle,
   defaultColor,
   defaultDurationMinutes,
+  defaultAsActual,
 }: BlockFormProps) {
   const defaultStart = defaultStartTime ?? timeSlots[0] ?? "09:00";
   const defaultEnd = defaultDurationMinutes
@@ -51,21 +57,37 @@ export function BlockForm({
   const [endTime, setEndTime] = useState(defaultEnd);
   const [color, setColor] = useState(defaultColor ?? COLOR_PRESETS[0]);
   const [saveAsPreset, setSaveAsPreset] = useState(false);
+  const [date, setDate] = useState(defaultDate);
+  const [asActual, setAsActual] = useState(defaultAsActual ?? false);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
     onSave({
       title: title.trim(),
+      date,
       start_time: startTime,
       end_time: endTime,
       color,
       saveAsPreset,
+      asActual,
     });
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1 pl-1">
+          날짜
+        </label>
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-[#262c38] bg-gray-50 dark:bg-[#1f242e] text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-300 text-sm"
+        />
+      </div>
+
       <input
         type="text"
         placeholder="활동 이름 (예: 기도, 독서, 운동)"
@@ -144,6 +166,18 @@ export function BlockForm({
         />
         <span className="text-sm text-gray-600 dark:text-gray-300">
           즐겨찾기에 저장
+        </span>
+      </label>
+
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={asActual}
+          onChange={(e) => setAsActual(e.target.checked)}
+          className="w-4 h-4 rounded accent-primary-500"
+        />
+        <span className="text-sm text-gray-600 dark:text-gray-300">
+          실제로 기록 (계획이 아닌 완료된 일로 저장)
         </span>
       </label>
 
