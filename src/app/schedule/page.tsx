@@ -7,6 +7,7 @@ import { WeeklyView } from "@/components/schedule/weekly-view";
 import { MonthlyView } from "@/components/schedule/monthly-view";
 import { BlockForm } from "@/components/schedule/block-form";
 import { EventForm } from "@/components/schedule/event-form";
+import { EventListModal } from "@/components/schedule/event-list-modal";
 import { PresetPicker } from "@/components/schedule/preset-picker";
 import { Modal } from "@/components/ui/modal";
 import { useSchedule } from "@/lib/hooks/use-schedule";
@@ -26,6 +27,8 @@ export default function SchedulePage() {
   const [presetOpen, setPresetOpen] = useState(false);
   const [eventFormOpen, setEventFormOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [eventListDate, setEventListDate] = useState<string | null>(null);
+  const [eventDefaultDate, setEventDefaultDate] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [formInitial, setFormInitial] = useState<{
     date: string;
@@ -138,6 +141,7 @@ export default function SchedulePage() {
     }
     setEventFormOpen(false);
     setEditingEvent(null);
+    setEventDefaultDate(null);
   }
 
   async function handleDeleteEvent() {
@@ -145,6 +149,7 @@ export default function SchedulePage() {
     await deleteEvent(editingEvent.id);
     setEventFormOpen(false);
     setEditingEvent(null);
+    setEventDefaultDate(null);
   }
 
   return (
@@ -241,12 +246,7 @@ export default function SchedulePage() {
       {view === "monthly" && (
         <MonthlyView
           events={events}
-          onSelectDate={(date) => {
-            setWeekStart(getWeekStart(date));
-            setView("weekly");
-          }}
-          onAddEvent={addEvent}
-          onDeleteEvent={deleteEvent}
+          onDateTap={(date) => setEventListDate(date)}
         />
       )}
 
@@ -286,18 +286,35 @@ export default function SchedulePage() {
 
       <Modal
         isOpen={eventFormOpen}
-        onClose={() => { setEventFormOpen(false); setEditingEvent(null); }}
+        onClose={() => { setEventFormOpen(false); setEditingEvent(null); setEventDefaultDate(null); }}
         title={editingEvent ? "이벤트 편집" : "이벤트 추가"}
       >
         <EventForm
           mode={editingEvent ? "edit" : "add"}
           initial={editingEvent ?? undefined}
-          defaultDate={today}
+          defaultDate={eventDefaultDate ?? today}
           onSave={handleSaveEvent}
-          onCancel={() => { setEventFormOpen(false); setEditingEvent(null); }}
+          onCancel={() => { setEventFormOpen(false); setEditingEvent(null); setEventDefaultDate(null); }}
           onDelete={editingEvent ? handleDeleteEvent : undefined}
         />
       </Modal>
+
+      <EventListModal
+        date={eventListDate}
+        events={events}
+        onClose={() => setEventListDate(null)}
+        onEdit={(ev) => {
+          setEventListDate(null);
+          setEditingEvent(ev);
+          setEventFormOpen(true);
+        }}
+        onAddNew={(date) => {
+          setEventListDate(null);
+          setEditingEvent(null);
+          setEventDefaultDate(date);
+          setEventFormOpen(true);
+        }}
+      />
     </div>
   );
 }

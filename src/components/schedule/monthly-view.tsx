@@ -1,15 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
-import { Modal } from "@/components/ui/modal";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Event } from "@/types/database";
 
 interface MonthlyViewProps {
   events: Event[];
-  onSelectDate: (date: string) => void;
-  onAddEvent?: (event: Omit<Event, "id" | "user_id">) => void;
-  onDeleteEvent?: (id: string) => void;
+  onDateTap: (date: string) => void;
 }
 
 function getDaysInMonth(year: number, month: number): number {
@@ -24,13 +21,12 @@ function toDateStr(year: number, month: number, day: number): string {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-export function MonthlyView({ events, onSelectDate, onDeleteEvent }: MonthlyViewProps) {
+export function MonthlyView({ events, onDateTap }: MonthlyViewProps) {
   const today = new Date();
   const todayStr = today.toISOString().split("T")[0];
 
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
-  const [detail, setDetail] = useState<Event | null>(null);
 
   function prevMonth() {
     if (month === 0) {
@@ -136,7 +132,7 @@ export function MonthlyView({ events, onSelectDate, onDeleteEvent }: MonthlyView
               <div className="w-full flex justify-center">
                 <button
                   type="button"
-                  onClick={() => onSelectDate(dateStr)}
+                  onClick={() => onDateTap(dateStr)}
                   aria-label={`${dateStr} 보기`}
                   className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full transition-colors tap-press ${
                     isToday
@@ -156,7 +152,7 @@ export function MonthlyView({ events, onSelectDate, onDeleteEvent }: MonthlyView
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setDetail(ev);
+                      onDateTap(dateStr);
                     }}
                     className="w-full text-left rounded-md px-1.5 py-0.5 text-[10px] font-medium leading-tight truncate tap-press"
                     style={{
@@ -178,50 +174,6 @@ export function MonthlyView({ events, onSelectDate, onDeleteEvent }: MonthlyView
           );
         })}
       </div>
-
-      <Modal
-        isOpen={!!detail}
-        onClose={() => setDetail(null)}
-        title={detail?.title}
-      >
-        {detail && (
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <span
-                className="w-2 h-2 rounded-full mt-1.5 shrink-0"
-                style={{ backgroundColor: detail.color }}
-                aria-hidden
-              />
-              <div className="text-sm text-gray-700 dark:text-gray-200 space-y-1">
-                <p>
-                  <Calendar size={12} className="inline mr-1" />
-                  {detail.start_date}
-                  {detail.start_date !== detail.end_date &&
-                    ` ~ ${detail.end_date}`}
-                  {detail.start_time && ` · ${detail.start_time}`}
-                </p>
-                {detail.memo && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{detail.memo}</p>
-                )}
-              </div>
-            </div>
-            {onDeleteEvent && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (detail) {
-                    onDeleteEvent(detail.id);
-                    setDetail(null);
-                  }
-                }}
-                className="w-full py-2.5 rounded-xl bg-obligation-50 dark:bg-obligation-700/20 text-obligation-600 dark:text-obligation-300 text-sm font-medium hover:bg-obligation-100 dark:hover:bg-obligation-700/30 tap-press"
-              >
-                삭제
-              </button>
-            )}
-          </div>
-        )}
-      </Modal>
     </div>
   );
 }
