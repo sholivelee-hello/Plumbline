@@ -15,6 +15,8 @@ import type {
   FinanceDebtPayment,
   FinanceWant,
   FinanceInstallment,
+  WeeklyTemplate,
+  WeeklyTemplateBlock,
 } from "@/types/database";
 
 const USER_ID = "demo-user-000";
@@ -81,6 +83,31 @@ export const demoPlans: SchedulePlan[] = [
 export const demoActuals: ScheduleActual[] = [
   { id: "ac1", user_id: USER_ID, plan_id: "pl1", date: TODAY, start_time: "05:00", end_time: "05:30", title: "QT", color: "#7575D8", is_from_plan: true },
   { id: "ac2", user_id: USER_ID, plan_id: "pl2", date: TODAY, start_time: "05:30", end_time: "06:10", title: "기도", color: "#7575D8", is_from_plan: true },
+  { id: "ac3", user_id: USER_ID, plan_id: null, date: daysFromToday(-1), start_time: "07:00", end_time: "08:00", title: "아침 산책", color: "#A8C5A0", is_from_plan: false },
+  { id: "ac4", user_id: USER_ID, plan_id: null, date: daysFromToday(-1), start_time: "22:00", end_time: "22:30", title: "일기 쓰기", color: "#C4A8C5", is_from_plan: false },
+];
+
+export const demoWeeklyTemplates: WeeklyTemplate[] = [
+  { id: "wt1", user_id: USER_ID, name: "평일 루틴", created_at: THIRTY_DAYS_AGO, updated_at: THIRTY_DAYS_AGO },
+  { id: "wt2", user_id: USER_ID, name: "주말 루틴", created_at: THIRTY_DAYS_AGO, updated_at: THIRTY_DAYS_AGO },
+];
+
+export const demoWeeklyTemplateBlocks: WeeklyTemplateBlock[] = [
+  // 평일 루틴 (wt1): 월~금
+  { id: "wtb1", template_id: "wt1", day_of_week: 1, start_time: "05:00", end_time: "05:30", title: "QT", color: "#7575D8" },
+  { id: "wtb2", template_id: "wt1", day_of_week: 1, start_time: "06:30", end_time: "07:30", title: "운동", color: "#A8C5A0" },
+  { id: "wtb3", template_id: "wt1", day_of_week: 2, start_time: "05:00", end_time: "05:30", title: "QT", color: "#7575D8" },
+  { id: "wtb4", template_id: "wt1", day_of_week: 2, start_time: "06:30", end_time: "07:30", title: "운동", color: "#A8C5A0" },
+  { id: "wtb5", template_id: "wt1", day_of_week: 3, start_time: "05:00", end_time: "05:30", title: "QT", color: "#7575D8" },
+  { id: "wtb6", template_id: "wt1", day_of_week: 3, start_time: "06:30", end_time: "07:30", title: "운동", color: "#A8C5A0" },
+  { id: "wtb7", template_id: "wt1", day_of_week: 4, start_time: "05:00", end_time: "05:30", title: "QT", color: "#7575D8" },
+  { id: "wtb8", template_id: "wt1", day_of_week: 5, start_time: "05:00", end_time: "05:30", title: "QT", color: "#7575D8" },
+  { id: "wtb9", template_id: "wt1", day_of_week: 5, start_time: "19:00", end_time: "20:00", title: "셀 모임", color: "#C4A8C5" },
+  // 주말 루틴 (wt2): 일, 토
+  { id: "wtb10", template_id: "wt2", day_of_week: 0, start_time: "08:30", end_time: "09:30", title: "새벽예배", color: "#7575D8" },
+  { id: "wtb11", template_id: "wt2", day_of_week: 0, start_time: "11:00", end_time: "12:30", title: "주일예배", color: "#7575D8" },
+  { id: "wtb12", template_id: "wt2", day_of_week: 6, start_time: "09:00", end_time: "10:30", title: "등산", color: "#A8C5A0" },
+  { id: "wtb13", template_id: "wt2", day_of_week: 6, start_time: "15:00", end_time: "17:00", title: "독서", color: "#93B5C6" },
 ];
 
 export const demoNecessityCategories: FinanceCategory[] = [

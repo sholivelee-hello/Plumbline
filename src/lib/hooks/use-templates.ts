@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { FIXED_USER_ID } from "@/lib/constants";
 import type { WeeklyTemplate, WeeklyTemplateBlock } from "@/types/database";
+import { demoWeeklyTemplates, demoWeeklyTemplateBlocks } from "@/lib/demo-data";
 
 export function useTemplates() {
   const [templates, setTemplates] = useState<WeeklyTemplate[]>([]);
@@ -12,13 +13,15 @@ export function useTemplates() {
 
   const load = useCallback(async () => {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("weekly_templates")
         .select("*")
         .order("updated_at", { ascending: false });
-      if (data) setTemplates(data);
+      if (error) throw error;
+      if (data && data.length > 0) setTemplates(data);
+      else setTemplates(demoWeeklyTemplates);
     } catch {
-      setTemplates([]);
+      setTemplates(demoWeeklyTemplates);
     }
     setLoading(false);
   }, []);
@@ -49,13 +52,19 @@ export function useTemplates() {
   }
 
   async function loadBlocks(templateId: string): Promise<WeeklyTemplateBlock[]> {
-    const { data } = await supabase
-      .from("weekly_template_blocks")
-      .select("*")
-      .eq("template_id", templateId)
-      .order("day_of_week")
-      .order("start_time");
-    return data ?? [];
+    try {
+      const { data, error } = await supabase
+        .from("weekly_template_blocks")
+        .select("*")
+        .eq("template_id", templateId)
+        .order("day_of_week")
+        .order("start_time");
+      if (error) throw error;
+      if (data && data.length > 0) return data;
+      return demoWeeklyTemplateBlocks.filter((b) => b.template_id === templateId);
+    } catch {
+      return demoWeeklyTemplateBlocks.filter((b) => b.template_id === templateId);
+    }
   }
 
   async function addBlock(block: Omit<WeeklyTemplateBlock, "id">) {
