@@ -232,6 +232,8 @@ export default function SchedulePage() {
             onEditComplete={(plan) => schedule.editAndComplete(plan, {})}
             onDeletePlan={schedule.deletePlan}
             onAddSlot={(date, start, asActual) => openAdd(date, start, asActual)}
+            events={events}
+            onEventClick={(e) => { setEditingEvent(e); setEventFormOpen(true); }}
           />
         </>
       )}

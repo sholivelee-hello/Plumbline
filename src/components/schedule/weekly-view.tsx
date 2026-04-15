@@ -5,7 +5,8 @@ import { TimeBlock } from "./time-block";
 import { BlockActionSheet } from "./block-action-sheet";
 import { generateTimeSlots, getLogicalDate } from "@/lib/utils/date";
 import { useMediaQuery } from "@/lib/hooks/use-media-query";
-import type { SchedulePlan, ScheduleActual } from "@/types/database";
+import type { SchedulePlan, ScheduleActual, Event } from "@/types/database";
+import { EventsStrip } from "./events-strip";
 
 interface WeeklyViewProps {
   weekDates: string[];
@@ -18,6 +19,8 @@ interface WeeklyViewProps {
   onEditComplete: (plan: SchedulePlan) => void;
   onDeletePlan: (planId: string) => void;
   onAddSlot?: (date: string, startTime: string | undefined, asActual: boolean) => void;
+  events: Event[];
+  onEventClick: (event: Event) => void;
 }
 
 const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -33,6 +36,8 @@ export function WeeklyView({
   onEditComplete,
   onDeletePlan,
   onAddSlot,
+  events,
+  onEventClick,
 }: WeeklyViewProps) {
   const todayStr = getLogicalDate(dayStartTime);
   const [selectedPlan, setSelectedPlan] = useState<SchedulePlan | null>(null);
@@ -159,6 +164,14 @@ export function WeeklyView({
             );
           })}
         </div>
+
+        {visibleCount === 7 && (
+          <EventsStrip
+            weekDates={weekDates}
+            events={events}
+            onEventClick={onEventClick}
+          />
+        )}
 
         <div
           className="grid gap-px"
