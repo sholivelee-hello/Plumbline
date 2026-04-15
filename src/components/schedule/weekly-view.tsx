@@ -17,7 +17,7 @@ interface WeeklyViewProps {
   onCompletePlan: (plan: SchedulePlan) => void;
   onEditComplete: (plan: SchedulePlan) => void;
   onDeletePlan: (planId: string) => void;
-  onAddSlot?: (date: string, startTime: string | undefined) => void;
+  onAddSlot?: (date: string, startTime: string | undefined, asActual: boolean) => void;
 }
 
 const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -73,8 +73,7 @@ export function WeeklyView({
     e: React.MouseEvent<HTMLDivElement>,
     col: "plan" | "actual"
   ) {
-    if (col !== "plan" || !onAddSlot) return;
-    // Detect if click was on an empty area (not on TimeBlock)
+    if (!onAddSlot) return;
     const target = e.target as HTMLElement;
     if (target.closest("[data-time-block]")) return;
 
@@ -85,7 +84,7 @@ export function WeeklyView({
     const abs = dayH * 60 + dayM + Math.floor(minutes / timeUnit) * timeUnit;
     const h = String(Math.floor((abs / 60) % 24)).padStart(2, "0");
     const m = String(abs % 60).padStart(2, "0");
-    onAddSlot(date, `${h}:${m}`);
+    onAddSlot(date, `${h}:${m}`, col === "actual");
   }
 
   return (
@@ -195,7 +194,7 @@ export function WeeklyView({
                   onKeyDown={(e) => {
                     if ((e.key === "Enter" || e.key === " ") && onAddSlot) {
                       e.preventDefault();
-                      onAddSlot(date, undefined);
+                      onAddSlot(date, undefined, false);
                     }
                   }}
                   className={`relative rounded-lg cursor-pointer transition-colors ${
@@ -225,21 +224,31 @@ export function WeeklyView({
                 </div>
                 {/* Actual column */}
                 <div
-                  className={`relative rounded-lg ${
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => handleColumnClick(date, e, "actual")}
+                  onKeyDown={(e) => {
+                    if ((e.key === "Enter" || e.key === " ") && onAddSlot) {
+                      e.preventDefault();
+                      onAddSlot(date, undefined, true);
+                    }
+                  }}
+                  className={`relative rounded-lg cursor-pointer transition-colors ${
                     isToday
                       ? "bg-primary-100/50 dark:bg-[#2a2e45]"
-                      : "bg-primary-50/60 dark:bg-[#1a1e2d]"
+                      : "bg-primary-50/60 dark:bg-[#1a1e2d] hover:bg-primary-100/60 dark:hover:bg-[#1f2435]"
                   }`}
                   style={{ height: `${totalHeight}px` }}
                 >
                   {dayActuals.map((a) => (
-                    <TimeBlock
-                      key={a.id}
-                      block={a}
-                      timeUnit={timeUnit}
-                      dayStartTime={dayStartTime}
-                      onClick={() => {}}
-                    />
+                    <div key={a.id} data-time-block onClick={(e) => e.stopPropagation()}>
+                      <TimeBlock
+                        block={a}
+                        timeUnit={timeUnit}
+                        dayStartTime={dayStartTime}
+                        onClick={() => {}}
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
