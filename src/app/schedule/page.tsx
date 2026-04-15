@@ -9,10 +9,12 @@ import { BlockForm } from "@/components/schedule/block-form";
 import { EventForm } from "@/components/schedule/event-form";
 import { EventListModal } from "@/components/schedule/event-list-modal";
 import { PresetPicker } from "@/components/schedule/preset-picker";
+import { TemplateApplyModal } from "@/components/schedule/template-apply-modal";
 import { Modal } from "@/components/ui/modal";
 import { useSchedule } from "@/lib/hooks/use-schedule";
 import { useEvents } from "@/lib/hooks/use-events";
 import { useSettings } from "@/lib/hooks/use-settings";
+import { useTemplates } from "@/lib/hooks/use-templates";
 import { getWeekStart, getLogicalDate, generateTimeSlots } from "@/lib/utils/date";
 import type { Event } from "@/types/database";
 
@@ -23,8 +25,10 @@ export default function SchedulePage() {
   const [weekStart, setWeekStart] = useState(getWeekStart(today));
   const schedule = useSchedule(weekStart);
   const { events, addEvent, updateEvent, deleteEvent } = useEvents();
+  const { templates, loadBlocks } = useTemplates();
 
   const [presetOpen, setPresetOpen] = useState(false);
+  const [applyOpen, setApplyOpen] = useState(false);
   const [eventFormOpen, setEventFormOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [eventListDate, setEventListDate] = useState<string | null>(null);
@@ -197,11 +201,21 @@ export default function SchedulePage() {
           </button>
           <Link
             href="/schedule/templates"
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-[#262c38] text-gray-600 dark:text-gray-300 text-sm tap-press"
-            aria-label="주간 템플릿"
+            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-xl border border-gray-200 dark:border-[#262c38] text-gray-600 dark:text-gray-300 text-xs tap-press"
+            aria-label="템플릿 관리"
           >
-            📋
+            📋 관리
           </Link>
+          {view === "weekly" && (
+            <button
+              type="button"
+              onClick={() => setApplyOpen(true)}
+              className="inline-flex items-center gap-1 px-2 py-1.5 rounded-xl border border-primary-300 text-primary-600 dark:text-primary-300 text-xs tap-press"
+              aria-label="템플릿 적용"
+            >
+              📥 적용
+            </button>
+          )}
         </div>
       </div>
 
@@ -314,6 +328,16 @@ export default function SchedulePage() {
           setEventDefaultDate(date);
           setEventFormOpen(true);
         }}
+      />
+
+      <TemplateApplyModal
+        isOpen={applyOpen}
+        onClose={() => setApplyOpen(false)}
+        templates={templates}
+        loadBlocks={loadBlocks}
+        targetWeekStart={weekStart}
+        hasExistingPlans={schedule.plans.length > 0}
+        onApply={(blocks, mode) => schedule.applyTemplate(blocks, weekStart, mode)}
       />
     </div>
   );
