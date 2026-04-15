@@ -54,11 +54,20 @@ export function useEvents() {
     await loadUpcoming();
   }
 
+  async function updateEvent(
+    eventId: string,
+    patch: Partial<Omit<Event, "id" | "user_id">>
+  ) {
+    await supabase.from("events").update(patch).eq("id", eventId);
+    await loadEvents();
+    await loadUpcoming();
+  }
+
   async function deleteEvent(eventId: string) {
     await supabase.from("events").delete().eq("id", eventId);
     await loadEvents();
     await loadUpcoming();
   }
 
-  return { events, upcoming, loading, addEvent, deleteEvent };
+  return { events, upcoming, loading, addEvent, updateEvent, deleteEvent };
 }
