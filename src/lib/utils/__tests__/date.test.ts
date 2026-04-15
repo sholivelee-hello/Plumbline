@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, vi } from "vitest";
-import { getLogicalDate, getWeekStart, getWeekDates, generateTimeSlots } from "../date";
+import { getLogicalDate, getWeekStart, getWeekDates, generateTimeSlots, getDateFromWeekStart } from "../date";
 
 describe("getLogicalDate", () => {
   it("returns today when after day start", () => {
@@ -26,25 +26,29 @@ describe("getLogicalDate", () => {
 });
 
 describe("getWeekStart", () => {
-  it("returns Monday for a Wednesday", () => {
-    expect(getWeekStart("2026-04-15")).toBe("2026-04-13");
+  it("returns Sunday for a Wednesday", () => {
+    expect(getWeekStart("2026-04-15")).toBe("2026-04-12");
   });
 
-  it("returns same day for a Monday", () => {
-    expect(getWeekStart("2026-04-13")).toBe("2026-04-13");
+  it("returns previous Sunday for a Monday", () => {
+    expect(getWeekStart("2026-04-13")).toBe("2026-04-12");
   });
 
-  it("returns previous Monday for a Sunday", () => {
-    expect(getWeekStart("2026-04-12")).toBe("2026-04-06");
+  it("returns same day for a Sunday", () => {
+    expect(getWeekStart("2026-04-12")).toBe("2026-04-12");
+  });
+
+  it("returns Sunday for a Saturday", () => {
+    expect(getWeekStart("2026-04-18")).toBe("2026-04-12");
   });
 });
 
 describe("getWeekDates", () => {
-  it("returns 7 dates starting from Monday", () => {
+  it("returns 7 dates starting from Sunday", () => {
     const dates = getWeekDates("2026-04-15");
     expect(dates).toHaveLength(7);
-    expect(dates[0]).toBe("2026-04-13");
-    expect(dates[6]).toBe("2026-04-19");
+    expect(dates[0]).toBe("2026-04-12");
+    expect(dates[6]).toBe("2026-04-18");
   });
 });
 
@@ -57,5 +61,19 @@ describe("generateTimeSlots", () => {
   it("handles midnight end time as 24:00", () => {
     const slots = generateTimeSlots("23:00", "00:00", 30);
     expect(slots).toEqual(["23:00", "23:30"]);
+  });
+});
+
+describe("getDateFromWeekStart", () => {
+  it("returns the Sunday itself for day 0", () => {
+    expect(getDateFromWeekStart("2026-04-12", 0)).toBe("2026-04-12");
+  });
+
+  it("returns Monday for day 1 (Sunday-start convention)", () => {
+    expect(getDateFromWeekStart("2026-04-12", 1)).toBe("2026-04-13");
+  });
+
+  it("returns Saturday for day 6", () => {
+    expect(getDateFromWeekStart("2026-04-12", 6)).toBe("2026-04-18");
   });
 });

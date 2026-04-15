@@ -1,8 +1,9 @@
-import { updateSession } from "@/lib/supabase/middleware";
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function middleware(request: NextRequest) {
-  return await updateSession(request);
+// 1인 전용 앱 - auth 제거됨. 단순 pass-through.
+export function middleware(_request: NextRequest) {
+  return NextResponse.next();
 }
 
 export const config = {

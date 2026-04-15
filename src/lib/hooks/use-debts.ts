@@ -2,7 +2,9 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { FIXED_USER_ID } from "@/lib/constants";
 import type { FinanceDebt, FinanceDebtPayment } from "@/types/database";
+import { demoDebts } from "@/lib/demo-data";
 
 interface DebtWithProgress extends FinanceDebt {
   total_paid: number;
@@ -16,22 +18,26 @@ export function useDebts() {
   const supabase = createClient();
 
   const load = useCallback(async () => {
-    const { data: debtRows } = await supabase.from("finance_debts").select("*")
-      .order("is_completed").order("created_at");
-    const { data: payments } = await supabase.from("finance_debt_payments").select("*")
-      .order("date", { ascending: false });
+    try {
+      const { data: debtRows } = await supabase.from("finance_debts").select("*")
+        .order("is_completed").order("created_at");
+      const { data: payments } = await supabase.from("finance_debt_payments").select("*")
+        .order("date", { ascending: false });
 
-    if (debtRows) {
-      setDebts(debtRows.map((d) => {
-        const dPayments = (payments ?? []).filter((p) => p.debt_id === d.id);
-        const totalPaid = dPayments.reduce((s, p) => s + p.amount, 0);
-        return {
-          ...d,
-          total_paid: totalPaid,
-          percent: d.total_amount > 0 ? Math.min(Math.round((totalPaid / d.total_amount) * 100), 100) : 0,
-          payments: dPayments,
-        };
-      }));
+      if (debtRows) {
+        setDebts(debtRows.map((d: FinanceDebt) => {
+          const dPayments = (payments ?? []).filter((p: FinanceDebtPayment) => p.debt_id === d.id);
+          const totalPaid = dPayments.reduce((s: number, p: FinanceDebtPayment) => s + p.amount, 0);
+          return {
+            ...d,
+            total_paid: totalPaid,
+            percent: d.total_amount > 0 ? Math.min(Math.round((totalPaid / d.total_amount) * 100), 100) : 0,
+            payments: dPayments,
+          };
+        }));
+      }
+    } catch {
+      setDebts(demoDebts);
     }
     setLoading(false);
   }, []);
@@ -39,17 +45,13 @@ export function useDebts() {
   useEffect(() => { load(); }, [load]);
 
   async function addDebt(title: string, totalAmount: number) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from("finance_debts").insert({ user_id: user.id, title, total_amount: totalAmount });
+    await supabase.from("finance_debts").insert({ user_id: FIXED_USER_ID, title, total_amount: totalAmount });
     await load();
   }
 
   async function addPayment(debtId: string, amount: number, memo: string) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
     await supabase.from("finance_debt_payments").insert({
-      user_id: user.id, debt_id: debtId, amount,
+      user_id: FIXED_USER_ID, debt_id: debtId, amount,
       date: new Date().toISOString().split("T")[0], memo,
     });
     const debt = debts.find((d) => d.id === debtId);

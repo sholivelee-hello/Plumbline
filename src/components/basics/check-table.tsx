@@ -8,7 +8,7 @@ interface CheckTableProps {
   today: string;
 }
 
-const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
+const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 
 export function CheckTable({ items, weekDates, today }: CheckTableProps) {
   const checkItems = items.filter((i) => i.template.type === "check");

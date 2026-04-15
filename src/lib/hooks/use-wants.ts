@@ -2,8 +2,10 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { FIXED_USER_ID } from "@/lib/constants";
 import { getCurrentMonth } from "@/lib/utils/date";
 import type { FinanceWant } from "@/types/database";
+import { demoWants } from "@/lib/demo-data";
 
 export function useWants() {
   const [wants, setWants] = useState<FinanceWant[]>([]);
@@ -11,19 +13,21 @@ export function useWants() {
   const supabase = createClient();
 
   const load = useCallback(async () => {
-    const { data } = await supabase.from("finance_wants").select("*")
-      .order("is_purchased").order("created_month", { ascending: false });
-    if (data) setWants(data);
+    try {
+      const { data } = await supabase.from("finance_wants").select("*")
+        .order("is_purchased").order("created_month", { ascending: false });
+      if (data) setWants(data);
+    } catch {
+      setWants(demoWants);
+    }
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
   async function addWant(title: string, estimatedPrice: number | null) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
     await supabase.from("finance_wants").insert({
-      user_id: user.id, title, estimated_price: estimatedPrice,
+      user_id: FIXED_USER_ID, title, estimated_price: estimatedPrice,
       created_month: getCurrentMonth(),
     });
     await load();

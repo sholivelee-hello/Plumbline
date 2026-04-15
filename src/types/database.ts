@@ -173,3 +173,21 @@ export interface FinanceInstallment {
   is_completed: boolean;
   created_at: string;
 }
+
+export interface WeeklyTemplate {
+  id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WeeklyTemplateBlock {
+  id: string;
+  template_id: string;
+  day_of_week: number; // 0=일, 1=월, ..., 6=토
+  start_time: string;
+  end_time: string;
+  title: string;
+  color: string;
+}

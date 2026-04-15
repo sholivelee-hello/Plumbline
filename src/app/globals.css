@@ -1,14 +1,62 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #fefcf8;
-  --foreground: #5c4c3c;
+  --background: #ffffff;
+  --surface: #ffffff;
+  --surface-muted: #f9fafb;
+  --border: #f3f4f6;
+  --foreground: #111827;
+  --foreground-muted: #6b7280;
+  --foreground-subtle: #9ca3af;
+  --primary: #7575d8;
+  --primary-light: #e0e0f5;
+}
+
+.dark {
+  --background: #0b0d12;
+  --surface: #161a22;
+  --surface-muted: #1f242e;
+  --border: #262c38;
+  --foreground: #e5e7eb;
+  --foreground-muted: #9ca3af;
+  --foreground-subtle: #6b7280;
+  --primary: #a3a3e0;
+  --primary-light: #2a2e45;
+}
+
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Pretendard Variable", Pretendard, -apple-system,
+    BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI",
+    "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .tap-press {
+    @apply transition-transform active:scale-[0.98];
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

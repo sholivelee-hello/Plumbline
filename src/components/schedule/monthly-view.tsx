@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Event } from "@/types/database";
 
 interface MonthlyViewProps {
   events: Event[];
-  onSelectDate: (date: string) => void;
-  onAddEvent: (event: Omit<Event, "id" | "user_id">) => void;
+  onDateTap: (date: string) => void;
 }
 
 function getDaysInMonth(year: number, month: number): number {
@@ -14,41 +14,41 @@ function getDaysInMonth(year: number, month: number): number {
 }
 
 function getFirstDayOfWeek(year: number, month: number): number {
-  // 0=Sun,1=Mon,...,6=Sat → convert to Mon-based (0=Mon,...,6=Sun)
-  const day = new Date(year, month, 1).getDay();
-  return day === 0 ? 6 : day - 1;
+  return new Date(year, month, 1).getDay(); // Sunday-based (0=Sun, 6=Sat)
 }
 
 function toDateStr(year: number, month: number, day: number): string {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-export function MonthlyView({ events, onSelectDate }: MonthlyViewProps) {
+export function MonthlyView({ events, onDateTap }: MonthlyViewProps) {
   const today = new Date();
   const todayStr = today.toISOString().split("T")[0];
 
   const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth()); // 0-indexed
+  const [month, setMonth] = useState(today.getMonth());
 
   function prevMonth() {
-    if (month === 0) { setYear(y => y - 1); setMonth(11); }
-    else setMonth(m => m - 1);
+    if (month === 0) {
+      setYear((y) => y - 1);
+      setMonth(11);
+    } else setMonth((m) => m - 1);
   }
   function nextMonth() {
-    if (month === 11) { setYear(y => y + 1); setMonth(0); }
-    else setMonth(m => m + 1);
+    if (month === 11) {
+      setYear((y) => y + 1);
+      setMonth(0);
+    } else setMonth((m) => m + 1);
   }
 
   const daysInMonth = getDaysInMonth(year, month);
-  const firstDayOffset = getFirstDayOfWeek(year, month); // 0=Mon
+  const firstDayOffset = getFirstDayOfWeek(year, month);
   const daysInPrevMonth = getDaysInMonth(year, month === 0 ? 11 : month - 1);
   const prevYear = month === 0 ? year - 1 : year;
   const prevMonthIndex = month === 0 ? 11 : month - 1;
 
-  // Build 6×7 grid cells
   const cells: { dateStr: string; isCurrentMonth: boolean; day: number }[] = [];
 
-  // Trailing days from previous month
   for (let i = firstDayOffset - 1; i >= 0; i--) {
     const d = daysInPrevMonth - i;
     cells.push({
@@ -57,13 +57,9 @@ export function MonthlyView({ events, onSelectDate }: MonthlyViewProps) {
       day: d,
     });
   }
-
-  // Current month days
   for (let d = 1; d <= daysInMonth; d++) {
     cells.push({ dateStr: toDateStr(year, month, d), isCurrentMonth: true, day: d });
   }
-
-  // Leading days from next month to fill 6 rows (42 cells)
   const nextYear = month === 11 ? year + 1 : year;
   const nextMonthIndex = month === 11 ? 0 : month + 1;
   let nextDay = 1;
@@ -75,103 +71,106 @@ export function MonthlyView({ events, onSelectDate }: MonthlyViewProps) {
     });
   }
 
-  // Map events by date for quick lookup
   const eventsByDate: Record<string, Event[]> = {};
   for (const event of events) {
-    // Add event to every date in its range
     const start = new Date(event.start_date + "T00:00:00");
     const end = new Date(event.end_date + "T00:00:00");
     const cur = new Date(start);
     while (cur <= end) {
       const key = cur.toISOString().split("T")[0];
-      if (!eventsByDate[key]) eventsByDate[key] = [];
-      eventsByDate[key].push(event);
+      (eventsByDate[key] ??= []).push(event);
       cur.setDate(cur.getDate() + 1);
     }
   }
 
-  const dayHeaders = ["월", "화", "수", "목", "금", "토", "일"];
+  const dayHeaders = ["일", "월", "화", "수", "목", "금", "토"];
 
   return (
-    <div className="bg-white rounded-card shadow-card p-3">
-      {/* Month navigation */}
+    <div className="bg-white dark:bg-[#161a22] rounded-card shadow-card border border-gray-100 dark:border-[#262c38] p-3">
       <div className="flex items-center justify-between mb-3 px-1">
         <button
           onClick={prevMonth}
-          className="w-8 h-8 flex items-center justify-center rounded-xl text-warm-400 hover:bg-warm-100 transition-colors"
+          aria-label="이전 달"
+          className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-[#1f242e] transition-colors"
         >
-          ←
+          <ChevronLeft size={18} />
         </button>
-        <span className="text-base font-semibold text-warm-700">
+        <span className="text-base font-semibold text-gray-900 dark:text-gray-100">
           {year}년 {month + 1}월
         </span>
         <button
           onClick={nextMonth}
-          className="w-8 h-8 flex items-center justify-center rounded-xl text-warm-400 hover:bg-warm-100 transition-colors"
+          aria-label="다음 달"
+          className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-[#1f242e] transition-colors"
         >
-          →
+          <ChevronRight size={18} />
         </button>
       </div>
 
-      {/* Day headers */}
       <div className="grid grid-cols-7 mb-1">
         {dayHeaders.map((d) => (
-          <div key={d} className="text-center text-xs font-medium text-warm-400 py-1">
+          <div
+            key={d}
+            className="text-center text-xs font-medium text-gray-400 dark:text-gray-500 py-1"
+          >
             {d}
           </div>
         ))}
       </div>
 
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-px bg-warm-100 rounded-xl overflow-hidden">
+      <div className="grid grid-cols-7 gap-px bg-gray-100 dark:bg-[#262c38] rounded-xl overflow-hidden">
         {cells.map(({ dateStr, isCurrentMonth, day }) => {
           const isToday = dateStr === todayStr;
           const cellEvents = eventsByDate[dateStr] ?? [];
-
           return (
-            <button
+            <div
               key={dateStr}
-              onClick={() => onSelectDate(dateStr)}
-              className={`
-                bg-white p-1 min-h-[56px] flex flex-col items-start gap-0.5
-                hover:bg-warm-50 transition-colors text-left
-                ${!isCurrentMonth ? "opacity-40" : ""}
-              `}
+              className={`bg-white dark:bg-[#161a22] p-1 min-h-[82px] flex flex-col gap-1 ${
+                !isCurrentMonth ? "opacity-40" : ""
+              }`}
             >
-              {/* Day number */}
-              <div className="w-full flex justify-center mb-0.5">
-                <span
-                  className={`
-                    text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full
-                    ${isToday
-                      ? "bg-warm-500 text-white font-semibold"
+              <div className="w-full flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => onDateTap(dateStr)}
+                  aria-label={`${dateStr} 보기`}
+                  className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full transition-colors tap-press ${
+                    isToday
+                      ? "bg-primary-500 text-white font-semibold"
                       : isCurrentMonth
-                        ? "text-warm-600"
-                        : "text-warm-200"
-                    }
-                  `}
+                      ? "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#1f242e]"
+                      : "text-gray-300 dark:text-gray-600"
+                  }`}
                 >
                   {day}
-                </span>
+                </button>
               </div>
-
-              {/* Event bars (max 2 visible + overflow indicator) */}
-              <div className="w-full space-y-0.5">
-                {cellEvents.slice(0, 2).map((ev) => (
-                  <div
-                    key={ev.id}
-                    className="w-full h-1.5 rounded-full truncate"
-                    style={{ backgroundColor: ev.color || "#d4c4b0" }}
+              <div className="flex-1 space-y-0.5 min-h-0">
+                {cellEvents.slice(0, 3).map((ev) => (
+                  <button
+                    key={`${ev.id}-${dateStr}`}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDateTap(dateStr);
+                    }}
+                    className="w-full text-left rounded-md px-1.5 py-0.5 text-[10px] font-medium leading-tight truncate tap-press"
+                    style={{
+                      backgroundColor: (ev.color || "#d4c4b0") + "28",
+                      color: ev.color || "#7575d8",
+                    }}
                     title={ev.title}
-                  />
+                  >
+                    {ev.title}
+                  </button>
                 ))}
-                {cellEvents.length > 2 && (
-                  <div className="text-[9px] text-warm-400 leading-none pl-0.5">
-                    +{cellEvents.length - 2}
+                {cellEvents.length > 3 && (
+                  <div className="text-[9px] text-gray-400 dark:text-gray-500 leading-none pl-0.5">
+                    +{cellEvents.length - 3}
                   </div>
                 )}
               </div>
-            </button>
+            </div>
           );
         })}
       </div>

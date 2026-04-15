@@ -2,8 +2,10 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { FIXED_USER_ID } from "@/lib/constants";
 import { getWeekDates } from "@/lib/utils/date";
 import type { SchedulePlan, ScheduleActual, SchedulePreset } from "@/types/database";
+import { demoPlans, demoActuals, demoPresets } from "@/lib/demo-data";
 
 export function useSchedule(weekStartDate: string) {
   const [plans, setPlans] = useState<SchedulePlan[]>([]);
@@ -14,30 +16,37 @@ export function useSchedule(weekStartDate: string) {
   const weekDates = getWeekDates(weekStartDate);
 
   const loadWeek = useCallback(async () => {
-    const [plansRes, actualsRes] = await Promise.all([
-      supabase.from("schedule_plans").select("*")
-        .in("date", weekDates).order("start_time"),
-      supabase.from("schedule_actuals").select("*")
-        .in("date", weekDates).order("start_time"),
-    ]);
-    if (plansRes.data) setPlans(plansRes.data);
-    if (actualsRes.data) setActuals(actualsRes.data);
+    try {
+      const [plansRes, actualsRes] = await Promise.all([
+        supabase.from("schedule_plans").select("*")
+          .in("date", weekDates).order("start_time"),
+        supabase.from("schedule_actuals").select("*")
+          .in("date", weekDates).order("start_time"),
+      ]);
+      if (plansRes.data) setPlans(plansRes.data);
+      if (actualsRes.data) setActuals(actualsRes.data);
+    } catch {
+      setPlans(demoPlans);
+      setActuals(demoActuals);
+    }
     setLoading(false);
   }, [weekStartDate]);
 
   const loadPresets = useCallback(async () => {
-    const { data } = await supabase.from("schedule_presets").select("*")
-      .order("usage_count", { ascending: false });
-    if (data) setPresets(data);
+    try {
+      const { data } = await supabase.from("schedule_presets").select("*")
+        .order("usage_count", { ascending: false });
+      if (data) setPresets(data);
+    } catch {
+      setPresets(demoPresets);
+    }
   }, []);
 
   useEffect(() => { loadWeek(); loadPresets(); }, [loadWeek, loadPresets]);
 
   async function completePlan(plan: SchedulePlan) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
     await supabase.from("schedule_actuals").insert({
-      user_id: user.id,
+      user_id: FIXED_USER_ID,
       plan_id: plan.id,
       date: plan.date,
       start_time: plan.start_time,
@@ -53,10 +62,8 @@ export function useSchedule(weekStartDate: string) {
     plan: SchedulePlan,
     edits: { start_time?: string; end_time?: string; title?: string }
   ) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
     await supabase.from("schedule_actuals").insert({
-      user_id: user.id,
+      user_id: FIXED_USER_ID,
       plan_id: plan.id,
       date: plan.date,
       start_time: edits.start_time ?? plan.start_time,
@@ -72,9 +79,7 @@ export function useSchedule(weekStartDate: string) {
     date: string; start_time: string; end_time: string;
     title: string; color: string; preset_id?: string;
   }) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from("schedule_plans").insert({ user_id: user.id, ...data });
+    await supabase.from("schedule_plans").insert({ user_id: FIXED_USER_ID, ...data });
     if (data.preset_id) {
       await supabase.rpc("increment_preset_usage", { p_id: data.preset_id });
     }
@@ -85,18 +90,14 @@ export function useSchedule(weekStartDate: string) {
     date: string; start_time: string; end_time: string;
     title: string; color: string;
   }) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
     await supabase.from("schedule_actuals").insert({
-      user_id: user.id, ...data, is_from_plan: false,
+      user_id: FIXED_USER_ID, ...data, is_from_plan: false,
     });
     await loadWeek();
   }
 
   async function savePreset(data: { title: string; duration: number; color: string }) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from("schedule_presets").insert({ user_id: user.id, ...data });
+    await supabase.from("schedule_presets").insert({ user_id: FIXED_USER_ID, ...data });
     await loadPresets();
   }
 
@@ -105,9 +106,57 @@ export function useSchedule(weekStartDate: string) {
     await loadWeek();
   }
 
+  async function deleteActual(actualId: string) {
+    await supabase.from("schedule_actuals").delete().eq("id", actualId);
+    await loadWeek();
+  }
+
+  /**
+   * Apply a weekly template to the given weekStart.
+   * - mode "overwrite": delete all existing plans in this week, then insert template blocks
+   * - mode "merge": keep existing plans, add template blocks
+   * Only plans are affected; actuals are untouched.
+   */
+  async function applyTemplate(
+    blocks: Array<{ day_of_week: number; start_time: string; end_time: string; title: string; color: string }>,
+    targetWeekStart: string,
+    mode: "overwrite" | "merge"
+  ) {
+    const weekDatesLocal: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(targetWeekStart + "T00:00:00");
+      d.setDate(d.getDate() + i);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      weekDatesLocal.push(`${y}-${m}-${day}`);
+    }
+
+    if (mode === "overwrite") {
+      await supabase
+        .from("schedule_plans")
+        .delete()
+        .in("date", weekDatesLocal);
+    }
+
+    const rows = blocks.map((b) => ({
+      user_id: FIXED_USER_ID,
+      date: weekDatesLocal[b.day_of_week],
+      start_time: b.start_time,
+      end_time: b.end_time,
+      title: b.title,
+      color: b.color,
+    }));
+
+    if (rows.length > 0) {
+      await supabase.from("schedule_plans").insert(rows);
+    }
+    await loadWeek();
+  }
+
   return {
     plans, actuals, presets, loading, weekDates,
     completePlan, editAndComplete, addPlan, addActual,
-    savePreset, deletePlan,
+    savePreset, deletePlan, deleteActual, applyTemplate,
   };
 }

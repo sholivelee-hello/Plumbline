@@ -14,19 +14,23 @@ export function StatsView({ dayStartTime }: StatsViewProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
+      <div className="flex items-center rounded-lg bg-[var(--surface-muted)] p-0.5">
         <button
           onClick={() => setPeriod("weekly")}
-          className={`flex-1 py-2 text-sm font-medium rounded-xl transition-colors ${
-            period === "weekly" ? "bg-primary-500 text-white" : "bg-[var(--surface-muted)] text-gray-500 dark:text-gray-400"
+          className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${
+            period === "weekly"
+              ? "bg-[var(--surface)] text-gray-800 dark:text-gray-100 shadow-sm"
+              : "text-gray-400 dark:text-gray-500"
           }`}
         >
           주간
         </button>
         <button
           onClick={() => setPeriod("monthly")}
-          className={`flex-1 py-2 text-sm font-medium rounded-xl transition-colors ${
-            period === "monthly" ? "bg-primary-500 text-white" : "bg-[var(--surface-muted)] text-gray-500 dark:text-gray-400"
+          className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${
+            period === "monthly"
+              ? "bg-[var(--surface)] text-gray-800 dark:text-gray-100 shadow-sm"
+              : "text-gray-400 dark:text-gray-500"
           }`}
         >
           월간
