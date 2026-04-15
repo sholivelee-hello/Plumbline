@@ -59,7 +59,7 @@ export default function BasicsPage() {
   }
 
   return (
-    <div className="p-4 lg:p-8 space-y-4">
+    <div className="max-w-4xl mx-auto p-4 lg:p-8 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
           오늘의 베이직

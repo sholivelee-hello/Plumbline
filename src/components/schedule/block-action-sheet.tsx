@@ -11,31 +11,52 @@ interface BlockActionSheetProps {
   onDelete: (planId: string) => void;
 }
 
-export function BlockActionSheet({ plan, onClose, onComplete, onEditComplete, onDelete }: BlockActionSheetProps) {
+export function BlockActionSheet({
+  plan,
+  onClose,
+  onComplete,
+  onEditComplete,
+  onDelete,
+}: BlockActionSheetProps) {
   if (!plan) return null;
 
   return (
     <Modal isOpen={!!plan} onClose={onClose} title={plan.title}>
       <div className="space-y-2">
         <button
-          onClick={() => { onComplete(plan); onClose(); }}
-          className="w-full py-3 rounded-xl bg-sage-100 text-sage-600 font-medium hover:bg-sage-200"
+          type="button"
+          onClick={() => {
+            onComplete(plan);
+            onClose();
+          }}
+          className="w-full py-3 rounded-xl bg-surplus-50 dark:bg-surplus-700/20 text-surplus-700 dark:text-surplus-300 font-medium hover:bg-surplus-100 dark:hover:bg-surplus-700/30 tap-press"
         >
           완료 (계획대로)
         </button>
         <button
-          onClick={() => { onEditComplete(plan); }}
-          className="w-full py-3 rounded-xl bg-sky-100 text-sky-600 font-medium hover:bg-sky-200"
+          type="button"
+          onClick={() => {
+            onEditComplete(plan);
+          }}
+          className="w-full py-3 rounded-xl bg-primary-100 dark:bg-[#2a2e45] text-primary-600 dark:text-primary-200 font-medium hover:bg-primary-200 dark:hover:bg-[#343b58] tap-press"
         >
           수정 후 완료
         </button>
         <button
-          onClick={() => { onDelete(plan.id); onClose(); }}
-          className="w-full py-3 rounded-xl bg-warm-100 text-warm-500 font-medium hover:bg-warm-200"
+          type="button"
+          onClick={() => {
+            onDelete(plan.id);
+            onClose();
+          }}
+          className="w-full py-3 rounded-xl bg-gray-100 dark:bg-[#1f242e] text-gray-600 dark:text-gray-300 font-medium hover:bg-gray-200 dark:hover:bg-[#262c38] tap-press"
         >
           삭제
         </button>
-        <button onClick={onClose} className="w-full py-2 text-warm-400 text-sm">
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full py-3 text-gray-400 dark:text-gray-500 text-sm"
+        >
           취소
         </button>
       </div>

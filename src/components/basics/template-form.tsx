@@ -40,8 +40,8 @@ export function TemplateForm({ onSave, onCancel }: TemplateFormProps) {
           onClick={() => setCategory("spiritual")}
           className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
             category === "spiritual"
-              ? "bg-sky-200 text-sky-600"
-              : "bg-warm-100 text-warm-400"
+              ? "bg-primary-100 dark:bg-[#2a2e45] text-primary-600 dark:text-primary-200"
+              : "bg-gray-100 dark:bg-[#1f242e] text-gray-400 dark:text-gray-500"
           }`}
         >
           📖 영적
@@ -51,8 +51,8 @@ export function TemplateForm({ onSave, onCancel }: TemplateFormProps) {
           onClick={() => setCategory("physical")}
           className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
             category === "physical"
-              ? "bg-sage-200 text-sage-600"
-              : "bg-warm-100 text-warm-400"
+              ? "bg-primary-100 dark:bg-[#2a2e45] text-primary-600 dark:text-primary-200"
+              : "bg-gray-100 dark:bg-[#1f242e] text-gray-400 dark:text-gray-500"
           }`}
         >
           💪 신체적
@@ -64,7 +64,7 @@ export function TemplateForm({ onSave, onCancel }: TemplateFormProps) {
         placeholder="항목 이름 (예: 기도, 버터 먹기)"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="w-full px-4 py-3 rounded-xl border border-warm-200 bg-warm-50 text-warm-700 placeholder:text-warm-300 focus:outline-none focus:ring-2 focus:ring-warm-300"
+        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-[#262c38] bg-gray-50 dark:bg-[#1f242e] text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-300"
         required
       />
 
@@ -73,7 +73,7 @@ export function TemplateForm({ onSave, onCancel }: TemplateFormProps) {
           type="button"
           onClick={() => setType("check")}
           className={`flex-1 py-2 rounded-xl text-sm ${
-            type === "check" ? "bg-warm-500 text-white" : "bg-warm-100 text-warm-400"
+            type === "check" ? "bg-primary-500 text-white" : "bg-gray-100 dark:bg-[#1f242e] text-gray-400 dark:text-gray-500"
           }`}
         >
           ✓ 체크
@@ -82,7 +82,7 @@ export function TemplateForm({ onSave, onCancel }: TemplateFormProps) {
           type="button"
           onClick={() => setType("number")}
           className={`flex-1 py-2 rounded-xl text-sm ${
-            type === "number" ? "bg-warm-500 text-white" : "bg-warm-100 text-warm-400"
+            type === "number" ? "bg-primary-500 text-white" : "bg-gray-100 dark:bg-[#1f242e] text-gray-400 dark:text-gray-500"
           }`}
         >
           🔢 수치
@@ -96,7 +96,7 @@ export function TemplateForm({ onSave, onCancel }: TemplateFormProps) {
             placeholder="단위 (시간, 잔 등)"
             value={unit}
             onChange={(e) => setUnit(e.target.value)}
-            className="flex-1 px-4 py-3 rounded-xl border border-warm-200 bg-warm-50 text-warm-700 placeholder:text-warm-300 focus:outline-none focus:ring-2 focus:ring-warm-300"
+            className="flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-[#262c38] bg-gray-50 dark:bg-[#1f242e] text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-300"
           />
           <input
             type="number"
@@ -104,7 +104,7 @@ export function TemplateForm({ onSave, onCancel }: TemplateFormProps) {
             placeholder="목표"
             value={targetValue}
             onChange={(e) => setTargetValue(e.target.value)}
-            className="w-24 px-4 py-3 rounded-xl border border-warm-200 bg-warm-50 text-warm-700 placeholder:text-warm-300 focus:outline-none focus:ring-2 focus:ring-warm-300"
+            className="w-24 px-4 py-3 rounded-xl border border-gray-200 dark:border-[#262c38] bg-gray-50 dark:bg-[#1f242e] text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-300"
           />
         </div>
       )}
@@ -113,13 +113,13 @@ export function TemplateForm({ onSave, onCancel }: TemplateFormProps) {
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 py-2.5 rounded-xl border border-warm-200 text-warm-500"
+          className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-[#262c38] text-gray-600 dark:text-gray-300"
         >
           취소
         </button>
         <button
           type="submit"
-          className="flex-1 py-2.5 rounded-xl bg-warm-500 text-white font-medium"
+          className="flex-1 py-2.5 rounded-xl bg-primary-500 text-white font-semibold"
         >
           추가
         </button>
