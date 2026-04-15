@@ -29,6 +29,7 @@ export default function SchedulePage() {
     color?: string;
     duration?: number;
     presetId?: string;
+    asActual?: boolean;
   } | null>(null);
 
   const dayStart = settings?.day_start_time ?? "04:00";
@@ -47,8 +48,8 @@ export default function SchedulePage() {
     setWeekStart(d.toISOString().split("T")[0]);
   }
 
-  function openAdd(date: string, start?: string) {
-    setFormInitial({ date, start });
+  function openAdd(date: string, start?: string, asActual: boolean = false) {
+    setFormInitial({ date, start, asActual });
     setPresetOpen(true);
   }
 
@@ -78,20 +79,31 @@ export default function SchedulePage() {
 
   async function handleSave(data: {
     title: string;
+    date: string;
     start_time: string;
     end_time: string;
     color: string;
     saveAsPreset: boolean;
+    asActual: boolean;
   }) {
-    if (!formInitial) return;
-    await schedule.addPlan({
-      date: formInitial.date,
-      start_time: data.start_time,
-      end_time: data.end_time,
-      title: data.title,
-      color: data.color,
-      preset_id: formInitial.presetId,
-    });
+    if (data.asActual) {
+      await schedule.addActual({
+        date: data.date,
+        start_time: data.start_time,
+        end_time: data.end_time,
+        title: data.title,
+        color: data.color,
+      });
+    } else {
+      await schedule.addPlan({
+        date: data.date,
+        start_time: data.start_time,
+        end_time: data.end_time,
+        title: data.title,
+        color: data.color,
+        preset_id: formInitial?.presetId,
+      });
+    }
     if (data.saveAsPreset) {
       const [sh, sm] = data.start_time.split(":").map(Number);
       const [eh, em] = data.end_time.split(":").map(Number);
@@ -211,10 +223,12 @@ export default function SchedulePage() {
         {formInitial && (
           <BlockForm
             timeSlots={timeSlots}
+            defaultDate={formInitial.date}
             defaultStartTime={formInitial.start}
             defaultTitle={formInitial.title}
             defaultColor={formInitial.color}
             defaultDurationMinutes={formInitial.duration}
+            defaultAsActual={formInitial.asActual}
             onSave={handleSave}
             onCancel={() => {
               setFormOpen(false);
