@@ -119,3 +119,16 @@ export function generateTimeSlots(
   }
   return slots;
 }
+
+/**
+ * Given a week-start date (Sunday) and a day_of_week (0=Sun..6=Sat),
+ * return the calendar date for that slot as 'YYYY-MM-DD'.
+ */
+export function getDateFromWeekStart(weekStart: string, dayOfWeek: number): string {
+  const d = new Date(weekStart + "T00:00:00");
+  d.setDate(d.getDate() + dayOfWeek);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
