@@ -17,13 +17,13 @@ function getRateColor(rate: number): string {
   return "bg-primary-500/90";
 }
 
-const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
+const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 
 export function CalendarHeatmap({ month, dailyRates, today }: CalendarHeatmapProps) {
   const [year, mon] = month.split("-").map(Number);
   const lastDay = new Date(year, mon, 0).getDate();
   const firstDayOfWeek = new Date(year, mon - 1, 1).getDay();
-  const offset = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1; // Monday-based
+  const offset = firstDayOfWeek; // Sunday-based (0=Sun, 6=Sat)
 
   const rateMap = new Map(dailyRates.map((d) => [d.date, d.rate]));
 

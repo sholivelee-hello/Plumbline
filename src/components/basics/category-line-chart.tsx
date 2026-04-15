@@ -33,7 +33,7 @@ export function CategoryLineChart({ title, items, weekDates, today }: CategoryLi
     );
   }
 
-  const dayLabels = ["월", "화", "수", "목", "금", "토", "일"];
+  const dayLabels = ["일", "월", "화", "수", "목", "금", "토"];
   const chartData = weekDates.map((date, idx) => {
     const point: Record<string, string | number | null> = { name: dayLabels[idx], date };
     if (date > today) {

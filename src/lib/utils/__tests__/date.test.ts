@@ -26,25 +26,29 @@ describe("getLogicalDate", () => {
 });
 
 describe("getWeekStart", () => {
-  it("returns Monday for a Wednesday", () => {
-    expect(getWeekStart("2026-04-15")).toBe("2026-04-13");
+  it("returns Sunday for a Wednesday", () => {
+    expect(getWeekStart("2026-04-15")).toBe("2026-04-12");
   });
 
-  it("returns same day for a Monday", () => {
-    expect(getWeekStart("2026-04-13")).toBe("2026-04-13");
+  it("returns previous Sunday for a Monday", () => {
+    expect(getWeekStart("2026-04-13")).toBe("2026-04-12");
   });
 
-  it("returns previous Monday for a Sunday", () => {
-    expect(getWeekStart("2026-04-12")).toBe("2026-04-06");
+  it("returns same day for a Sunday", () => {
+    expect(getWeekStart("2026-04-12")).toBe("2026-04-12");
+  });
+
+  it("returns Sunday for a Saturday", () => {
+    expect(getWeekStart("2026-04-18")).toBe("2026-04-12");
   });
 });
 
 describe("getWeekDates", () => {
-  it("returns 7 dates starting from Monday", () => {
+  it("returns 7 dates starting from Sunday", () => {
     const dates = getWeekDates("2026-04-15");
     expect(dates).toHaveLength(7);
-    expect(dates[0]).toBe("2026-04-13");
-    expect(dates[6]).toBe("2026-04-19");
+    expect(dates[0]).toBe("2026-04-12");
+    expect(dates[6]).toBe("2026-04-18");
   });
 });
 

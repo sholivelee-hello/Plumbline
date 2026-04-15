@@ -39,28 +39,53 @@ export function formatDateKR(dateStr: string): string {
 }
 
 /**
- * Get Monday of the week containing the given date.
+ * Get Sunday of the week containing the given date.
  */
 export function getWeekStart(dateStr: string): string {
   const date = new Date(dateStr + "T00:00:00");
   const day = date.getDay();
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-  date.setDate(diff);
+  date.setDate(date.getDate() - day);
   return toLocalDateString(date);
 }
 
 /**
- * Get array of 7 date strings starting from Monday.
+ * Get array of 7 date strings starting from Sunday.
  */
 export function getWeekDates(dateStr: string): string[] {
-  const monday = getWeekStart(dateStr);
+  const sunday = getWeekStart(dateStr);
   const dates: string[] = [];
   for (let i = 0; i < 7; i++) {
-    const d = new Date(monday + "T00:00:00");
+    const d = new Date(sunday + "T00:00:00");
     d.setDate(d.getDate() + i);
     dates.push(toLocalDateString(d));
   }
   return dates;
+}
+
+/**
+ * Get previous month string: 'YYYY-MM' → previous 'YYYY-MM'
+ */
+export function prevMonth(month: string): string {
+  const [y, m] = month.split("-").map(Number);
+  const d = new Date(y, m - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * Get next month string: 'YYYY-MM' → next 'YYYY-MM'
+ */
+export function nextMonth(month: string): string {
+  const [y, m] = month.split("-").map(Number);
+  const d = new Date(y, m, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * Format month as Korean style: 'YYYY-MM' → 'YYYY년 M월'
+ */
+export function formatMonthKR(month: string): string {
+  const [y, m] = month.split("-");
+  return `${y}년 ${Number(m)}월`;
 }
 
 /**
