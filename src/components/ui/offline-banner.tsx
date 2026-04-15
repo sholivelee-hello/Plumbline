@@ -20,7 +20,7 @@ export function OfflineBanner() {
   if (!isOffline) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 bg-warm-400 text-white text-center py-2 text-sm z-50">
+    <div className="fixed top-0 left-0 right-0 bg-gray-600 dark:bg-gray-800 text-white text-center py-2 text-sm z-50 lg:pl-60">
       오프라인 상태입니다. 읽기만 가능합니다.
     </div>
   );
