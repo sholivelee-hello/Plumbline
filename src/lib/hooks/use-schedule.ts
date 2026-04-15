@@ -106,9 +106,57 @@ export function useSchedule(weekStartDate: string) {
     await loadWeek();
   }
 
+  async function deleteActual(actualId: string) {
+    await supabase.from("schedule_actuals").delete().eq("id", actualId);
+    await loadWeek();
+  }
+
+  /**
+   * Apply a weekly template to the given weekStart.
+   * - mode "overwrite": delete all existing plans in this week, then insert template blocks
+   * - mode "merge": keep existing plans, add template blocks
+   * Only plans are affected; actuals are untouched.
+   */
+  async function applyTemplate(
+    blocks: Array<{ day_of_week: number; start_time: string; end_time: string; title: string; color: string }>,
+    targetWeekStart: string,
+    mode: "overwrite" | "merge"
+  ) {
+    const weekDatesLocal: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(targetWeekStart + "T00:00:00");
+      d.setDate(d.getDate() + i);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      weekDatesLocal.push(`${y}-${m}-${day}`);
+    }
+
+    if (mode === "overwrite") {
+      await supabase
+        .from("schedule_plans")
+        .delete()
+        .in("date", weekDatesLocal);
+    }
+
+    const rows = blocks.map((b) => ({
+      user_id: FIXED_USER_ID,
+      date: weekDatesLocal[b.day_of_week],
+      start_time: b.start_time,
+      end_time: b.end_time,
+      title: b.title,
+      color: b.color,
+    }));
+
+    if (rows.length > 0) {
+      await supabase.from("schedule_plans").insert(rows);
+    }
+    await loadWeek();
+  }
+
   return {
     plans, actuals, presets, loading, weekDates,
     completePlan, editAndComplete, addPlan, addActual,
-    savePreset, deletePlan,
+    savePreset, deletePlan, deleteActual, applyTemplate,
   };
 }
