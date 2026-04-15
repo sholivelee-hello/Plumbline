@@ -1,70 +1,44 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useObligations } from "@/lib/hooks/use-obligations";
-import { getCurrentMonth } from "@/lib/utils/date";
+import { getCurrentMonth, prevMonth, nextMonth, formatMonthKR } from "@/lib/utils/date";
 import { ObligationsList } from "@/components/finance/obligations-list";
-
-function prevMonth(month: string): string {
-  const [y, m] = month.split("-").map(Number);
-  const d = new Date(y, m - 2, 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function nextMonth(month: string): string {
-  const [y, m] = month.split("-").map(Number);
-  const d = new Date(y, m, 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function formatMonthKR(month: string): string {
-  const [y, m] = month.split("-");
-  return `${y}년 ${Number(m)}월`;
-}
+import { PageHeader } from "@/components/ui/page-header";
+import { SkeletonCard } from "@/components/ui/skeleton";
 
 export default function ObligationsPage() {
   const [month, setMonth] = useState(getCurrentMonth());
   const { obligations, loading, togglePaid, updateAmount } = useObligations(month);
 
   return (
-    <div className="min-h-screen bg-cream-50 pb-32">
-      {/* Header */}
-      <div className="bg-white border-b border-cream-200 px-4 py-4 flex items-center gap-3">
-        <Link
-          href="/finance"
-          className="text-warm-400 hover:text-warm-600 transition-colors text-lg"
-        >
-          ←
-        </Link>
-        <h1 className="text-xl font-bold text-warm-700 flex-1">의무 지출</h1>
-      </div>
+    <div className="min-h-screen pb-32 lg:pb-8">
+      <PageHeader title="의무 지출" backHref="/finance" contentMaxWidth="max-w-5xl" />
 
-      <div className="p-4 space-y-4">
+      <div className="max-w-5xl mx-auto p-4 lg:p-8 space-y-4">
         {/* Month selector */}
-        <div className="flex items-center justify-between bg-white rounded-card shadow-card px-4 py-3">
+        <div className="flex items-center justify-between bg-white dark:bg-[#161a22] border border-gray-100 dark:border-[#262c38] rounded-card shadow-card px-4 py-3">
           <button
             onClick={() => setMonth(prevMonth(month))}
-            className="text-warm-400 hover:text-warm-600 transition-colors px-2 py-1 text-lg"
+            className="text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
-            ←
+            <ChevronLeft className="w-5 h-5" />
           </button>
-          <span className="text-warm-700 font-semibold">
+          <span className="text-gray-900 dark:text-gray-100 font-semibold">
             {formatMonthKR(month)}
           </span>
           <button
             onClick={() => setMonth(nextMonth(month))}
-            className="text-warm-400 hover:text-warm-600 transition-colors px-2 py-1 text-lg"
+            className="text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
-            →
+            <ChevronRight className="w-5 h-5" />
           </button>
         </div>
 
         {/* Obligations list */}
         {loading ? (
-          <div className="text-center py-12 text-warm-400 text-sm">
-            불러오는 중...
-          </div>
+          <SkeletonCard />
         ) : (
           <ObligationsList
             obligations={obligations}

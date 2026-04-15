@@ -2,7 +2,9 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { FinanceObligation } from "@/types/database";
+import { FIXED_USER_ID } from "@/lib/constants";
+import type { FinanceObligation, FinanceCategory } from "@/types/database";
+import { demoObligations } from "@/lib/demo-data";
 
 export function useObligations(month: string) {
   const [obligations, setObligations] = useState<(FinanceObligation & { category_title: string })[]>([]);
@@ -28,15 +30,12 @@ export function useObligations(month: string) {
       .select("id").eq("month", month).limit(1);
     if (existing && existing.length > 0) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
     const { data: categories } = await supabase.from("finance_categories")
-      .select("*").eq("type", "obligation").eq("user_id", user.id);
+      .select("*").eq("type", "obligation").eq("user_id", FIXED_USER_ID);
 
     if (categories && categories.length > 0) {
-      const newObligations = categories.map((c) => ({
-        user_id: user.id,
+      const newObligations = categories.map((c: FinanceCategory) => ({
+        user_id: FIXED_USER_ID,
         month,
         category_id: c.id,
         amount: c.default_amount ?? 0,
@@ -48,8 +47,13 @@ export function useObligations(month: string) {
 
   useEffect(() => {
     async function init() {
-      await autoCarry();
-      await load();
+      try {
+        await autoCarry();
+        await load();
+      } catch {
+        setObligations(demoObligations.map((o: FinanceObligation) => ({ ...o, category_title: "" })));
+      }
+      setLoading(false);
     }
     init();
   }, [autoCarry, load]);

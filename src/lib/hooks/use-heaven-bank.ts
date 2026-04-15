@@ -2,7 +2,9 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { FIXED_USER_ID } from "@/lib/constants";
 import type { HeavenBankEntry } from "@/types/database";
+import { demoHeavenBank, demoMonthlySow } from "@/lib/demo-data";
 
 export function useHeavenBank(month: string) {
   const [entries, setEntries] = useState<HeavenBankEntry[]>([]);
@@ -13,28 +15,33 @@ export function useHeavenBank(month: string) {
   const supabase = createClient();
 
   const load = useCallback(async () => {
-    const startDate = `${month}-01`;
-    const endDate = `${month}-31`;
-    const { data } = await supabase.from("heaven_bank").select("*")
-      .gte("date", startDate).lte("date", endDate)
-      .order("date");
-    if (data) {
-      setEntries(data);
-      setMonthlySow(data.filter(e => e.type === "sow").reduce((s, e) => s + e.amount, 0));
-      setMonthlyReap(data.filter(e => e.type === "reap").reduce((s, e) => s + e.amount, 0));
+    try {
+      const startDate = `${month}-01`;
+      const endDate = `${month}-31`;
+      const { data } = await supabase.from("heaven_bank").select("*")
+        .gte("date", startDate).lte("date", endDate)
+        .order("date");
+      if (data) {
+        setEntries(data);
+        setMonthlySow(data.filter((e: HeavenBankEntry) => e.type === "sow").reduce((s: number, e: HeavenBankEntry) => s + e.amount, 0));
+        setMonthlyReap(data.filter((e: HeavenBankEntry) => e.type === "reap").reduce((s: number, e: HeavenBankEntry) => s + e.amount, 0));
+      }
+      const { data: allSow } = await supabase.from("heaven_bank").select("amount")
+        .eq("type", "sow");
+      if (allSow) setCumulativeSow(allSow.reduce((s: number, e: { amount: number }) => s + e.amount, 0));
+    } catch {
+      setEntries(demoHeavenBank);
+      setMonthlySow(demoMonthlySow);
+      setMonthlyReap(0);
+      setCumulativeSow(demoMonthlySow);
     }
-    const { data: allSow } = await supabase.from("heaven_bank").select("amount")
-      .eq("type", "sow");
-    if (allSow) setCumulativeSow(allSow.reduce((s, e) => s + e.amount, 0));
     setLoading(false);
   }, [month]);
 
   useEffect(() => { load(); }, [load]);
 
   async function addEntry(entry: Omit<HeavenBankEntry, "id" | "user_id">) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from("heaven_bank").insert({ user_id: user.id, ...entry });
+    await supabase.from("heaven_bank").insert({ user_id: FIXED_USER_ID, ...entry });
     await load();
   }
 

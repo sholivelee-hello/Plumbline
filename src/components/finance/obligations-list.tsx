@@ -52,7 +52,7 @@ export function ObligationsList({
   return (
     <div className="space-y-3">
       {obligations.length === 0 ? (
-        <div className="text-center py-12 text-warm-400 text-sm">
+        <div className="text-center py-12 text-gray-400 dark:text-gray-500 text-sm">
           이번 달 의무 지출이 없습니다
         </div>
       ) : (
@@ -67,7 +67,7 @@ export function ObligationsList({
               <div className="flex-1 min-w-0">
                 <p
                   className={`text-sm font-medium truncate ${
-                    o.is_paid ? "line-through text-warm-300" : "text-warm-700"
+                    o.is_paid ? "line-through text-gray-300 dark:text-gray-600" : "text-gray-900 dark:text-gray-100"
                   }`}
                 >
                   {o.category_title}
@@ -84,14 +84,14 @@ export function ObligationsList({
                     }
                     onBlur={() => handleAmountBlur(o.id)}
                     onKeyDown={(e) => handleAmountKeyDown(e, o.id)}
-                    className="w-28 text-right rounded-lg border border-warm-300 bg-warm-50 px-2 py-1 text-sm text-warm-700 focus:outline-none focus:ring-2 focus:ring-warm-300"
+                    className="w-28 text-right rounded-lg border border-gray-300 dark:border-[#363c48] bg-gray-50 dark:bg-[#1f242e] px-2 py-1 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-300"
                     min="0"
                   />
                 ) : (
                   <button
                     onClick={() => handleAmountTap(o)}
-                    className={`text-sm font-semibold tabular-nums px-2 py-1 rounded-lg hover:bg-warm-50 transition-colors ${
-                      o.is_paid ? "text-warm-300" : "text-warm-700"
+                    className={`text-sm font-semibold tabular-nums px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1f242e] transition-colors ${
+                      o.is_paid ? "text-gray-300 dark:text-gray-600" : "text-gray-900 dark:text-gray-100"
                     }`}
                   >
                     ₩{formatWon(o.amount)}
@@ -105,19 +105,19 @@ export function ObligationsList({
 
       {/* Total row */}
       {obligations.length > 0 && (
-        <Card className="bg-cream-50">
+        <Card className="bg-gray-50 dark:bg-[#1f242e]">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-warm-600">납부 현황</span>
-              <span className="text-sm font-semibold text-warm-700 tabular-nums">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">납부 현황</span>
+              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 tabular-nums">
                 ₩{formatWon(paidTotal)}{" "}
-                <span className="text-warm-400 font-normal">
+                <span className="text-gray-400 dark:text-gray-500 font-normal">
                   / ₩{formatWon(grandTotal)}
                 </span>
               </span>
             </div>
             <ProgressBar percent={percent} />
-            <p className="text-right text-xs text-warm-400">{percent}% 완료</p>
+            <p className="text-right text-xs text-gray-400 dark:text-gray-500">{percent}% 완료</p>
           </div>
         </Card>
       )}
