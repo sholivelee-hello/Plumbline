@@ -101,6 +101,16 @@ export function useSchedule(weekStartDate: string) {
     await loadPresets();
   }
 
+  async function updatePreset(id: string, patch: { title?: string; duration?: number }) {
+    await supabase.from("schedule_presets").update(patch).eq("id", id);
+    await loadPresets();
+  }
+
+  async function deletePreset(id: string) {
+    await supabase.from("schedule_presets").delete().eq("id", id);
+    await loadPresets();
+  }
+
   async function deletePlan(planId: string) {
     await supabase.from("schedule_plans").delete().eq("id", planId);
     await loadWeek();
@@ -157,6 +167,6 @@ export function useSchedule(weekStartDate: string) {
   return {
     plans, actuals, presets, loading, weekDates,
     completePlan, editAndComplete, addPlan, addActual,
-    savePreset, deletePlan, deleteActual, applyTemplate,
+    savePreset, updatePreset, deletePreset, deletePlan, deleteActual, applyTemplate,
   };
 }

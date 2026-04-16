@@ -261,6 +261,8 @@ export default function SchedulePage() {
         presets={schedule.presets}
         onSelect={handleSelectPreset}
         onManual={openManualForm}
+        onUpdate={schedule.updatePreset}
+        onDelete={schedule.deletePreset}
       />
 
       <Modal
