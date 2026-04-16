@@ -26,13 +26,8 @@ export function EventListModal({ date, events, onClose, onEdit, onAddNew }: Even
               key={ev.id}
               type="button"
               onClick={() => onEdit(ev)}
-              className="w-full text-left rounded-xl px-3 py-2 flex items-center gap-2 tap-press"
-              style={{ backgroundColor: (ev.color || "#d4c4b0") + "20" }}
+              className="w-full text-left rounded-xl px-3 py-2 flex items-center gap-2 tap-press bg-primary-50 dark:bg-[#2a2e45]"
             >
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: ev.color }}
-              />
               <span className="flex-1 text-sm text-gray-700 dark:text-gray-200 truncate">
                 {ev.title}
               </span>

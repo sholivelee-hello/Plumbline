@@ -20,14 +20,22 @@ import type {
 } from "@/types/database";
 
 const USER_ID = "demo-user-000";
-const TODAY = new Date().toISOString().split("T")[0];
+
+function toLocalDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+const TODAY = toLocalDateStr(new Date());
 const MONTH = TODAY.slice(0, 7);
 const THIRTY_DAYS_AGO = new Date(Date.now() - 30 * 86400000).toISOString();
 
 function daysFromToday(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() + n);
-  return d.toISOString().split("T")[0];
+  return toLocalDateStr(d);
 }
 
 export const demoSettings: UserSettings = {

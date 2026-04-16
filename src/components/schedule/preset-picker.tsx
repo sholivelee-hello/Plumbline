@@ -30,10 +30,6 @@ export function PresetPicker({ isOpen, onClose, presets, onSelect, onManual }: P
               }}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-[#1f242e] transition-colors tap-press"
             >
-              <div
-                className="w-4 h-4 rounded-full shrink-0"
-                style={{ backgroundColor: p.color }}
-              />
               <span className="flex-1 text-left text-gray-900 dark:text-gray-100 text-sm">
                 {p.title}
               </span>

@@ -55,7 +55,13 @@ export function EventsStrip({ weekDates, events, onEventClick }: EventsStripProp
   return (
     <div className="space-y-0.5 py-1">
       {lanes.map((lane, idx) => (
-        <div key={idx} className="grid grid-cols-7 gap-px">
+        <div
+          key={idx}
+          className="grid gap-px"
+          style={{ gridTemplateColumns: "48px repeat(7, minmax(0, 1fr))" }}
+        >
+          {/* Spacer matching the time-labels column in the grid below */}
+          <div />
           {Array.from({ length: 7 }).map((_, col) => {
             const row = lane.rows.find((r) => r.startCol === col);
             if (!row) {
@@ -69,11 +75,9 @@ export function EventsStrip({ weekDates, events, onEventClick }: EventsStripProp
                 key={col}
                 type="button"
                 onClick={() => onEventClick(row.event)}
-                className="text-left truncate text-[11px] font-medium leading-tight rounded px-1.5 py-0.5"
+                className="text-left truncate text-[11px] font-medium leading-tight rounded px-1.5 py-0.5 bg-primary-50 text-primary-600 dark:bg-[#2a2e45] dark:text-primary-200"
                 style={{
                   gridColumn: `span ${row.span} / span ${row.span}`,
-                  backgroundColor: (row.event.color || "#d4c4b0") + "30",
-                  color: row.event.color || "#7575d8",
                 }}
                 title={row.event.title}
               >

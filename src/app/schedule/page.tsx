@@ -183,19 +183,10 @@ export default function SchedulePage() {
               월간
             </button>
           </div>
-          {view === "weekly" && (
-            <button
-              type="button"
-              onClick={() => openAdd(today, undefined, false)}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-primary-500 text-white text-sm font-semibold tap-press"
-            >
-              + 블록
-            </button>
-          )}
           <button
             type="button"
             onClick={() => { setEditingEvent(null); setEventFormOpen(true); }}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-primary-500 text-primary-600 dark:text-primary-300 text-sm font-semibold tap-press"
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-primary-500 text-white text-sm font-semibold tap-press"
           >
             + 이벤트
           </button>

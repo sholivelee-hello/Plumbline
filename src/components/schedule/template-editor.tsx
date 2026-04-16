@@ -5,7 +5,7 @@ import { Modal } from "@/components/ui/modal";
 import type { WeeklyTemplateBlock } from "@/types/database";
 
 const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
-const COLOR_PRESETS = ["#d4c4b0", "#c8d4e8", "#c8dcc8", "#f0d4b4", "#e0e8f0", "#f9e8d4"];
+const DEFAULT_COLOR = "#7575D8";
 
 interface TemplateEditorProps {
   templateId: string;
@@ -24,7 +24,6 @@ export function TemplateEditor({ templateId, loadBlocks, onAdd, onUpdate, onDele
   const [title, setTitle] = useState("");
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("10:00");
-  const [color, setColor] = useState(COLOR_PRESETS[0]);
 
   useEffect(() => {
     (async () => setBlocks(await loadBlocks(templateId)))();
@@ -40,7 +39,6 @@ export function TemplateEditor({ templateId, loadBlocks, onAdd, onUpdate, onDele
     setTitle("");
     setStartTime("09:00");
     setEndTime("10:00");
-    setColor(COLOR_PRESETS[0]);
     setOpen(true);
   }
 
@@ -50,7 +48,6 @@ export function TemplateEditor({ templateId, loadBlocks, onAdd, onUpdate, onDele
     setTitle(b.title);
     setStartTime(b.start_time.slice(0, 5));
     setEndTime(b.end_time.slice(0, 5));
-    setColor(b.color);
     setOpen(true);
   }
 
@@ -63,7 +60,7 @@ export function TemplateEditor({ templateId, loadBlocks, onAdd, onUpdate, onDele
         start_time: startTime,
         end_time: endTime,
         title: title.trim(),
-        color,
+        color: editing.color || DEFAULT_COLOR,
       });
     } else {
       await onAdd({
@@ -72,7 +69,7 @@ export function TemplateEditor({ templateId, loadBlocks, onAdd, onUpdate, onDele
         start_time: startTime,
         end_time: endTime,
         title: title.trim(),
-        color,
+        color: DEFAULT_COLOR,
       });
     }
     setOpen(false);
@@ -115,8 +112,7 @@ export function TemplateEditor({ templateId, loadBlocks, onAdd, onUpdate, onDele
                     e.stopPropagation();
                     openEdit(b);
                   }}
-                  className="rounded-md px-1.5 py-1 text-[10px] font-medium cursor-pointer"
-                  style={{ backgroundColor: (b.color || "#c8d4e8") + "30", color: b.color }}
+                  className="rounded-md px-1.5 py-1 text-[10px] font-medium cursor-pointer bg-primary-50 text-primary-600 dark:bg-[#2a2e45] dark:text-primary-200"
                 >
                   <div className="tabular-nums">
                     {b.start_time.slice(0, 5)}–{b.end_time.slice(0, 5)}
@@ -166,21 +162,6 @@ export function TemplateEditor({ templateId, loadBlocks, onAdd, onUpdate, onDele
               onChange={(e) => setEndTime(e.target.value)}
               className="px-3 py-2.5 rounded-xl border border-gray-200 dark:border-[#262c38] bg-gray-50 dark:bg-[#1f242e] text-sm"
             />
-          </div>
-          <div className="flex gap-2">
-            {COLOR_PRESETS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setColor(c)}
-                className="w-8 h-8 rounded-full"
-                style={{
-                  backgroundColor: c,
-                  boxShadow: color === c ? `0 0 0 2px var(--surface), 0 0 0 4px ${c}` : undefined,
-                }}
-                aria-label={`색상 ${c}`}
-              />
-            ))}
           </div>
           <div className="flex gap-3 pt-1">
             {editing && (

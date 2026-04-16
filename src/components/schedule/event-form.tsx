@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Event } from "@/types/database";
 
-const COLOR_PRESETS = ["#d4c4b0", "#c8d4e8", "#c8dcc8", "#f0d4b4", "#e0e8f0", "#f9e8d4"];
+const DEFAULT_COLOR = "#7575D8";
 
 interface EventFormProps {
   mode: "add" | "edit";
@@ -25,7 +25,7 @@ export function EventForm({ mode, initial, defaultDate, onSave, onCancel, onDele
   const [title, setTitle] = useState(initial?.title ?? "");
   const [startDate, setStartDate] = useState(initial?.start_date ?? defaultDate ?? "");
   const [endDate, setEndDate] = useState(initial?.end_date ?? defaultDate ?? "");
-  const [color, setColor] = useState(initial?.color ?? COLOR_PRESETS[0]);
+  const color = initial?.color ?? DEFAULT_COLOR;
   const [memo, setMemo] = useState(initial?.memo ?? "");
 
   function handleSubmit(e: React.FormEvent) {
@@ -61,21 +61,6 @@ export function EventForm({ mode, initial, defaultDate, onSave, onCancel, onDele
         onChange={(e) => setTitle(e.target.value)}
         className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-[#262c38] bg-gray-50 dark:bg-[#1f242e] text-sm"
         required autoFocus />
-
-      <div>
-        <label className="block text-xs text-gray-400 mb-2 pl-1">색상</label>
-        <div className="flex gap-2">
-          {COLOR_PRESETS.map((c) => (
-            <button key={c} type="button" onClick={() => setColor(c)}
-              className="w-8 h-8 rounded-full"
-              style={{
-                backgroundColor: c,
-                boxShadow: color === c ? `0 0 0 2px var(--surface), 0 0 0 4px ${c}` : undefined,
-              }}
-              aria-label={`색상 ${c}`} />
-          ))}
-        </div>
-      </div>
 
       <textarea placeholder="메모 (선택)" value={memo}
         onChange={(e) => setMemo(e.target.value)}

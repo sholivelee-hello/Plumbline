@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const COLOR_PRESETS = ["#d4c4b0", "#c8d4e8", "#c8dcc8", "#f0d4b4", "#e0e8f0", "#f9e8d4"];
+const DEFAULT_COLOR = "#7575D8";
 
 interface BlockFormProps {
   onSave: (data: {
@@ -55,7 +55,7 @@ export function BlockForm({
   const [title, setTitle] = useState(defaultTitle ?? "");
   const [startTime, setStartTime] = useState(defaultStart);
   const [endTime, setEndTime] = useState(defaultEnd);
-  const [color, setColor] = useState(defaultColor ?? COLOR_PRESETS[0]);
+  const color = defaultColor ?? DEFAULT_COLOR;
   const [saveAsPreset, setSaveAsPreset] = useState(false);
   const [date, setDate] = useState(defaultDate);
   const [asActual, setAsActual] = useState(defaultAsActual ?? false);
@@ -131,29 +131,6 @@ export function BlockForm({
               </option>
             ))}
           </select>
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-xs text-gray-400 dark:text-gray-500 mb-2 pl-1">
-          색상
-        </label>
-        <div className="flex gap-2">
-          {COLOR_PRESETS.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => setColor(c)}
-              className="w-8 h-8 rounded-full transition-transform hover:scale-110 focus:outline-none"
-              style={{
-                backgroundColor: c,
-                border: color === c ? `2px solid ${c}` : "2px solid transparent",
-                boxShadow:
-                  color === c ? `0 0 0 2px var(--surface), 0 0 0 4px ${c}` : undefined,
-              }}
-              aria-label={`색상 ${c}`}
-            />
-          ))}
         </div>
       </div>
 

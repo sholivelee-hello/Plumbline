@@ -23,19 +23,17 @@ export function TimeBlock({ block, timeUnit, dayStartTime, onClick }: TimeBlockP
   return (
     <div
       onClick={onClick}
-      className="absolute left-1 right-1 rounded-lg px-1.5 py-1 cursor-pointer overflow-hidden text-xs leading-tight"
+      className="absolute left-1 right-1 rounded-lg px-1.5 py-1 cursor-pointer overflow-hidden text-xs leading-tight bg-primary-50 dark:bg-[#2a2e45] border-l-[3px] border-primary-500"
       style={{
         top: `${top}px`,
         height: `${height}px`,
-        backgroundColor: block.color + "40",
-        borderLeft: `3px solid ${block.color}`,
       }}
     >
-      <p className="font-medium truncate" style={{ color: block.color }}>
+      <p className="font-medium truncate text-primary-600 dark:text-primary-200">
         {block.title}
       </p>
       {height > 30 && (
-        <p className="opacity-60" style={{ color: block.color, fontSize: "10px" }}>
+        <p className="text-primary-400 dark:text-primary-300 opacity-60" style={{ fontSize: "10px" }}>
           {formatTime(block.start_time)}-{formatTime(block.end_time)}
         </p>
       )}

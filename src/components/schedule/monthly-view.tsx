@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { toLocalDateString } from "@/lib/utils/date";
 import type { Event } from "@/types/database";
 
 interface MonthlyViewProps {
@@ -23,7 +24,7 @@ function toDateStr(year: number, month: number, day: number): string {
 
 export function MonthlyView({ events, onDateTap }: MonthlyViewProps) {
   const today = new Date();
-  const todayStr = today.toISOString().split("T")[0];
+  const todayStr = toLocalDateString(today);
 
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -77,7 +78,7 @@ export function MonthlyView({ events, onDateTap }: MonthlyViewProps) {
     const end = new Date(event.end_date + "T00:00:00");
     const cur = new Date(start);
     while (cur <= end) {
-      const key = cur.toISOString().split("T")[0];
+      const key = toLocalDateString(cur);
       (eventsByDate[key] ??= []).push(event);
       cur.setDate(cur.getDate() + 1);
     }
@@ -154,11 +155,7 @@ export function MonthlyView({ events, onDateTap }: MonthlyViewProps) {
                       e.stopPropagation();
                       onDateTap(dateStr);
                     }}
-                    className="w-full text-left rounded-md px-1.5 py-0.5 text-[10px] font-medium leading-tight truncate tap-press"
-                    style={{
-                      backgroundColor: (ev.color || "#d4c4b0") + "28",
-                      color: ev.color || "#7575d8",
-                    }}
+                    className="w-full text-left rounded-md px-1.5 py-0.5 text-[10px] font-medium leading-tight truncate tap-press bg-primary-50 text-primary-600 dark:bg-[#2a2e45] dark:text-primary-200"
                     title={ev.title}
                   >
                     {ev.title}
