@@ -121,23 +121,22 @@ export function useBudget(month: string) {
       });
 
       // Upsert: delete existing then insert ensures clean state
-      const { error: deleteError } = await supabase
+      const deleteQuery = supabase
         .from("finance_budgets")
         .delete()
         .eq("user_id", FIXED_USER_ID)
         .eq("month", month)
-        .eq("group_id", groupId)
-        .is("item_id", itemId === null ? null : undefined);
+        .eq("group_id", groupId);
 
-      // Handle non-null item_id delete separately
-      if (!deleteError && itemId !== null) {
-        await supabase
-          .from("finance_budgets")
-          .delete()
-          .eq("user_id", FIXED_USER_ID)
-          .eq("month", month)
-          .eq("group_id", groupId)
-          .eq("item_id", itemId);
+      const { error: deleteError } = await (
+        itemId === null
+          ? deleteQuery.is("item_id", null)
+          : deleteQuery.eq("item_id", itemId)
+      );
+
+      if (deleteError) {
+        setRows(prev);
+        return { ok: false, error: deleteError.message };
       }
 
       const { error: insertError } = await supabase
@@ -258,7 +257,6 @@ export function useBudget(month: string) {
         newRows.map((r, i) => ({
           ...r,
           id: `optimistic-copy-${i}-${Date.now()}`,
-          category_id: null,
         }))
       );
 
