@@ -83,14 +83,7 @@ export interface ScheduleActual {
   is_from_plan: boolean;
 }
 
-export interface FinanceCategory {
-  id: string;
-  user_id: string;
-  type: FinanceCategoryType;
-  title: string;
-  default_amount: number | null;
-  sort_order: number;
-}
+// FinanceCategory removed — table dropped in migration 00010. Cleanup in Task 16.
 
 export interface HeavenBankEntry {
   id: string;
@@ -102,35 +95,82 @@ export interface HeavenBankEntry {
   amount: number;
 }
 
-export interface FinanceObligation {
-  id: string;
-  user_id: string;
-  month: string;
-  category_id: string;
-  amount: number;
-  is_paid: boolean;
-  paid_date: string | null;
-  linked_debt_id: string | null;
-}
+// FinanceObligation removed — table dropped in migration 00010. Cleanup in Task 16.
 
 export interface FinanceTransaction {
   id: string;
   user_id: string;
-  account_id?: string | null;
-  type: TransactionType;
+  type: 'income' | 'expense';
   amount: number;
-  category_id: string | null;
   description: string | null;
   date: string;
-  is_auto: boolean;
+  group_id: string | null;
+  item_id: string | null;
+  income_category: string | null;
+  source: 'manual' | 'recurring' | 'installment' | 'debt' | 'heaven_bank';
 }
 
 export interface FinanceBudget {
   id: string;
   user_id: string;
-  category_id: string;
-  amount: number;
   month: string;
+  group_id: string;
+  item_id: string | null;
+  amount: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FinanceBudgetSettings {
+  id: string;
+  user_id: string;
+  monthly_income: number;
+  group_configs: unknown;  // JSONB - use finance-config's FinanceGroup[] at parse time
+  income_categories: string[];
+  updated_at: string;
+}
+
+export interface FinanceWishlist {
+  id: string;
+  user_id: string;
+  title: string;
+  target_amount: number;
+  saved_amount: number;
+  priority: number;
+  is_completed: boolean;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FinanceRecurring {
+  id: string;
+  user_id: string;
+  description: string;
+  amount: number;
+  type: 'income' | 'expense';
+  day_of_month: number;
+  group_id: string | null;
+  item_id: string | null;
+  income_category: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface FinanceRecurringLog {
+  id: string;
+  recurring_id: string;
+  month: string;
+  transaction_id: string;
+  executed_at: string;
+}
+
+export interface FinanceOnboarding {
+  id: string;
+  user_id: string;
+  is_completed: boolean;
+  is_demo_mode: boolean;
+  completed_at: string | null;
 }
 
 export interface FinanceDebt {
@@ -138,7 +178,9 @@ export interface FinanceDebt {
   user_id: string;
   title: string;
   total_amount: number;
+  tags: string[];
   created_at: string;
+  updated_at: string;
   is_completed: boolean;
 }
 
@@ -151,15 +193,7 @@ export interface FinanceDebtPayment {
   memo: string | null;
 }
 
-export interface FinanceWant {
-  id: string;
-  user_id: string;
-  title: string;
-  estimated_price: number | null;
-  is_purchased: boolean;
-  purchased_date: string | null;
-  created_month: string;
-}
+// FinanceWant removed — migrated to FinanceWishlist in migration 00010. Cleanup in Task 16.
 
 export interface FinanceInstallment {
   id: string;
@@ -172,6 +206,7 @@ export interface FinanceInstallment {
   start_date: string;
   is_completed: boolean;
   created_at: string;
+  updated_at: string;
 }
 
 export interface WeeklyTemplate {
