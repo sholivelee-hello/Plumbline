@@ -173,6 +173,7 @@ export interface FinanceDebt {
   user_id: string;
   title: string;
   total_amount: number;
+  tags: string[];
   created_at: string;
   is_completed: boolean;
 }

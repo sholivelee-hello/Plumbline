@@ -135,6 +135,7 @@ export const demoTransactions: FinanceTransaction[] = [
 export const demoDebts: (FinanceDebt & { total_paid: number; percent: number; payments: FinanceDebtPayment[] })[] = [
   {
     id: "fd1", user_id: USER_ID, title: "전세 대출", total_amount: 50000000, created_at: "2024-03-01", is_completed: false,
+    tags: ["주거"],
     total_paid: 15000000, percent: 30,
     payments: [
       { id: "dp1", user_id: USER_ID, debt_id: "fd1", amount: 5000000, date: "2025-01-15", memo: "1분기 상환" },

@@ -30,7 +30,7 @@ const DEFAULT_PERCENTS: Record<string, number> = {
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { startDemo, completeOnboarding } = useOnboarding();
+  const { completeOnboarding } = useOnboarding();
   const { updateIncome, groups: configGroups } = useBudgetSettings();
   const { bulkSetBudgets } = useBudget(getCurrentMonth());
 
@@ -56,15 +56,6 @@ export default function OnboardingPage() {
   const totalPercent = Object.values(percents).reduce((s, v) => s + v, 0);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
-
-  const handleStartDemo = useCallback(async () => {
-    setLoading(true);
-    const result = await startDemo();
-    setLoading(false);
-    if (result.ok) {
-      router.replace("/finance");
-    }
-  }, [startDemo, router]);
 
   const handleIncomeNext = useCallback(async () => {
     if (income <= 0) return;
@@ -168,18 +159,6 @@ export default function OnboardingPage() {
             <div className="space-y-3 pt-2">
               <button
                 type="button"
-                onClick={handleStartDemo}
-                disabled={loading}
-                className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold
-                  bg-gray-100 dark:bg-[#262c38] text-gray-700 dark:text-gray-300
-                  hover:bg-gray-200 dark:hover:bg-[#2d3748]
-                  active:scale-[0.98] transition-all
-                  disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {loading ? "잠시만요..." : "둘러보기"}
-              </button>
-              <button
-                type="button"
                 onClick={() => setStep(2)}
                 disabled={loading}
                 className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold
@@ -187,7 +166,7 @@ export default function OnboardingPage() {
                   hover:opacity-90 active:scale-[0.98] transition-all
                   disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                바로 시작하기
+                시작하기
               </button>
             </div>
           </div>

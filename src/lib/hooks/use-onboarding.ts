@@ -93,58 +93,6 @@ export function useOnboarding() {
     setRefreshTick((n) => n + 1);
   }, []);
 
-  const startDemo = useCallback(async (): Promise<{ ok: boolean; error?: string }> => {
-    const { error } = await supabase
-      .from("finance_onboarding")
-      .upsert(
-        {
-          user_id: FIXED_USER_ID,
-          is_demo_mode: true,
-          is_completed: false,
-          completed_at: null,
-        },
-        { onConflict: "user_id" }
-      );
-
-    if (error) return { ok: false, error: error.message };
-    const next: FinanceOnboarding = {
-      id: state?.id ?? "local",
-      user_id: FIXED_USER_ID,
-      is_demo_mode: true,
-      is_completed: false,
-      completed_at: null,
-    };
-    setState(next);
-    writeLocal(next);
-    return { ok: true };
-  }, [supabase, state]);
-
-  const exitDemo = useCallback(async (): Promise<{ ok: boolean; error?: string }> => {
-    const { error } = await supabase
-      .from("finance_onboarding")
-      .upsert(
-        {
-          user_id: FIXED_USER_ID,
-          is_demo_mode: false,
-          is_completed: false,
-          completed_at: null,
-        },
-        { onConflict: "user_id" }
-      );
-
-    if (error) return { ok: false, error: error.message };
-    const next: FinanceOnboarding = {
-      id: state?.id ?? "local",
-      user_id: FIXED_USER_ID,
-      is_demo_mode: false,
-      is_completed: state?.is_completed ?? false,
-      completed_at: state?.completed_at ?? null,
-    };
-    setState(next);
-    writeLocal(next);
-    return { ok: true };
-  }, [supabase, state]);
-
   const completeOnboarding = useCallback(async (): Promise<{ ok: boolean; error?: string }> => {
     const now = new Date().toISOString();
     const { error } = await supabase
@@ -176,9 +124,6 @@ export function useOnboarding() {
     state,
     loading,
     isOnboarded: state?.is_completed ?? false,
-    isDemoMode: state?.is_demo_mode ?? false,
-    startDemo,
-    exitDemo,
     completeOnboarding,
     refresh,
   };

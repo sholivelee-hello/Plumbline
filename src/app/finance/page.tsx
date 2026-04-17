@@ -145,7 +145,7 @@ function FinancePageInner() {
   const [month, setMonth] = useState(getCurrentMonth());
   const { toast } = useToast();
 
-  const { isOnboarded, isDemoMode, loading: onboardingLoading } = useOnboarding();
+  const { isOnboarded, loading: onboardingLoading } = useOnboarding();
   const { migrationOffered, migrateNow, dismiss: dismissMigration } = useLocalStorageMigration(toast);
 
   const { summary, donutData, groupCards, todayTransactions, loading, refresh } =
@@ -157,10 +157,10 @@ function FinancePageInner() {
   // ── Redirect to onboarding if not onboarded ──────────────────────────────
   useEffect(() => {
     if (onboardingLoading) return;
-    if (!isOnboarded && !isDemoMode) {
+    if (!isOnboarded) {
       router.replace("/finance/onboarding");
     }
-  }, [onboardingLoading, isOnboarded, isDemoMode, router]);
+  }, [onboardingLoading, isOnboarded, router]);
 
   // ── Auto-execute recurring transactions once per month ───────────────────
   const lastExecutedMonth = useRef<string | null>(null);
