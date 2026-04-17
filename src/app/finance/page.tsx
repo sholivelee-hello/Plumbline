@@ -156,13 +156,14 @@ function FinancePageInner() {
   const { groups, incomeCategories } = useBudgetSettings();
   const { executeForMonth } = useRecurring();
 
-  // ── Redirect to onboarding if not onboarded ──────────────────────────────
-  useEffect(() => {
-    if (onboardingLoading) return;
-    if (!isOnboarded) {
-      router.replace("/finance/onboarding");
-    }
-  }, [onboardingLoading, isOnboarded, router]);
+  // ── Onboarding redirect disabled for UI testing mode ────────────────────
+  // Re-enable when Supabase is properly configured:
+  // useEffect(() => {
+  //   if (onboardingLoading) return;
+  //   if (!isOnboarded) {
+  //     router.replace("/finance/onboarding");
+  //   }
+  // }, [onboardingLoading, isOnboarded, router]);
 
   // ── Auto-execute recurring transactions once per month ───────────────────
   const lastExecutedMonth = useRef<string | null>(null);

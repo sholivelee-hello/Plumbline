@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { FIXED_USER_ID } from "@/lib/constants";
 import type { FinanceBudgetSettings } from "@/types/database";
 import {
@@ -10,6 +10,26 @@ import {
   parseGroupConfigs,
   type FinanceGroup,
 } from "@/lib/finance-config";
+
+// Local fallback when Supabase is not configured (UI testing mode)
+const LOCAL_KEY = "finance-budget-settings-local";
+function readLocalSettings(): FinanceBudgetSettings | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(LOCAL_KEY);
+    return raw ? (JSON.parse(raw) as FinanceBudgetSettings) : null;
+  } catch {
+    return null;
+  }
+}
+function writeLocalSettings(state: FinanceBudgetSettings) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(LOCAL_KEY, JSON.stringify(state));
+  } catch {
+    // ignore
+  }
+}
 
 export function useBudgetSettings() {
   const [settings, setSettings] = useState<FinanceBudgetSettings | null>(null);
@@ -32,6 +52,29 @@ export function useBudgetSettings() {
     let cancelled = false;
     setLoading(true);
     setError(null);
+
+    // If Supabase is not configured, use localStorage-only mode (UI testing)
+    if (!isSupabaseConfigured()) {
+      const local = readLocalSettings();
+      if (local) {
+        setSettings(local);
+      } else {
+        const defaults: FinanceBudgetSettings = {
+          id: "local",
+          user_id: FIXED_USER_ID,
+          monthly_income: 0,
+          group_configs: DEFAULT_GROUPS as unknown as FinanceBudgetSettings["group_configs"],
+          income_categories: DEFAULT_INCOME_CATEGORIES,
+          updated_at: new Date().toISOString(),
+        };
+        setSettings(defaults);
+        writeLocalSettings(defaults);
+      }
+      setLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
 
     const run = async () => {
       try {
@@ -89,7 +132,20 @@ export function useBudgetSettings() {
     async (amount: number): Promise<{ ok: boolean; error?: string }> => {
       // [MEDIUM] Read from ref to avoid stale closure capture
       const prev = settingsRef.current;
-      setSettings((s) => (s ? { ...s, monthly_income: amount } : s));
+      const next: FinanceBudgetSettings = {
+        id: prev?.id ?? "local",
+        user_id: FIXED_USER_ID,
+        monthly_income: amount,
+        group_configs: prev?.group_configs ?? (DEFAULT_GROUPS as unknown as FinanceBudgetSettings["group_configs"]),
+        income_categories: prev?.income_categories ?? DEFAULT_INCOME_CATEGORIES,
+        updated_at: new Date().toISOString(),
+      };
+      setSettings(next);
+
+      if (!isSupabaseConfigured()) {
+        writeLocalSettings(next);
+        return { ok: true };
+      }
 
       const { error: updateError } = await supabase
         .from("finance_budget_settings")
@@ -97,9 +153,9 @@ export function useBudgetSettings() {
           {
             user_id: FIXED_USER_ID,
             monthly_income: amount,
-            group_configs: prev?.group_configs ?? DEFAULT_GROUPS,
-            income_categories: prev?.income_categories ?? DEFAULT_INCOME_CATEGORIES,
-            updated_at: new Date().toISOString(),
+            group_configs: next.group_configs,
+            income_categories: next.income_categories,
+            updated_at: next.updated_at,
           },
           { onConflict: "user_id" }
         );
@@ -117,7 +173,20 @@ export function useBudgetSettings() {
   const updateGroupConfigs = useCallback(
     async (configs: FinanceGroup[]): Promise<{ ok: boolean; error?: string }> => {
       const prev = settingsRef.current;
-      setSettings((s) => (s ? { ...s, group_configs: configs } : s));
+      const next: FinanceBudgetSettings = {
+        id: prev?.id ?? "local",
+        user_id: FIXED_USER_ID,
+        monthly_income: prev?.monthly_income ?? 0,
+        group_configs: configs as unknown as FinanceBudgetSettings["group_configs"],
+        income_categories: prev?.income_categories ?? DEFAULT_INCOME_CATEGORIES,
+        updated_at: new Date().toISOString(),
+      };
+      setSettings(next);
+
+      if (!isSupabaseConfigured()) {
+        writeLocalSettings(next);
+        return { ok: true };
+      }
 
       const { error: updateError } = await supabase
         .from("finance_budget_settings")
@@ -145,7 +214,20 @@ export function useBudgetSettings() {
   const updateIncomeCategories = useCallback(
     async (cats: string[]): Promise<{ ok: boolean; error?: string }> => {
       const prev = settingsRef.current;
-      setSettings((s) => (s ? { ...s, income_categories: cats } : s));
+      const next: FinanceBudgetSettings = {
+        id: prev?.id ?? "local",
+        user_id: FIXED_USER_ID,
+        monthly_income: prev?.monthly_income ?? 0,
+        group_configs: prev?.group_configs ?? (DEFAULT_GROUPS as unknown as FinanceBudgetSettings["group_configs"]),
+        income_categories: cats,
+        updated_at: new Date().toISOString(),
+      };
+      setSettings(next);
+
+      if (!isSupabaseConfigured()) {
+        writeLocalSettings(next);
+        return { ok: true };
+      }
 
       const { error: updateError } = await supabase
         .from("finance_budget_settings")
