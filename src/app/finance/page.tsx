@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef, Suspense } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -21,6 +21,8 @@ import { useOnboarding } from "@/lib/hooks/use-onboarding";
 import { getCurrentMonth, formatCurrency, parseCurrencyInput } from "@/lib/finance-utils";
 import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
+import { createClient } from "@/lib/supabase/client";
+import { FIXED_USER_ID } from "@/lib/constants";
 
 import { FinanceCard } from "@/components/finance/finance-card";
 import { FinanceDonutChart } from "@/components/finance/finance-donut-chart";
@@ -53,6 +55,88 @@ const GROUP_CHIP_STYLES: Record<string, { base: string; active: string }> = {
   },
 };
 
+// ── localStorage Migration hook ───────────────────────────────────────────────
+
+function useLocalStorageMigration(toast: (msg: string, type: "success" | "error" | "info") => void) {
+  const [migrationOffered, setMigrationOffered] = useState(false);
+  const supabase = useMemo(() => createClient(), []);
+
+  useEffect(() => {
+    const dismissed = localStorage.getItem("faith-budget-migration-dismissed");
+    if (dismissed === "true") return;
+
+    let found = false;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith("faith-budget-") && key !== "faith-budget-migration-dismissed") {
+        found = true;
+        break;
+      }
+    }
+    if (found) setMigrationOffered(true);
+  }, []);
+
+  const migrateNow = useCallback(async () => {
+    const rowsToInsert: Array<{
+      user_id: string;
+      month: string;
+      group_id: string;
+      item_id: string;
+      amount: number;
+    }> = [];
+    const keysToRemove: string[] = [];
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith("faith-budget-") || key === "faith-budget-migration-dismissed") continue;
+      const month = key.replace("faith-budget-", "");
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const parsed: Record<string, unknown> = JSON.parse(raw);
+        for (const [itemKey, amount] of Object.entries(parsed)) {
+          const idx = itemKey.indexOf("_");
+          if (idx === -1) continue;
+          rowsToInsert.push({
+            user_id: FIXED_USER_ID,
+            month,
+            group_id: itemKey.slice(0, idx),
+            item_id: itemKey.slice(idx + 1),
+            amount: Number(amount),
+          });
+        }
+        keysToRemove.push(key);
+      } catch {
+        // skip malformed entries
+      }
+    }
+
+    if (rowsToInsert.length === 0) {
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+      setMigrationOffered(false);
+      toast("가져올 예산 데이터가 없습니다", "info");
+      return;
+    }
+
+    const { error } = await supabase.from("finance_budgets").insert(rowsToInsert);
+    if (error) {
+      toast("마이그레이션 실패: " + error.message, "error");
+      return;
+    }
+
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+    setMigrationOffered(false);
+    toast(`예산 데이터 ${rowsToInsert.length}건을 클라우드에 저장했습니다`, "success");
+  }, [supabase, toast]);
+
+  const dismiss = useCallback(() => {
+    localStorage.setItem("faith-budget-migration-dismissed", "true");
+    setMigrationOffered(false);
+  }, []);
+
+  return { migrationOffered, migrateNow, dismiss };
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 function FinancePageInner() {
@@ -62,6 +146,7 @@ function FinancePageInner() {
   const { toast } = useToast();
 
   const { isOnboarded, isDemoMode, loading: onboardingLoading } = useOnboarding();
+  const { migrationOffered, migrateNow, dismiss: dismissMigration } = useLocalStorageMigration(toast);
 
   const { summary, donutData, groupCards, todayTransactions, loading, refresh } =
     useFinanceHub(month);
@@ -198,6 +283,29 @@ function FinancePageInner() {
       <PageHeader title="재정 관리" contentMaxWidth="max-w-3xl" />
 
       <div className="max-w-3xl mx-auto p-4 lg:p-8 space-y-5">
+
+        {/* ── Migration Banner ─────────────────────────────────────────────── */}
+        {migrationOffered && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-4">
+            <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+              기존 예산 데이터가 발견되었습니다. 클라우드에 저장할까요?
+            </p>
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={migrateNow}
+                className="px-4 py-2 min-h-[40px] rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 active:scale-95 transition-all"
+              >
+                가져오기
+              </button>
+              <button
+                onClick={dismissMigration}
+                className="px-4 py-2 min-h-[40px] rounded-lg text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 active:scale-95 transition-all"
+              >
+                나중에
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ── 1. Month Picker ──────────────────────────────────────────────── */}
         <MonthPicker
