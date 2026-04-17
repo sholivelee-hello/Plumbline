@@ -101,7 +101,7 @@ export interface FinanceTransaction {
   date: string;
   group_id: string | null;
   item_id: string | null;
-  source: 'manual' | 'recurring' | 'installment' | 'debt' | 'heaven_bank';
+  source: 'manual' | 'recurring' | 'installment' | 'debt' | 'heaven_bank' | 'subscription';
 }
 
 export interface FinanceBudget {
@@ -148,6 +148,7 @@ export interface FinanceRecurring {
   item_id: string | null;
   income_category: string | null;
   is_active: boolean;
+  subscription_id?: string | null;
   created_at: string;
 }
 
@@ -214,4 +215,37 @@ export interface WeeklyTemplateBlock {
   end_time: string;
   title: string;
   color: string;
+}
+
+export interface FinanceSubscription {
+  id: string;
+  user_id: string;
+  title: string;
+  amount: number;
+  card_label: string | null;
+  day_of_month: number;
+  start_date: string;
+  is_active: boolean;
+  cancelled_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FinanceSubscriptionAmountChange {
+  id: string;
+  subscription_id: string;
+  old_amount: number;
+  new_amount: number;
+  effective_date: string;
+  note: string | null;
+  created_at: string;
+}
+
+export interface FinanceSubscriptionCancellation {
+  id: string;
+  subscription_id: string;
+  cancelled_at: string;
+  note: string | null;
+  rejoined_at: string | null;
+  created_at: string;
 }

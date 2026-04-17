@@ -36,6 +36,7 @@ export const DEFAULT_GROUPS: FinanceGroup[] = [
       { id: 'saving', title: '저축' },
       { id: 'leisure', title: '여가선용비' },
       { id: 'allowance', title: '개인 용돈' },
+      { id: 'subscription', title: '구독' },
     ],
   },
   {
@@ -51,6 +52,8 @@ export const DEFAULT_GROUPS: FinanceGroup[] = [
 ];
 
 export const DEFAULT_INCOME_CATEGORIES = ['급여', '부수입', '투자수익', '용돈', '기타'];
+
+export const SUBSCRIPTION_ITEM_KEY = 'necessity_subscription';
 
 export const SOWING_PRESETS = ['교회 헌금', '선교 후원', '이웃 돕기', '감사 헌금'];
 
@@ -89,7 +92,30 @@ export function parseGroupConfigs(raw: unknown): FinanceGroup[] {
         && typeof (i as Record<string, unknown>).title === 'string'
     )
   );
-  return valid ? (raw as FinanceGroup[]) : DEFAULT_GROUPS;
+  if (!valid) return DEFAULT_GROUPS;
+  const stored = raw as FinanceGroup[];
+  // Merge missing items from DEFAULT_GROUPS so existing users get new items automatically.
+  // If nothing is missing, return the stored array as-is (preserves reference equality).
+  let needsMerge = false;
+  for (const defaultGroup of DEFAULT_GROUPS) {
+    const storedGroup = stored.find(g => g.id === defaultGroup.id);
+    if (!storedGroup) { needsMerge = true; break; }
+    if (defaultGroup.items.some(di => !storedGroup.items.some(si => si.id === di.id))) {
+      needsMerge = true;
+      break;
+    }
+  }
+  if (!needsMerge) return stored;
+  return DEFAULT_GROUPS.map(defaultGroup => {
+    const storedGroup = stored.find(g => g.id === defaultGroup.id);
+    if (!storedGroup) return defaultGroup;
+    const missingItems = defaultGroup.items.filter(
+      di => !storedGroup.items.some(si => si.id === di.id)
+    );
+    return missingItems.length === 0
+      ? storedGroup
+      : { ...storedGroup, items: [...storedGroup.items, ...missingItems] };
+  });
 }
 
 // Color mapping for Tailwind classes

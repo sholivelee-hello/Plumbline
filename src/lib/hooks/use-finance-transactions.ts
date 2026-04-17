@@ -13,7 +13,7 @@ type AddTransactionData = {
   date: string;
   group_id?: string | null;
   item_id?: string | null;
-  source?: "manual" | "recurring" | "installment" | "debt" | "heaven_bank";
+  source?: "manual" | "recurring" | "installment" | "debt" | "heaven_bank" | "subscription";
 };
 
 export function useFinanceTransactions(month: string) {
