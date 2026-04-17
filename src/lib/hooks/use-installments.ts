@@ -62,8 +62,8 @@ export function useInstallments() {
     monthlyPayment: number,
     totalMonths: number,
     startDate: string
-  ) {
-    await supabase.from("finance_installments").insert({
+  ): Promise<{ ok: boolean; error?: string }> {
+    const { error } = await supabase.from("finance_installments").insert({
       user_id: FIXED_USER_ID,
       title,
       total_amount: totalAmount,
@@ -72,26 +72,33 @@ export function useInstallments() {
       paid_months: 0,
       start_date: startDate,
     });
+    if (error) return { ok: false, error: error.message };
     await load();
+    return { ok: true };
   }
 
-  async function payMonth(id: string) {
+  async function payMonth(id: string): Promise<{ ok: boolean; error?: string; isCompleted?: boolean }> {
     const item = installments.find((i) => i.id === id);
-    if (!item || item.is_completed) return;
+    if (!item || item.is_completed) return { ok: false, error: "이미 완납된 항목입니다" };
 
     const newPaid = item.paid_months + 1;
     const isCompleted = newPaid >= item.total_months;
 
-    await supabase
+    const { error } = await supabase
       .from("finance_installments")
       .update({ paid_months: newPaid, is_completed: isCompleted })
       .eq("id", id);
+
+    if (error) return { ok: false, error: error.message };
     await load();
+    return { ok: true, isCompleted };
   }
 
-  async function deleteInstallment(id: string) {
-    await supabase.from("finance_installments").delete().eq("id", id);
+  async function deleteInstallment(id: string): Promise<{ ok: boolean; error?: string }> {
+    const { error } = await supabase.from("finance_installments").delete().eq("id", id);
+    if (error) return { ok: false, error: error.message };
     await load();
+    return { ok: true };
   }
 
   return { installments, loading, addInstallment, payMonth, deleteInstallment };
