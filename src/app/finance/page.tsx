@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   TrendingUp,
   TrendingDown,
@@ -17,6 +17,7 @@ import { useFinanceHub } from "@/lib/hooks/use-finance-hub";
 import { useFinanceTransactions } from "@/lib/hooks/use-finance-transactions";
 import { useBudgetSettings } from "@/lib/hooks/use-budget-settings";
 import { useRecurring } from "@/lib/hooks/use-recurring";
+import { useOnboarding } from "@/lib/hooks/use-onboarding";
 import { getCurrentMonth, formatCurrency, parseCurrencyInput } from "@/lib/finance-utils";
 import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
@@ -54,16 +55,27 @@ const GROUP_CHIP_STYLES: Record<string, { base: string; active: string }> = {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-export default function FinancePage() {
+function FinancePageInner() {
   const router = useRouter();
+  const params = useSearchParams();
   const [month, setMonth] = useState(getCurrentMonth());
   const { toast } = useToast();
+
+  const { isOnboarded, isDemoMode, loading: onboardingLoading } = useOnboarding();
 
   const { summary, donutData, groupCards, todayTransactions, loading, refresh } =
     useFinanceHub(month);
   const { addTransaction } = useFinanceTransactions(month);
   const { groups, incomeCategories } = useBudgetSettings();
   const { executeForMonth } = useRecurring();
+
+  // ── Redirect to onboarding if not onboarded ──────────────────────────────
+  useEffect(() => {
+    if (onboardingLoading) return;
+    if (!isOnboarded && !isDemoMode) {
+      router.replace("/finance/onboarding");
+    }
+  }, [onboardingLoading, isOnboarded, isDemoMode, router]);
 
   // ── Auto-execute recurring transactions once per month ───────────────────
   const lastExecutedMonth = useRef<string | null>(null);
@@ -87,6 +99,13 @@ export default function FinancePage() {
   // ── Input sheet state ─────────────────────────────────────────────────────
   const [inputOpen, setInputOpen] = useState(false);
   const [isIncome, setIsIncome] = useState(false);
+
+  // ── Open input sheet via ?openInput=1 query param ────────────────────────
+  useEffect(() => {
+    if (params.get("openInput") === "1") {
+      setInputOpen(true);
+    }
+  }, [params]);
 
   // expense
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -537,5 +556,13 @@ export default function FinancePage() {
         </div>
       </BottomSheet>
     </div>
+  );
+}
+
+export default function FinancePage() {
+  return (
+    <Suspense>
+      <FinancePageInner />
+    </Suspense>
   );
 }
