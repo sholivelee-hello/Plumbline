@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Banknote } from "lucide-react";
 
 import { useBudgetSettings } from "@/lib/hooks/use-budget-settings";
 import { useFinanceTransactions } from "@/lib/hooks/use-finance-transactions";
@@ -22,32 +22,6 @@ import { TransactionRow } from "@/components/finance/transaction-row";
 import { GroupPageSkeleton } from "@/components/finance/finance-skeleton";
 import { useToast } from "@/components/ui/toast";
 
-// ── Types ────────────────────────────────────────────────────────────────────
-
-interface DebtWithProgress {
-  id: string;
-  title: string;
-  total_amount: number;
-  total_paid: number;
-  percent: number;
-  is_completed: boolean;
-  tags?: string[] | null;
-  payments: Array<{ id: string; date: string; amount: number; memo: string | null }>;
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function predictPayoff(debt: DebtWithProgress): number | null {
-  // payments are sorted date DESC (newest-first) by use-debts
-  const recentPayments = debt.payments.slice(0, 3);
-  if (recentPayments.length < 2) return null;
-  const avg = recentPayments.reduce((s, p) => s + p.amount, 0) / recentPayments.length;
-  if (avg <= 0) return null;
-  const remaining = debt.total_amount - debt.total_paid;
-  if (remaining <= 0) return null;
-  return Math.ceil(remaining / avg);
-}
-
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ObligationPage() {
@@ -58,7 +32,7 @@ export default function ObligationPage() {
   const { transactions, byGroup, loading: txLoading, addTransaction, updateTransaction, deleteTransaction } =
     useFinanceTransactions(month);
   const { budgets, loading: budgetLoading } = useBudget(month);
-  const { debts, loading: debtsLoading, addDebt, addPayment } = useDebts();
+  const { debts, loading: debtsLoading } = useDebts();
 
   const loading = settingsLoading || txLoading || budgetLoading;
 
@@ -71,6 +45,10 @@ export default function ObligationPage() {
 
   const totalActual = byGroup["obligation"]?.total ?? 0;
   const remaining = totalBudget - totalActual;
+
+  // ── Debt summary (for compact card) ─────────────────────────────────────
+  const activeDebts = debtsLoading ? 0 : debts.filter((d) => !d.is_completed).length;
+  const monthlyDebtTotal = byGroup["obligation"]?.byItem?.["debt"] ?? 0;
 
   // ── Item expansion state ─────────────────────────────────────────────────
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
@@ -172,83 +150,6 @@ export default function ObligationPage() {
     if (!result.ok) toast(result.error ?? "삭제에 실패했습니다", "error");
   }
 
-  // ── Debt expansion ───────────────────────────────────────────────────────
-  const [expandedDebt, setExpandedDebt] = useState<string | null>(null);
-
-  function toggleDebt(debtId: string) {
-    setExpandedDebt((prev) => (prev === debtId ? null : debtId));
-  }
-
-  // ── Add debt sheet ────────────────────────────────────────────────────────
-  const [addDebtSheet, setAddDebtSheet] = useState(false);
-  const [debtTitle, setDebtTitle] = useState("");
-  const [debtAmount, setDebtAmount] = useState("");
-  const [debtTags, setDebtTags] = useState("");
-  const [debtSaving, setDebtSaving] = useState(false);
-
-  const parsedDebtAmount = parseCurrencyInput(debtAmount);
-  const canSaveDebt = debtTitle.trim().length > 0 && parsedDebtAmount > 0;
-
-  async function handleAddDebt() {
-    if (!canSaveDebt) return;
-    setDebtSaving(true);
-    await addDebt(debtTitle.trim(), parsedDebtAmount);
-    setDebtSaving(false);
-    toast("빚이 추가되었습니다", "success");
-    setAddDebtSheet(false);
-    setDebtTitle("");
-    setDebtAmount("");
-    setDebtTags("");
-  }
-
-  // ── Payment sheet ─────────────────────────────────────────────────────────
-  const [paymentSheet, setPaymentSheet] = useState(false);
-  const [paymentDebt, setPaymentDebt] = useState<DebtWithProgress | null>(null);
-  const [paymentAmount, setPaymentAmount] = useState("");
-  const [paymentMemo, setPaymentMemo] = useState("");
-  const [paymentSaving, setPaymentSaving] = useState(false);
-
-  function openPaymentSheet(debt: DebtWithProgress) {
-    setPaymentDebt(debt);
-    setPaymentAmount("");
-    setPaymentMemo("");
-    setPaymentSheet(true);
-  }
-
-  const parsedPaymentAmount = parseCurrencyInput(paymentAmount);
-  const canSavePayment = parsedPaymentAmount > 0;
-
-  const handleSavePayment = useCallback(async () => {
-    if (!paymentDebt || !canSavePayment) return;
-    setPaymentSaving(true);
-
-    // 1. Record in debt payments table
-    const payResult = await addPayment(paymentDebt.id, parsedPaymentAmount, paymentMemo.trim());
-    if (!payResult.ok) {
-      toast(`상환 기록 실패: ${payResult.error ?? "알 수 없는 오류"}`, "error");
-      setPaymentSaving(false);
-      return;
-    }
-
-    // 2. Also create a finance transaction so it appears in cashbook
-    const txResult = await addTransaction({
-      type: "expense",
-      amount: parsedPaymentAmount,
-      description: `${paymentDebt.title} 상환`,
-      date: new Date().toLocaleDateString("sv-SE"),
-      group_id: "obligation",
-      item_id: "debt",
-      source: "debt",
-    });
-    if (!txResult.ok) {
-      toast("가계부 연동 실패 (상환은 기록됨)", "error");
-    }
-
-    setPaymentSaving(false);
-    toast(`상환 ${formatCurrency(parsedPaymentAmount)}원 기록됨`, "success");
-    setPaymentSheet(false);
-  }, [paymentDebt, canSavePayment, parsedPaymentAmount, paymentMemo, addPayment, addTransaction, toast]);
-
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -310,6 +211,31 @@ export default function ObligationPage() {
               </div>
             </FinanceCard>
 
+            {/* ── Debt Summary Card (compact) ──────────────────────────────── */}
+            <Link href="/finance/debts">
+              <FinanceCard groupColor="#374151" className="cursor-pointer hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-gray-100 dark:bg-[#262c38]">
+                      <Banknote size={15} className="text-gray-500 dark:text-gray-400" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">갚아야 할 빚</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 tabular-nums mt-0.5">
+                        활성 {activeDebts}건
+                        {monthlyDebtTotal > 0 && (
+                          <span> · 이번 달 상환 {formatCurrency(monthlyDebtTotal)}원</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-medium text-[#1E3A5F] dark:text-blue-300 shrink-0">
+                    빚 관리 →
+                  </span>
+                </div>
+              </FinanceCard>
+            </Link>
+
             {/* ── Items List ──────────────────────────────────────────────── */}
             <section className="space-y-3">
               <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">
@@ -320,6 +246,7 @@ export default function ObligationPage() {
                 const itemBudget = budgets[getItemKey("obligation", item.id)] ?? 0;
                 const itemActual = byGroup["obligation"]?.byItem?.[item.id] ?? 0;
                 const isExpanded = expandedItem === item.id;
+                const isDebtItem = item.id === "debt";
                 const itemTxs = transactions.filter(
                   (t) =>
                     t.type === "expense" &&
@@ -365,7 +292,7 @@ export default function ObligationPage() {
                       />
                     </button>
 
-                    {/* Expanded: transactions + add button */}
+                    {/* Expanded: transactions + optional add button */}
                     {isExpanded && (
                       <div className="mt-3 space-y-2 border-t border-gray-100 dark:border-[#2d3748] pt-3">
                         {itemTxs.length === 0 ? (
@@ -379,198 +306,33 @@ export default function ObligationPage() {
                                 key={tx.id}
                                 transaction={tx}
                                 groups={groups}
-                                onEdit={openEditSheet}
-                                onDelete={handleDeleteTx}
+                                onEdit={isDebtItem ? undefined : openEditSheet}
+                                onDelete={isDebtItem ? undefined : handleDeleteTx}
                               />
                             ))}
                           </div>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => openExpenseSheet(item.id)}
-                          className="w-full min-h-[40px] py-2 rounded-xl text-xs font-medium
-                            text-[#1E3A5F] dark:text-blue-300 bg-[#1E3A5F]/8 dark:bg-[#1E3A5F]/20
-                            hover:bg-[#1E3A5F]/12 dark:hover:bg-[#1E3A5F]/30
-                            transition-colors active:scale-[0.98]"
-                        >
-                          + 지출 추가
-                        </button>
+                        {isDebtItem ? (
+                          <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center py-1">
+                            빚 상환은 &apos;빚 관리&apos; 페이지에서 기록됩니다
+                          </p>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => openExpenseSheet(item.id)}
+                            className="w-full min-h-[40px] py-2 rounded-xl text-xs font-medium
+                              text-[#1E3A5F] dark:text-blue-300 bg-[#1E3A5F]/8 dark:bg-[#1E3A5F]/20
+                              hover:bg-[#1E3A5F]/12 dark:hover:bg-[#1E3A5F]/30
+                              transition-colors active:scale-[0.98]"
+                          >
+                            + 지출 추가
+                          </button>
+                        )}
                       </div>
                     )}
                   </FinanceCard>
                 );
               })}
-            </section>
-
-            {/* ── Divider ─────────────────────────────────────────────────── */}
-            <div className="border-t border-gray-200 dark:border-[#2d3748]" />
-
-            {/* ── Debts Section ────────────────────────────────────────────── */}
-            <section className="space-y-3">
-              <div className="flex items-center justify-between px-1">
-                <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  갚아야 할 빚
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setAddDebtSheet(true)}
-                  className="text-xs font-medium text-[#1E3A5F] dark:text-blue-300 px-3 py-1.5 rounded-full
-                    bg-[#1E3A5F]/8 dark:bg-[#1E3A5F]/20 hover:bg-[#1E3A5F]/12 dark:hover:bg-[#1E3A5F]/30
-                    transition-colors active:scale-95"
-                >
-                  + 빚 추가
-                </button>
-              </div>
-
-              {debtsLoading ? (
-                <FinanceCard>
-                  <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-2">
-                    불러오는 중...
-                  </p>
-                </FinanceCard>
-              ) : debts.length === 0 ? (
-                <FinanceCard>
-                  <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">
-                    등록된 빚이 없어요
-                  </p>
-                </FinanceCard>
-              ) : (
-                debts.map((debt) => {
-                  const typedDebt = debt as DebtWithProgress;
-                  const months = predictPayoff(typedDebt);
-                  const isDebtExpanded = expandedDebt === debt.id;
-
-                  return (
-                    <FinanceCard key={debt.id} groupColor={debt.is_completed ? "#9CA3AF" : "#1E3A5F"}>
-                      <div className="pl-2">
-                        {/* Title + percent */}
-                        <div className="flex items-center justify-between mb-1.5">
-                          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
-                            {debt.title}
-                          </h3>
-                          <span
-                            className={`shrink-0 ml-2 text-xs font-semibold tabular-nums ${
-                              debt.is_completed
-                                ? "text-emerald-500 dark:text-emerald-400"
-                                : "text-[#1E3A5F] dark:text-blue-300"
-                            }`}
-                          >
-                            {debt.is_completed ? "완납" : `${debt.percent}%`}
-                          </span>
-                        </div>
-
-                        {/* Tags */}
-                        {typedDebt.tags && typedDebt.tags.length > 0 && (
-                          <div className="flex gap-1 flex-wrap mb-2">
-                            {typedDebt.tags.map((tag) => (
-                              <span
-                                key={tag}
-                                className="px-2 py-0.5 rounded-full text-[10px] font-medium
-                                  bg-[#1E3A5F]/8 text-[#1E3A5F] dark:bg-[#1E3A5F]/20 dark:text-blue-300"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Progress bar */}
-                        <div className="mb-3">
-                          <FinanceProgressBar
-                            value={debt.total_paid}
-                            max={debt.total_amount}
-                            color="#1E3A5F"
-                            height="md"
-                          />
-                        </div>
-
-                        {/* 총액 / 상환 / 잔액 */}
-                        <div className="grid grid-cols-3 gap-2 text-xs mb-3">
-                          <div>
-                            <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-0.5">총액</p>
-                            <p className="font-semibold text-gray-700 dark:text-gray-300 tabular-nums">
-                              {formatCurrency(debt.total_amount)}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-0.5">상환</p>
-                            <p className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                              {formatCurrency(debt.total_paid)}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-0.5">잔액</p>
-                            <p className="font-semibold text-red-500 dark:text-red-400 tabular-nums">
-                              {formatCurrency(debt.total_amount - debt.total_paid)}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Payoff prediction */}
-                        {months !== null && !debt.is_completed && (
-                          <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-3">
-                            이 속도면 약 {months}개월 후 완납
-                          </p>
-                        )}
-
-                        {/* Action buttons */}
-                        <div className="flex gap-2">
-                          {!debt.is_completed && (
-                            <button
-                              type="button"
-                              onClick={() => openPaymentSheet(typedDebt)}
-                              className="flex-1 min-h-[40px] py-2 rounded-xl text-xs font-medium
-                                bg-[#1E3A5F] text-white
-                                hover:opacity-90 active:scale-[0.98] transition-all"
-                            >
-                              상환 기록
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => toggleDebt(debt.id)}
-                            className="flex-1 min-h-[40px] py-2 rounded-xl text-xs font-medium
-                              text-gray-600 dark:text-gray-300
-                              bg-gray-100 dark:bg-[#262c38]
-                              hover:bg-gray-200 dark:hover:bg-[#2d3748]
-                              active:scale-[0.98] transition-all"
-                          >
-                            타임라인 {isDebtExpanded ? "숨기기" : "보기"}
-                          </button>
-                        </div>
-
-                        {/* Payment timeline */}
-                        {isDebtExpanded && (
-                          <div className="mt-3 border-t border-gray-100 dark:border-[#2d3748] pt-3 space-y-2">
-                            {debt.payments.length === 0 ? (
-                              <p className="text-xs text-gray-400 dark:text-gray-500">
-                                상환 기록이 없어요
-                              </p>
-                            ) : (
-                              debt.payments.map((p) => (
-                                <div
-                                  key={p.id}
-                                  className="flex items-center justify-between text-xs"
-                                >
-                                  <span className="text-gray-500 dark:text-gray-400 tabular-nums">
-                                    {p.date}
-                                  </span>
-                                  <span className="flex-1 mx-3 text-gray-600 dark:text-gray-300 truncate">
-                                    {p.memo || "상환"}
-                                  </span>
-                                  <span className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums shrink-0">
-                                    {formatCurrency(p.amount)}원
-                                  </span>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </FinanceCard>
-                  );
-                })
-              )}
             </section>
           </>
         )}
@@ -586,23 +348,25 @@ export default function ObligationPage() {
         title={`지출 입력 · ${expenseItemTitle}`}
       >
         <div className="space-y-5">
-          {/* Item selector (when opened from FAB, let user pick item) */}
+          {/* Item selector (when opened from FAB, let user pick item — excluding debt) */}
           {expenseItemId === null && (
             <div>
               <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">항목 선택</p>
               <div className="flex flex-wrap gap-2">
-                {(obligationGroup?.items ?? []).map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setExpenseItemId(item.id)}
-                    className="px-3.5 py-2 min-h-[44px] rounded-full text-xs font-medium
-                      bg-[#1E3A5F]/10 text-[#1E3A5F] dark:bg-[#1E3A5F]/25 dark:text-blue-300
-                      hover:bg-[#1E3A5F]/20 active:scale-95 transition-all"
-                  >
-                    {item.title}
-                  </button>
-                ))}
+                {(obligationGroup?.items ?? [])
+                  .filter((item) => item.id !== "debt")
+                  .map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setExpenseItemId(item.id)}
+                      className="px-3.5 py-2 min-h-[44px] rounded-full text-xs font-medium
+                        bg-[#1E3A5F]/10 text-[#1E3A5F] dark:bg-[#1E3A5F]/25 dark:text-blue-300
+                        hover:bg-[#1E3A5F]/20 active:scale-95 transition-all"
+                    >
+                      {item.title}
+                    </button>
+                  ))}
               </div>
             </div>
           )}
@@ -701,106 +465,6 @@ export default function ObligationPage() {
             </button>
           </div>
         )}
-      </BottomSheet>
-
-      {/* ── Add Debt Sheet ───────────────────────────────────────────────────── */}
-      <BottomSheet
-        isOpen={addDebtSheet}
-        onClose={() => setAddDebtSheet(false)}
-        title="빚 추가"
-      >
-        <div className="space-y-5">
-          <div>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">제목</p>
-            <input
-              type="text"
-              value={debtTitle}
-              onChange={(e) => setDebtTitle(e.target.value)}
-              placeholder="예: 학자금 대출"
-              className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
-                bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
-            />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">총 금액 (원)</p>
-            <AmountInput value={debtAmount} onChange={setDebtAmount} placeholder="총 빚 금액" />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
-              태그 (선택, 쉼표로 구분)
-            </p>
-            <input
-              type="text"
-              value={debtTags}
-              onChange={(e) => setDebtTags(e.target.value)}
-              placeholder="예: 학자금, 장기"
-              className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
-                bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
-            />
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
-              태그는 향후 버전에서 지원될 예정입니다
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleAddDebt}
-            disabled={debtSaving || !canSaveDebt}
-            className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
-              bg-[#1E3A5F] hover:opacity-90
-              disabled:opacity-40 disabled:cursor-not-allowed
-              transition-opacity active:scale-[0.98]"
-          >
-            {debtSaving ? "저장 중..." : "추가"}
-          </button>
-        </div>
-      </BottomSheet>
-
-      {/* ── Payment Sheet ────────────────────────────────────────────────────── */}
-      <BottomSheet
-        isOpen={paymentSheet}
-        onClose={() => setPaymentSheet(false)}
-        title={paymentDebt ? `${paymentDebt.title} 상환 기록` : "상환 기록"}
-      >
-        <div className="space-y-5">
-          {paymentDebt && (
-            <div className="p-3 rounded-xl bg-gray-50 dark:bg-[#262c38] text-xs text-gray-500 dark:text-gray-400">
-              잔액:{" "}
-              <span className="font-semibold text-red-500 dark:text-red-400 tabular-nums">
-                {formatCurrency(paymentDebt.total_amount - paymentDebt.total_paid)}원
-              </span>
-            </div>
-          )}
-          <div>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">상환 금액 (원)</p>
-            <AmountInput value={paymentAmount} onChange={setPaymentAmount} placeholder="상환 금액" autoFocus />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">메모 (선택)</p>
-            <input
-              type="text"
-              value={paymentMemo}
-              onChange={(e) => setPaymentMemo(e.target.value)}
-              placeholder="메모"
-              className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
-                bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
-              onKeyDown={(e) => { if (e.key === "Enter") handleSavePayment(); }}
-            />
-          </div>
-          <button
-            type="button"
-            onClick={handleSavePayment}
-            disabled={paymentSaving || !canSavePayment}
-            className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
-              bg-[#1E3A5F] hover:opacity-90
-              disabled:opacity-40 disabled:cursor-not-allowed
-              transition-opacity active:scale-[0.98]"
-          >
-            {paymentSaving ? "저장 중..." : "상환 기록"}
-          </button>
-        </div>
       </BottomSheet>
     </div>
   );

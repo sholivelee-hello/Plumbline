@@ -12,6 +12,8 @@ import {
   CreditCard,
   BarChart2,
   Settings,
+  Banknote,
+  Repeat,
 } from "lucide-react";
 import { useFinanceHub } from "@/lib/hooks/use-finance-hub";
 import { useFinanceTransactions } from "@/lib/hooks/use-finance-transactions";
@@ -424,11 +426,13 @@ function FinancePageInner() {
             <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4">
               {(
                 [
-                  { href: "/finance/cashbook", icon: BookOpen, label: "출납부", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
-                  { href: "/finance/budget",   icon: ClipboardList, label: "예산", color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-900/20" },
-                  { href: "/finance/installments", icon: CreditCard, label: "할부", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-900/20" },
-                  { href: "/finance/report",   icon: BarChart2, label: "리포트", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/20" },
-                  { href: "/finance/settings", icon: Settings,  label: "설정",   color: "text-gray-600 dark:text-gray-400", bg: "bg-gray-100 dark:bg-gray-800" },
+                  { href: "/finance/cashbook",       icon: BookOpen,     label: "출납부", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
+                  { href: "/finance/budget",         icon: ClipboardList, label: "예산",  color: "text-indigo-600 dark:text-indigo-400",  bg: "bg-indigo-50 dark:bg-indigo-900/20" },
+                  { href: "/finance/debts",          icon: Banknote,     label: "빚",     color: "text-slate-600 dark:text-slate-400",    bg: "bg-slate-100 dark:bg-slate-800/50" },
+                  { href: "/finance/installments",   icon: CreditCard,   label: "할부",   color: "text-blue-600 dark:text-blue-400",      bg: "bg-blue-50 dark:bg-blue-900/20" },
+                  { href: "/finance/subscriptions",  icon: Repeat,       label: "구독",   color: "text-purple-600 dark:text-purple-400",  bg: "bg-purple-50 dark:bg-purple-900/20" },
+                  { href: "/finance/report",         icon: BarChart2,    label: "리포트", color: "text-amber-600 dark:text-amber-400",    bg: "bg-amber-50 dark:bg-amber-900/20" },
+                  { href: "/finance/settings",       icon: Settings,     label: "설정",   color: "text-gray-600 dark:text-gray-400",      bg: "bg-gray-100 dark:bg-gray-800" },
                 ] as const
               ).map(({ href, icon: Icon, label, color, bg }) => (
                 <Link
