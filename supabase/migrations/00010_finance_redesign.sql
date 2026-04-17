@@ -1,6 +1,8 @@
 -- Finance Section Full Redesign Migration
 -- Rebuilds finance schema for 4-group architecture (obligation/necessity/sowing/want)
 
+BEGIN;
+
 -- ============================================================
 -- Step 1: Drop existing triggers and function
 -- ============================================================
@@ -16,10 +18,10 @@ DROP FUNCTION IF EXISTS recalculate_account_balance();
 
 -- 2. Add new columns to finance_transactions
 ALTER TABLE finance_transactions
-  ADD COLUMN group_id TEXT,
-  ADD COLUMN item_id TEXT,
-  ADD COLUMN income_category TEXT,
-  ADD COLUMN source TEXT NOT NULL DEFAULT 'manual';
+  ADD COLUMN IF NOT EXISTS group_id TEXT,
+  ADD COLUMN IF NOT EXISTS item_id TEXT,
+  ADD COLUMN IF NOT EXISTS income_category TEXT,
+  ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'manual';
 
 -- 3. Migrate account_id → group_id/item_id
 -- NOTE: account_id is declared UUID but the app stores text budget keys like "obligation_tithe".
@@ -35,6 +37,15 @@ SET
 WHERE account_id IS NOT NULL
   AND account_id::text LIKE '%_%';
 
+-- Integrity check: ensure no transactions have NULL group_id
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM finance_transactions WHERE group_id IS NULL) THEN
+    RAISE EXCEPTION 'Migration integrity check failed: % transactions have NULL group_id',
+      (SELECT COUNT(*) FROM finance_transactions WHERE group_id IS NULL);
+  END IF;
+END $$;
+
 -- 4. Drop FK constraint and old columns
 ALTER TABLE finance_transactions DROP CONSTRAINT IF EXISTS finance_transactions_account_id_fkey;
 ALTER TABLE finance_transactions DROP COLUMN IF EXISTS account_id;
@@ -43,9 +54,10 @@ ALTER TABLE finance_transactions DROP COLUMN IF EXISTS category_id;
 ALTER TABLE finance_transactions DROP COLUMN IF EXISTS is_auto;
 
 -- 5. Cast amount to integer
-ALTER TABLE finance_transactions ALTER COLUMN amount TYPE INTEGER USING amount::integer;
+ALTER TABLE finance_transactions ALTER COLUMN amount TYPE INTEGER USING ROUND(amount)::integer;
 
 -- 6. Add indexes (IF NOT EXISTS to avoid conflict with existing indexes)
+DROP INDEX IF EXISTS idx_finance_transactions_user_date;
 CREATE INDEX IF NOT EXISTS idx_finance_transactions_user_date ON finance_transactions(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_finance_transactions_user_group ON finance_transactions(user_id, group_id, date);
 
@@ -55,23 +67,23 @@ CREATE INDEX IF NOT EXISTS idx_finance_transactions_user_group ON finance_transa
 
 -- 7. Alter finance_debts: add tags, updated_at
 ALTER TABLE finance_debts
-  ADD COLUMN tags TEXT[] DEFAULT '{}',
-  ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
-ALTER TABLE finance_debts ALTER COLUMN total_amount TYPE INTEGER USING total_amount::integer;
+  ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE finance_debts ALTER COLUMN total_amount TYPE INTEGER USING ROUND(total_amount)::integer;
 
 -- 8. Alter finance_installments: add updated_at
 ALTER TABLE finance_installments
-  ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
-ALTER TABLE finance_installments ALTER COLUMN total_amount TYPE INTEGER USING total_amount::integer;
-ALTER TABLE finance_installments ALTER COLUMN monthly_payment TYPE INTEGER USING monthly_payment::integer;
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE finance_installments ALTER COLUMN total_amount TYPE INTEGER USING ROUND(total_amount)::integer;
+ALTER TABLE finance_installments ALTER COLUMN monthly_payment TYPE INTEGER USING ROUND(monthly_payment)::integer;
 
 -- 9. Alter finance_debt_payments: amount to integer
-ALTER TABLE finance_debt_payments ALTER COLUMN amount TYPE INTEGER USING amount::integer;
+ALTER TABLE finance_debt_payments ALTER COLUMN amount TYPE INTEGER USING ROUND(amount)::integer;
 
 -- 10. Alter heaven_bank: add created_at, amount to integer
 ALTER TABLE heaven_bank
-  ADD COLUMN created_at TIMESTAMPTZ NOT NULL DEFAULT now();
-ALTER TABLE heaven_bank ALTER COLUMN amount TYPE INTEGER USING amount::integer;
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE heaven_bank ALTER COLUMN amount TYPE INTEGER USING ROUND(amount)::integer;
 
 -- 11. Drop and recreate finance_budgets (existing data is in localStorage, not meaningful here)
 -- Existing rows have UUID category_ids that don't map to the new group/item system.
@@ -181,7 +193,7 @@ INSERT INTO finance_recurring (user_id, description, amount, type, day_of_month,
 SELECT DISTINCT ON (o.user_id, c.title)
   o.user_id,
   c.title,
-  o.amount::integer,
+  ROUND(o.amount)::integer,
   'expense',
   1,
   'obligation',
@@ -195,7 +207,7 @@ WHERE o.amount > 0;
 INSERT INTO finance_wishlist (user_id, title, target_amount, saved_amount, priority, is_completed, completed_at, created_at)
 SELECT
   user_id, title,
-  COALESCE(estimated_price::integer, 0),
+  COALESCE(ROUND(estimated_price)::integer, 0),
   0,
   ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_month, id),
   is_purchased,
@@ -203,8 +215,10 @@ SELECT
   now()
 FROM finance_wants;
 
--- 20. Drop obsolete tables
+-- 21. Drop obsolete tables
 DROP TABLE IF EXISTS finance_obligations CASCADE;
 DROP TABLE IF EXISTS finance_wants CASCADE;
 DROP TABLE IF EXISTS finance_accounts CASCADE;
 DROP TABLE IF EXISTS finance_categories CASCADE;
+
+COMMIT;
