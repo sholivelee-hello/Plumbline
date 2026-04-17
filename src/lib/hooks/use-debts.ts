@@ -49,16 +49,25 @@ export function useDebts() {
     await load();
   }
 
-  async function addPayment(debtId: string, amount: number, memo: string) {
-    await supabase.from("finance_debt_payments").insert({
-      user_id: FIXED_USER_ID, debt_id: debtId, amount,
-      date: new Date().toISOString().split("T")[0], memo,
-    });
-    const debt = debts.find((d) => d.id === debtId);
-    if (debt && debt.total_paid + amount >= debt.total_amount) {
-      await supabase.from("finance_debts").update({ is_completed: true }).eq("id", debtId);
+  async function addPayment(debtId: string, amount: number, memo?: string): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const { error: insertError } = await supabase.from("finance_debt_payments").insert({
+        user_id: FIXED_USER_ID, debt_id: debtId, amount,
+        date: new Date().toISOString().split("T")[0], memo: memo ?? "",
+      });
+      if (insertError) return { ok: false, error: insertError.message };
+
+      const debt = debts.find((d) => d.id === debtId);
+      if (debt && debt.total_paid + amount >= debt.total_amount) {
+        const { error: updateError } = await supabase
+          .from("finance_debts").update({ is_completed: true }).eq("id", debtId);
+        if (updateError) return { ok: false, error: updateError.message };
+      }
+      await load();
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : "Failed" };
     }
-    await load();
   }
 
   return { debts, loading, addDebt, addPayment };

@@ -38,6 +38,7 @@ interface DebtWithProgress {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function predictPayoff(debt: DebtWithProgress): number | null {
+  // payments are sorted date DESC (newest-first) by use-debts
   const recentPayments = debt.payments.slice(0, 3);
   if (recentPayments.length < 2) return null;
   const avg = recentPayments.reduce((s, p) => s + p.amount, 0) / recentPayments.length;
@@ -222,10 +223,15 @@ export default function ObligationPage() {
     setPaymentSaving(true);
 
     // 1. Record in debt payments table
-    await addPayment(paymentDebt.id, parsedPaymentAmount, paymentMemo.trim());
+    const payResult = await addPayment(paymentDebt.id, parsedPaymentAmount, paymentMemo.trim());
+    if (!payResult.ok) {
+      toast(`상환 기록 실패: ${payResult.error ?? "알 수 없는 오류"}`, "error");
+      setPaymentSaving(false);
+      return;
+    }
 
     // 2. Also create a finance transaction so it appears in cashbook
-    await addTransaction({
+    const txResult = await addTransaction({
       type: "expense",
       amount: parsedPaymentAmount,
       description: `${paymentDebt.title} 상환`,
@@ -234,6 +240,9 @@ export default function ObligationPage() {
       item_id: "debt",
       source: "debt",
     });
+    if (!txResult.ok) {
+      toast("가계부 연동 실패 (상환은 기록됨)", "error");
+    }
 
     setPaymentSaving(false);
     toast(`상환 ${formatCurrency(parsedPaymentAmount)}원 기록됨`, "success");
