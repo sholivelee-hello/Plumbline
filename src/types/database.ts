@@ -2,7 +2,6 @@ export type BasicCategory = "spiritual" | "physical";
 export type BasicType = "check" | "number";
 export type ScheduleTimeUnit = 10 | 15 | 30 | 60;
 export type HeavenBankEntryType = "sow" | "reap";
-export type FinanceCategoryType = "sowing" | "obligation" | "necessity" | "surplus";
 export type TransactionType = "income" | "expense";
 
 export interface UserSettings {
@@ -83,16 +82,6 @@ export interface ScheduleActual {
   is_from_plan: boolean;
 }
 
-// FinanceCategory: table dropped in migration 00010, cleanup in Task 16. Kept for type compatibility.
-export interface FinanceCategory {
-  id: string;
-  user_id: string;
-  title: string;
-  type: FinanceCategoryType;
-  default_amount?: number | null;
-  sort_order?: number;
-}
-
 export interface HeavenBankEntry {
   id: string;
   user_id: string;
@@ -103,19 +92,6 @@ export interface HeavenBankEntry {
   amount: number;
 }
 
-// FinanceObligation: table dropped in migration 00010, cleanup in Task 16. Kept for type compatibility.
-export interface FinanceObligation {
-  id: string;
-  user_id: string;
-  month: string;
-  category_id: string;
-  amount: number;
-  is_paid: boolean;
-  paid_date: string | null;
-  linked_debt_id: string | null;
-  finance_categories?: { title: string } | null;
-}
-
 export interface FinanceTransaction {
   id: string;
   user_id: string;
@@ -123,22 +99,17 @@ export interface FinanceTransaction {
   amount: number;
   description: string | null;
   date: string;
-  group_id?: string | null;      // legacy compat — Task 16 cleanup
-  item_id?: string | null;       // legacy compat — Task 16 cleanup
-  account_id?: string | null;    // legacy compat — Task 16 cleanup
-  category_id?: string | null;   // legacy compat — Task 16 cleanup
-  income_category?: string | null; // legacy compat — Task 16 cleanup
-  source?: 'manual' | 'recurring' | 'installment' | 'debt' | 'heaven_bank'; // legacy compat
-  is_auto?: boolean;             // legacy compat — Task 16 cleanup
+  group_id: string | null;
+  item_id: string | null;
+  source: 'manual' | 'recurring' | 'installment' | 'debt' | 'heaven_bank';
 }
 
 export interface FinanceBudget {
   id: string;
   user_id: string;
   month: string;
-  group_id?: string;             // legacy compat — Task 16 cleanup
-  item_id?: string | null;       // legacy compat — Task 16 cleanup
-  category_id?: string | null;   // legacy compat — Task 16 cleanup
+  group_id: string;
+  item_id: string | null;
   amount: number;
   created_at?: string;
   updated_at?: string;
@@ -201,9 +172,7 @@ export interface FinanceDebt {
   user_id: string;
   title: string;
   total_amount: number;
-  tags?: string[];               // legacy compat — Task 16 cleanup
   created_at: string;
-  updated_at?: string;           // legacy compat — Task 16 cleanup
   is_completed: boolean;
 }
 
@@ -214,17 +183,6 @@ export interface FinanceDebtPayment {
   amount: number;
   date: string;
   memo: string | null;
-}
-
-// FinanceWant: migrated to FinanceWishlist in migration 00010, cleanup in Task 16. Kept for type compatibility.
-export interface FinanceWant {
-  id: string;
-  user_id: string;
-  title: string;
-  estimated_price: number | null;
-  is_purchased: boolean;
-  purchased_date: string | null;
-  created_month: string;
 }
 
 export interface FinanceInstallment {
@@ -238,7 +196,6 @@ export interface FinanceInstallment {
   start_date: string;
   is_completed: boolean;
   created_at: string;
-  updated_at?: string;           // legacy compat — Task 16 cleanup
 }
 
 export interface WeeklyTemplate {

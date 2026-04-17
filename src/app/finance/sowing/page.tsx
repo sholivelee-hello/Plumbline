@@ -230,7 +230,6 @@ export default function SowingPage() {
       group_id: "sowing",
       item_id: "heaven",
       source: "heaven_bank",
-      income_category: null,
     });
 
     if (!txResult.ok) {

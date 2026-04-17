@@ -2,12 +2,64 @@
 
 import { useState } from "react";
 import { useInstallments } from "@/lib/hooks/use-installments";
-import { InstallmentCard } from "@/components/finance/installment-card";
 import { Modal } from "@/components/ui/modal";
+import { Card } from "@/components/ui/card";
+import { formatWon } from "@/lib/utils/format";
+import type { FinanceInstallment } from "@/types/database";
 import { PageHeader } from "@/components/ui/page-header";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { ChevronDown, ChevronUp, Plus } from "lucide-react";
 import { getCurrentMonth } from "@/lib/utils/date";
+
+interface InstallmentWithProgress extends FinanceInstallment {
+  remaining_months: number;
+  remaining_amount: number;
+  paid_amount: number;
+  percent: number;
+}
+
+function InstallmentCard({
+  installment,
+  onPayMonth,
+}: {
+  installment: InstallmentWithProgress;
+  onPayMonth: (id: string) => void;
+}) {
+  return (
+    <Card>
+      <div className="flex items-start justify-between mb-2">
+        <div className="min-w-0">
+          <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{installment.title}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+            {installment.paid_months}/{installment.total_months}개월 납부
+          </p>
+        </div>
+        {installment.is_completed ? (
+          <span className="text-xs font-medium text-green-600 dark:text-green-300 bg-green-50 dark:bg-green-700/20 px-2 py-0.5 rounded-full shrink-0">
+            완납
+          </span>
+        ) : (
+          <button
+            onClick={() => onPayMonth(installment.id)}
+            className="text-xs font-medium text-primary-600 dark:text-primary-300 bg-primary-50 dark:bg-primary-700/20 px-2 py-0.5 rounded-full shrink-0 hover:bg-primary-100 dark:hover:bg-primary-700/30 transition-colors"
+          >
+            납부 처리
+          </button>
+        )}
+      </div>
+      <div className="h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden mb-2">
+        <div
+          className="h-full rounded-full bg-primary-500 transition-all"
+          style={{ width: `${installment.percent}%` }}
+        />
+      </div>
+      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+        <span>월 ₩{formatWon(installment.monthly_payment)}</span>
+        <span>잔여 ₩{formatWon(installment.remaining_amount)}</span>
+      </div>
+    </Card>
+  );
+}
 
 export default function InstallmentsPage() {
   const { installments, loading, addInstallment, payMonth } = useInstallments();

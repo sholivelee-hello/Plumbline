@@ -6,14 +6,11 @@ import type {
   ScheduleActual,
   SchedulePreset,
   UserSettings,
-  FinanceCategory,
   HeavenBankEntry,
-  FinanceObligation,
   FinanceTransaction,
   FinanceBudget,
   FinanceDebt,
   FinanceDebtPayment,
-  FinanceWant,
   FinanceInstallment,
   WeeklyTemplate,
   WeeklyTemplateBlock,
@@ -118,34 +115,21 @@ export const demoWeeklyTemplateBlocks: WeeklyTemplateBlock[] = [
   { id: "wtb13", template_id: "wt2", day_of_week: 6, start_time: "15:00", end_time: "17:00", title: "독서", color: "#93B5C6" },
 ];
 
-export const demoNecessityCategories: FinanceCategory[] = [
-  { id: "fc1", user_id: USER_ID, type: "necessity", title: "식비", default_amount: 400000, sort_order: 0 },
-  { id: "fc2", user_id: USER_ID, type: "necessity", title: "교통비", default_amount: 100000, sort_order: 1 },
-  { id: "fc3", user_id: USER_ID, type: "necessity", title: "생활용품", default_amount: 80000, sort_order: 2 },
-];
-
 export const demoHeavenBank: HeavenBankEntry[] = [
   { id: "hb1", user_id: USER_ID, date: TODAY, type: "sow", target: "교회 헌금", description: "주일 감사헌금", amount: 300000 },
   { id: "hb2", user_id: USER_ID, date: daysFromToday(-7), type: "sow", target: "선교 후원", description: "월 정기 후원", amount: 100000 },
 ];
 
-export const demoObligations: FinanceObligation[] = [
-  { id: "ob1", user_id: USER_ID, month: MONTH, category_id: "oc1", amount: 550000, is_paid: true, paid_date: TODAY, linked_debt_id: null },
-  { id: "ob2", user_id: USER_ID, month: MONTH, category_id: "oc2", amount: 65000, is_paid: true, paid_date: TODAY, linked_debt_id: null },
-  { id: "ob3", user_id: USER_ID, month: MONTH, category_id: "oc3", amount: 89000, is_paid: false, paid_date: null, linked_debt_id: null },
-  { id: "ob4", user_id: USER_ID, month: MONTH, category_id: "oc4", amount: 35000, is_paid: false, paid_date: null, linked_debt_id: null },
-];
-
 export const demoBudgets: FinanceBudget[] = [
-  { id: "fb1", user_id: USER_ID, category_id: "fc1", amount: 400000, month: MONTH },
-  { id: "fb2", user_id: USER_ID, category_id: "fc2", amount: 100000, month: MONTH },
-  { id: "fb3", user_id: USER_ID, category_id: "fc3", amount: 80000, month: MONTH },
+  { id: "fb1", user_id: USER_ID, month: MONTH, group_id: "necessity", item_id: "food", amount: 400000 },
+  { id: "fb2", user_id: USER_ID, month: MONTH, group_id: "necessity", item_id: "transport", amount: 100000 },
+  { id: "fb3", user_id: USER_ID, month: MONTH, group_id: "necessity", item_id: "grocery", amount: 80000 },
 ];
 
 export const demoTransactions: FinanceTransaction[] = [
-  { id: "ft1", user_id: USER_ID, type: "expense", amount: 185000, category_id: "fc1", description: "식비", date: TODAY, is_auto: false },
-  { id: "ft2", user_id: USER_ID, type: "expense", amount: 52000, category_id: "fc2", description: "교통비", date: TODAY, is_auto: false },
-  { id: "ft3", user_id: USER_ID, type: "expense", amount: 23000, category_id: "fc3", description: "생활용품", date: TODAY, is_auto: false },
+  { id: "ft1", user_id: USER_ID, type: "expense", amount: 185000, group_id: "necessity", item_id: "food", description: "식비", date: TODAY, source: "manual" },
+  { id: "ft2", user_id: USER_ID, type: "expense", amount: 52000, group_id: "necessity", item_id: "transport", description: "교통비", date: TODAY, source: "manual" },
+  { id: "ft3", user_id: USER_ID, type: "expense", amount: 23000, group_id: "necessity", item_id: "grocery", description: "생활용품", date: TODAY, source: "manual" },
 ];
 
 export const demoDebts: (FinanceDebt & { total_paid: number; percent: number; payments: FinanceDebtPayment[] })[] = [
@@ -158,12 +142,6 @@ export const demoDebts: (FinanceDebt & { total_paid: number; percent: number; pa
       { id: "dp3", user_id: USER_ID, debt_id: "fd1", amount: 5000000, date: "2025-07-15", memo: "3분기 상환" },
     ],
   },
-];
-
-export const demoWants: FinanceWant[] = [
-  { id: "fw1", user_id: USER_ID, title: "에어팟 프로", estimated_price: 359000, is_purchased: false, purchased_date: null, created_month: MONTH },
-  { id: "fw2", user_id: USER_ID, title: "독서등", estimated_price: 45000, is_purchased: true, purchased_date: TODAY, created_month: MONTH },
-  { id: "fw3", user_id: USER_ID, title: "요가 매트", estimated_price: 28000, is_purchased: false, purchased_date: null, created_month: MONTH },
 ];
 
 export const demoInstallments: (FinanceInstallment & { remaining_months: number; remaining_amount: number; paid_amount: number; percent: number })[] = [
@@ -179,24 +157,22 @@ export const demoInstallments: (FinanceInstallment & { remaining_months: number;
   },
 ];
 
-export const demoSurplusGoal = 500000;
-export const demoSurplusSaved = 320000;
 export const demoMonthlySow = 400000;
 
 export const demoCashbookEntries: FinanceTransaction[] = [
   // Incomes
-  { id: "cb1", user_id: USER_ID, type: "income", amount: 2200000, category_id: null, account_id: null, description: "급여", date: `${MONTH}-25`, is_auto: false },
-  { id: "cb2", user_id: USER_ID, type: "income", amount: 300000, category_id: null, account_id: null, description: "부수입", date: `${MONTH}-15`, is_auto: false },
-  { id: "cb3", user_id: USER_ID, type: "income", amount: 50000, category_id: null, account_id: null, description: "용돈", date: `${MONTH}-08`, is_auto: false },
-  // Expenses with budget keys
-  { id: "cb4", user_id: USER_ID, type: "expense", amount: 15000, category_id: null, account_id: "necessity_food", description: "점심 식사", date: TODAY, is_auto: false },
-  { id: "cb13", user_id: USER_ID, type: "expense", amount: 8500, category_id: null, account_id: "necessity_food", description: "저녁 외식", date: `${MONTH}-14`, is_auto: false },
-  { id: "cb5", user_id: USER_ID, type: "expense", amount: 3200, category_id: null, account_id: "necessity_transport", description: "버스 출근", date: TODAY, is_auto: false },
-  { id: "cb6", user_id: USER_ID, type: "expense", amount: 65000, category_id: null, account_id: "obligation_utility", description: "통신비", date: `${MONTH}-10`, is_auto: false },
-  { id: "cb7", user_id: USER_ID, type: "expense", amount: 42000, category_id: null, account_id: "necessity_grocery", description: "마트 장보기", date: `${MONTH}-12`, is_auto: false },
-  { id: "cb8", user_id: USER_ID, type: "expense", amount: 550000, category_id: null, account_id: "obligation_utility", description: "월세", date: `${MONTH}-01`, is_auto: false },
-  { id: "cb9", user_id: USER_ID, type: "expense", amount: 89000, category_id: null, account_id: "obligation_utility", description: "전기·수도", date: `${MONTH}-05`, is_auto: false },
-  { id: "cb10", user_id: USER_ID, type: "expense", amount: 220000, category_id: null, account_id: "obligation_tithe", description: "십일조", date: `${MONTH}-01`, is_auto: false },
-  { id: "cb11", user_id: USER_ID, type: "expense", amount: 100000, category_id: null, account_id: "sowing_heaven", description: "선교 헌금", date: `${MONTH}-07`, is_auto: false },
-  { id: "cb12", user_id: USER_ID, type: "expense", amount: 300000, category_id: null, account_id: "obligation_parents", description: "부모님 용돈", date: `${MONTH}-01`, is_auto: false },
+  { id: "cb1", user_id: USER_ID, type: "income", amount: 2200000, group_id: null, item_id: null, description: "급여", date: `${MONTH}-25`, source: "manual" },
+  { id: "cb2", user_id: USER_ID, type: "income", amount: 300000, group_id: null, item_id: null, description: "부수입", date: `${MONTH}-15`, source: "manual" },
+  { id: "cb3", user_id: USER_ID, type: "income", amount: 50000, group_id: null, item_id: null, description: "용돈", date: `${MONTH}-08`, source: "manual" },
+  // Expenses
+  { id: "cb4", user_id: USER_ID, type: "expense", amount: 15000, group_id: "necessity", item_id: "food", description: "점심 식사", date: TODAY, source: "manual" },
+  { id: "cb13", user_id: USER_ID, type: "expense", amount: 8500, group_id: "necessity", item_id: "food", description: "저녁 외식", date: `${MONTH}-14`, source: "manual" },
+  { id: "cb5", user_id: USER_ID, type: "expense", amount: 3200, group_id: "necessity", item_id: "transport", description: "버스 출근", date: TODAY, source: "manual" },
+  { id: "cb6", user_id: USER_ID, type: "expense", amount: 65000, group_id: "obligation", item_id: "utility", description: "통신비", date: `${MONTH}-10`, source: "manual" },
+  { id: "cb7", user_id: USER_ID, type: "expense", amount: 42000, group_id: "necessity", item_id: "grocery", description: "마트 장보기", date: `${MONTH}-12`, source: "manual" },
+  { id: "cb8", user_id: USER_ID, type: "expense", amount: 550000, group_id: "obligation", item_id: "rent", description: "월세", date: `${MONTH}-01`, source: "manual" },
+  { id: "cb9", user_id: USER_ID, type: "expense", amount: 89000, group_id: "obligation", item_id: "utility", description: "전기·수도", date: `${MONTH}-05`, source: "manual" },
+  { id: "cb10", user_id: USER_ID, type: "expense", amount: 220000, group_id: "obligation", item_id: "tithe", description: "십일조", date: `${MONTH}-01`, source: "manual" },
+  { id: "cb11", user_id: USER_ID, type: "expense", amount: 100000, group_id: "sowing", item_id: "heaven", description: "선교 헌금", date: `${MONTH}-07`, source: "manual" },
+  { id: "cb12", user_id: USER_ID, type: "expense", amount: 300000, group_id: "obligation", item_id: "parents", description: "부모님 용돈", date: `${MONTH}-01`, source: "manual" },
 ];

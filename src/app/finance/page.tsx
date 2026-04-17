@@ -115,7 +115,6 @@ export default function FinancePage() {
             amount: parsedAmount,
             description: description.trim() || incomeCategory || "수입",
             date,
-            income_category: incomeCategory,
           }
         : {
             type: "expense",

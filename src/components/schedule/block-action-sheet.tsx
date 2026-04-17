@@ -29,7 +29,7 @@ export function BlockActionSheet({
             onComplete(plan);
             onClose();
           }}
-          className="w-full py-3 rounded-xl bg-surplus-50 dark:bg-surplus-700/20 text-surplus-700 dark:text-surplus-300 font-medium hover:bg-surplus-100 dark:hover:bg-surplus-700/30 tap-press"
+          className="w-full py-3 rounded-xl bg-green-50 dark:bg-green-700/20 text-green-700 dark:text-green-300 font-medium hover:bg-green-100 dark:hover:bg-green-700/30 tap-press"
         >
           완료 (계획대로)
         </button>

@@ -178,7 +178,6 @@ export default function CashbookPage() {
             amount: parsedAmount,
             description: description.trim() || incomeCategory || "수입",
             date,
-            income_category: incomeCategory,
           }
         : {
             type: "expense",
