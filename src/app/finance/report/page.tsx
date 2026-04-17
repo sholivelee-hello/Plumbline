@@ -12,6 +12,7 @@ import { useDebts } from "@/lib/hooks/use-debts";
 import { useInstallments } from "@/lib/hooks/use-installments";
 import { useHeavenBank } from "@/lib/hooks/use-heaven-bank";
 import { useRecurring } from "@/lib/hooks/use-recurring";
+import { useSubscriptions } from "@/lib/hooks/use-subscriptions";
 
 import { FinanceCard } from "@/components/finance/finance-card";
 import { FinanceDonutChart } from "@/components/finance/finance-donut-chart";
@@ -114,6 +115,9 @@ export default function ReportPage() {
     }, null);
   }, [activeInstallments]);
 
+  // ── Subscriptions ─────────────────────────────────────────────────────────
+  const { activeSubscriptions, totalMonthlyAmount, loading: subscriptionsLoading } = useSubscriptions();
+
   // ── Recurring logs ────────────────────────────────────────────────────────
   const { recurring, loading: recurringLoading } = useRecurring();
   const [executedIds, setExecutedIds] = useState<Set<string>>(new Set());
@@ -137,8 +141,9 @@ export default function ReportPage() {
   }, [month]);
 
   const activeRecurring = recurring.filter((r) => r.is_active);
-  const executedRecurring = activeRecurring.filter((r) => executedIds.has(r.id));
-  const missedRecurring = activeRecurring.filter((r) => !executedIds.has(r.id));
+  const visibleRecurring = activeRecurring.filter((r) => !r.subscription_id);
+  const executedRecurring = visibleRecurring.filter((r) => executedIds.has(r.id));
+  const missedRecurring = visibleRecurring.filter((r) => !executedIds.has(r.id));
 
   // ── Income analysis ───────────────────────────────────────────────────────
   const incomeByCategory = useMemo(() => {
@@ -157,6 +162,7 @@ export default function ReportPage() {
     debtsLoading ||
     installmentsLoading ||
     recurringLoading ||
+    subscriptionsLoading ||
     logsLoading;
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -437,10 +443,10 @@ export default function ReportPage() {
               )}
             </FinanceCard>
 
-            {/* ── Card 6: 빚/할부 현황 ──────────────────────────────────── */}
+            {/* ── Card 6: 빚/할부/구독 현황 ────────────────────────────── */}
             <FinanceCard>
               <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4">
-                빚/할부 현황
+                빚/할부/구독 현황
               </p>
 
               <div className="space-y-3">
@@ -472,6 +478,20 @@ export default function ReportPage() {
                   </div>
                 </div>
 
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">활성 구독</span>
+                  <div className="text-right">
+                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                      {activeSubscriptions.length}건
+                    </span>
+                    {totalMonthlyAmount > 0 && (
+                      <span className="text-xs text-gray-400 dark:text-gray-500 ml-2 tabular-nums">
+                        월 {formatCurrency(totalMonthlyAmount)}원
+                      </span>
+                    )}
+                  </div>
+                </div>
+
                 {earliestPayoff && (
                   <div className="pt-2 border-t border-gray-100 dark:border-[#2d3748]">
                     <p className="text-xs text-gray-400 dark:text-gray-500">
@@ -483,9 +503,9 @@ export default function ReportPage() {
                   </div>
                 )}
 
-                {activeDebts.length === 0 && activeInstallments.length === 0 && (
+                {activeDebts.length === 0 && activeInstallments.length === 0 && activeSubscriptions.length === 0 && (
                   <p className="text-sm text-center text-gray-400 dark:text-gray-500 py-2">
-                    활성 빚/할부 없음
+                    활성 빚/할부/구독 없음
                   </p>
                 )}
               </div>
@@ -497,7 +517,7 @@ export default function ReportPage() {
                 반복 거래 실행 현황
               </p>
 
-              {activeRecurring.length === 0 ? (
+              {visibleRecurring.length === 0 ? (
                 <p className="text-sm text-center text-gray-400 dark:text-gray-500 py-4">
                   등록된 반복 거래 없음
                 </p>
@@ -540,7 +560,7 @@ export default function ReportPage() {
 
                   <div className="pt-3 mt-1 border-t border-gray-100 dark:border-[#2d3748]">
                     <p className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">
-                      실행 {executedRecurring.length}/{activeRecurring.length}건
+                      실행 {executedRecurring.length}/{visibleRecurring.length}건
                     </p>
                   </div>
                 </div>

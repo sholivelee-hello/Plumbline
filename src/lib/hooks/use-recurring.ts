@@ -166,6 +166,8 @@ export function useRecurring() {
 
         const txDate = `${month}-${String(effectiveDay).padStart(2, "0")}`;
 
+        const source = rule.subscription_id ? "subscription" : "recurring";
+
         const { data: txData, error: txError } = await supabase
           .from("finance_transactions")
           .insert({
@@ -177,7 +179,7 @@ export function useRecurring() {
             group_id: rule.group_id,
             item_id: rule.item_id,
             income_category: rule.income_category,
-            source: "recurring",
+            source,
           })
           .select("id")
           .single();

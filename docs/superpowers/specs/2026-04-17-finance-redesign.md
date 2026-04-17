@@ -7,6 +7,22 @@
 
 ---
 
+## Post-Launch Updates (2026-04-17+)
+
+The spec below reflects the original design. After initial implementation, the following changes were made based on user feedback:
+
+1. **Debt management split out**: `/finance/debts` is now a separate page. `/finance/obligation` shows a read-only summary link. The "빚 청산" item in obligation group is display-only (managed via /debts dual-write).
+2. **Subscription feature added**: `/finance/subscriptions` — full CRUD with amount change history (`finance_subscription_amount_changes`), cancellation/rejoin history (`finance_subscription_cancellations`), card label, day-of-month billing. Subscriptions auto-create linked `finance_recurring` rows (hidden from settings recurring list).
+3. **New source value**: `finance_transactions.source` extended with `"subscription"`.
+4. **Demo mode removed**: No "둘러보기" button, no demo toggle in settings. Use localStorage fallback for onboarding state when Supabase unavailable.
+5. **Data reset removed**: Settings data section deleted entirely. Recovery via SQL if needed.
+6. **New necessity item**: `subscription` item added to DEFAULT_GROUPS for necessity group.
+7. **Debt tags**: `finance_debts.tags TEXT[]` now fully supported (input + display).
+
+See migrations 00011 and 00012 for schema changes. No existing spec section is invalidated — these are extensions.
+
+---
+
 ## 1. 정보 아키텍처 & 네비게이션
 
 ### 전체 구조

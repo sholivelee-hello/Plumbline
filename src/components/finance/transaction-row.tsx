@@ -17,6 +17,7 @@ const AUTO_SOURCES: Array<FinanceTransaction["source"]> = [
   "installment",
   "debt",
   "heaven_bank",
+  "subscription",
 ];
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -24,6 +25,7 @@ const SOURCE_LABELS: Record<string, string> = {
   installment: "할부",
   debt: "상환",
   heaven_bank: "하늘은행",
+  subscription: "구독",
 };
 
 export function TransactionRow({
