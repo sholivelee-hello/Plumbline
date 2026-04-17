@@ -21,6 +21,9 @@ describe('formatCurrency', () => {
     expect(formatCurrency(100000, { sign: true })).toBe('+100,000');
     expect(formatCurrency(-50000, { sign: true })).toBe('-50,000');
   });
+  it('formats zero with sign as plain zero', () => {
+    expect(formatCurrency(0, { sign: true })).toBe('0');
+  });
   it('formats with won suffix', () => {
     expect(formatCurrency(100000, { suffix: '원' })).toBe('100,000원');
   });

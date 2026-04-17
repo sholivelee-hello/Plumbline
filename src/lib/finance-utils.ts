@@ -2,15 +2,17 @@
 export const MAX_AMOUNT = 999_999_999;
 export const MAX_DESCRIPTION_LENGTH = 100;
 
+const KR_FORMAT = new Intl.NumberFormat('ko-KR');
+
 export function formatCurrency(
   amount: number,
   opts?: { sign?: boolean; suffix?: string }
 ): string {
   const abs = Math.abs(amount);
-  const formatted = abs.toLocaleString('ko-KR');
+  const formatted = KR_FORMAT.format(abs);
   let result = formatted;
   if (opts?.sign) {
-    result = amount >= 0 ? `+${formatted}` : `-${formatted}`;
+    result = amount > 0 ? `+${formatted}` : amount < 0 ? `-${formatted}` : formatted;
   } else if (amount < 0) {
     result = `-${formatted}`;
   }
@@ -21,7 +23,7 @@ export function formatCurrency(
 export function formatCurrencyInput(value: string): string {
   const digits = value.replace(/\D/g, '');
   if (!digits) return '';
-  return Number(digits).toLocaleString('ko-KR');
+  return KR_FORMAT.format(Number(digits));
 }
 
 export function parseCurrencyInput(value: string): number {

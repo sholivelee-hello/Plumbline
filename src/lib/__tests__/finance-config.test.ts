@@ -7,6 +7,7 @@ import {
   parseItemKey,
   getGroupById,
   getItemTitle,
+  parseGroupConfigs,
 } from '@/lib/finance-config';
 
 describe('DEFAULT_GROUPS', () => {
@@ -28,6 +29,9 @@ describe('parseItemKey', () => {
   it('splits key into group and item', () => {
     expect(parseItemKey('necessity_food')).toEqual({ groupId: 'necessity', itemId: 'food' });
   });
+  it('throws for key with no underscore', () => {
+    expect(() => parseItemKey('noUnderscore')).toThrow();
+  });
 });
 
 describe('getGroupById', () => {
@@ -46,5 +50,21 @@ describe('getItemTitle', () => {
   });
   it('returns itemId as fallback', () => {
     expect(getItemTitle(DEFAULT_GROUPS, 'obligation', 'unknown')).toBe('unknown');
+  });
+});
+
+describe('parseGroupConfigs', () => {
+  it('returns valid array as-is', () => {
+    const result = parseGroupConfigs(DEFAULT_GROUPS);
+    expect(result).toBe(DEFAULT_GROUPS);
+  });
+  it('falls back to DEFAULT_GROUPS for malformed array', () => {
+    expect(parseGroupConfigs([{ id: 123, title: 'bad' }])).toBe(DEFAULT_GROUPS);
+  });
+  it('falls back to DEFAULT_GROUPS for null', () => {
+    expect(parseGroupConfigs(null)).toBe(DEFAULT_GROUPS);
+  });
+  it('falls back to DEFAULT_GROUPS for undefined', () => {
+    expect(parseGroupConfigs(undefined)).toBe(DEFAULT_GROUPS);
   });
 });

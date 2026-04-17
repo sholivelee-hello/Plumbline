@@ -58,8 +58,9 @@ export function getItemKey(groupId: string, itemId: string) {
   return `${groupId}_${itemId}`;
 }
 
-export function parseItemKey(key: string) {
+export function parseItemKey(key: string): { groupId: string; itemId: string } {
   const idx = key.indexOf('_');
+  if (idx === -1) throw new Error(`Invalid item key: "${key}"`);
   return { groupId: key.slice(0, idx), itemId: key.slice(idx + 1) };
 }
 
@@ -70,6 +71,25 @@ export function getGroupById(groups: FinanceGroup[], id: string) {
 export function getItemTitle(groups: FinanceGroup[], groupId: string, itemId: string): string {
   const group = getGroupById(groups, groupId);
   return group?.items.find(i => i.id === itemId)?.title ?? itemId;
+}
+
+export function parseGroupConfigs(raw: unknown): FinanceGroup[] {
+  if (!Array.isArray(raw)) return DEFAULT_GROUPS;
+  const valid = raw.every(g =>
+    g && typeof g === 'object'
+    && typeof (g as Record<string, unknown>).id === 'string'
+    && typeof (g as Record<string, unknown>).title === 'string'
+    && typeof (g as Record<string, unknown>).color === 'string'
+    && typeof (g as Record<string, unknown>).percentMin === 'number'
+    && typeof (g as Record<string, unknown>).percentMax === 'number'
+    && Array.isArray((g as Record<string, unknown>).items)
+    && ((g as Record<string, unknown>).items as unknown[]).every(
+      (i) => i && typeof i === 'object'
+        && typeof (i as Record<string, unknown>).id === 'string'
+        && typeof (i as Record<string, unknown>).title === 'string'
+    )
+  );
+  return valid ? (raw as FinanceGroup[]) : DEFAULT_GROUPS;
 }
 
 // Color mapping for Tailwind classes
