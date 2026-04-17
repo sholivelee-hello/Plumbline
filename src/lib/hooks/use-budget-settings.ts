@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { FIXED_USER_ID } from "@/lib/constants";
 import type { FinanceBudgetSettings } from "@/types/database";
@@ -15,59 +15,80 @@ export function useBudgetSettings() {
   const [settings, setSettings] = useState<FinanceBudgetSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const supabase = createClient();
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data, error: fetchError } = await supabase
-        .from("finance_budget_settings")
-        .select("*")
-        .eq("user_id", FIXED_USER_ID)
-        .maybeSingle();
+  // [MEDIUM] Create client once per mount, not on every render
+  const supabase = useMemo(() => createClient(), []);
 
-      if (fetchError) throw fetchError;
+  // [MEDIUM] Track latest settings in a ref so callbacks always capture current value
+  const settingsRef = useRef(settings);
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
 
-      if (!data) {
-        // Auto-initialize if no row exists
-        const { data: inserted, error: insertError } = await supabase
-          .from("finance_budget_settings")
-          .upsert(
-            {
-              user_id: FIXED_USER_ID,
-              monthly_income: 0,
-              group_configs: DEFAULT_GROUPS,
-              income_categories: DEFAULT_INCOME_CATEGORIES,
-            },
-            { onConflict: "user_id" }
-          )
-          .select("*")
-          .maybeSingle();
-
-        if (insertError) throw insertError;
-        setSettings(inserted ?? null);
-      } else {
-        setSettings(data);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "설정을 불러오지 못했습니다.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // refreshTick drives re-fetch without recreating load callback
+  const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
 
-  const refresh = useCallback(async () => {
-    await load();
-  }, [load]);
+    const run = async () => {
+      try {
+        const { data, error: fetchError } = await supabase
+          .from("finance_budget_settings")
+          .select("*")
+          .eq("user_id", FIXED_USER_ID)
+          .maybeSingle();
+
+        if (cancelled) return;
+        if (fetchError) throw fetchError;
+
+        if (!data) {
+          // Auto-initialize if no row exists
+          const { data: inserted, error: insertError } = await supabase
+            .from("finance_budget_settings")
+            .upsert(
+              {
+                user_id: FIXED_USER_ID,
+                monthly_income: 0,
+                group_configs: DEFAULT_GROUPS,
+                income_categories: DEFAULT_INCOME_CATEGORIES,
+              },
+              { onConflict: "user_id" }
+            )
+            .select("*")
+            .maybeSingle();
+
+          if (cancelled) return;
+          if (insertError) throw insertError;
+          setSettings(inserted ?? null);
+        } else {
+          setSettings(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "설정을 불러오지 못했습니다.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase, refreshTick]);
+
+  const refresh = useCallback(() => {
+    setRefreshTick((n) => n + 1);
+  }, []);
 
   const updateIncome = useCallback(
     async (amount: number): Promise<{ ok: boolean; error?: string }> => {
-      const prev = settings;
+      // [MEDIUM] Read from ref to avoid stale closure capture
+      const prev = settingsRef.current;
       setSettings((s) => (s ? { ...s, monthly_income: amount } : s));
 
       const { error: updateError } = await supabase
@@ -87,15 +108,15 @@ export function useBudgetSettings() {
         setSettings(prev);
         return { ok: false, error: updateError.message };
       }
-      await load();
+      setRefreshTick((n) => n + 1);
       return { ok: true };
     },
-    [settings, load]
+    [supabase]
   );
 
   const updateGroupConfigs = useCallback(
     async (configs: FinanceGroup[]): Promise<{ ok: boolean; error?: string }> => {
-      const prev = settings;
+      const prev = settingsRef.current;
       setSettings((s) => (s ? { ...s, group_configs: configs } : s));
 
       const { error: updateError } = await supabase
@@ -115,15 +136,15 @@ export function useBudgetSettings() {
         setSettings(prev);
         return { ok: false, error: updateError.message };
       }
-      await load();
+      setRefreshTick((n) => n + 1);
       return { ok: true };
     },
-    [settings, load]
+    [supabase]
   );
 
   const updateIncomeCategories = useCallback(
     async (cats: string[]): Promise<{ ok: boolean; error?: string }> => {
-      const prev = settings;
+      const prev = settingsRef.current;
       setSettings((s) => (s ? { ...s, income_categories: cats } : s));
 
       const { error: updateError } = await supabase
@@ -143,10 +164,10 @@ export function useBudgetSettings() {
         setSettings(prev);
         return { ok: false, error: updateError.message };
       }
-      await load();
+      setRefreshTick((n) => n + 1);
       return { ok: true };
     },
-    [settings, load]
+    [supabase]
   );
 
   const initializeSettings = useCallback(async (): Promise<{
@@ -169,9 +190,9 @@ export function useBudgetSettings() {
     if (upsertError) {
       return { ok: false, error: upsertError.message };
     }
-    await load();
+    setRefreshTick((n) => n + 1);
     return { ok: true };
-  }, [load]);
+  }, [supabase]);
 
   const groups = parseGroupConfigs(settings?.group_configs);
   const incomeCategories: string[] =

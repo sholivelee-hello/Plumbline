@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { FIXED_USER_ID } from "@/lib/constants";
 import type { FinanceTransaction } from "@/types/database";
@@ -21,37 +21,55 @@ export function useFinanceTransactions(month: string) {
   const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { start, end } = getMonthRange(month);
-      const { data, error: fetchError } = await supabase
-        .from("finance_transactions")
-        .select("*")
-        .eq("user_id", FIXED_USER_ID)
-        .gte("date", start)
-        .lte("date", end)
-        .order("date", { ascending: false });
-
-      if (fetchError) throw fetchError;
-      setTransactions(data ?? []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "거래 내역을 불러오지 못했습니다.");
-    } finally {
-      setLoading(false);
-    }
-  }, [month]);
+  // [HIGH] Race condition guard: useEffect owns the fetch with cancellation flag.
+  // refresh() triggers a re-fetch by bumping a counter so the same effect runs again.
+  const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
 
-  const refresh = useCallback(async () => {
-    await load();
-  }, [load]);
+    const run = async () => {
+      try {
+        const { start, end } = getMonthRange(month);
+        const { data, error: fetchError } = await supabase
+          .from("finance_transactions")
+          .select("*")
+          .eq("user_id", FIXED_USER_ID)
+          .gte("date", start)
+          .lte("date", end)
+          .order("date", { ascending: false });
+
+        if (cancelled) return;
+        if (fetchError) throw fetchError;
+        setTransactions(data ?? []);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "거래 내역을 불러오지 못했습니다.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [month, supabase, refreshTick]);
+
+  const refresh = useCallback(() => {
+    setRefreshTick((n) => n + 1);
+  }, []);
+
+  // Keep a ref to transactions for stable rollback captures inside callbacks
+  const transactionsRef = useRef(transactions);
+  useEffect(() => {
+    transactionsRef.current = transactions;
+  }, [transactions]);
 
   const incomes = useMemo(
     () => transactions.filter((t) => t.type === "income"),
@@ -89,13 +107,32 @@ export function useFinanceTransactions(month: string) {
     return result;
   }, [expenses]);
 
+  // [LOW] Use sv-SE locale to get YYYY-MM-DD in local timezone (avoids UTC-offset bug in KST)
   const todayTransactions = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date().toLocaleDateString("sv-SE");
     return transactions.filter((t) => t.date === today);
   }, [transactions]);
 
+  // [HIGH] addTransaction with optimistic update + rollback
   const addTransaction = useCallback(
     async (data: AddTransactionData): Promise<{ ok: boolean; error?: string; id?: string }> => {
+      const tempId = `optimistic-${Date.now()}`;
+      const optimisticItem: FinanceTransaction = {
+        id: tempId,
+        user_id: FIXED_USER_ID,
+        type: data.type,
+        amount: data.amount,
+        description: data.description ?? null,
+        date: data.date,
+        group_id: data.group_id ?? null,
+        item_id: data.item_id ?? null,
+        income_category: data.income_category ?? null,
+        source: data.source ?? "manual",
+      };
+
+      // Optimistically prepend (list is date DESC, new item is likely today)
+      setTransactions((ts) => [optimisticItem, ...ts]);
+
       const { data: inserted, error: insertError } = await supabase
         .from("finance_transactions")
         .insert({
@@ -113,12 +150,19 @@ export function useFinanceTransactions(month: string) {
         .single();
 
       if (insertError) {
+        // Rollback: remove optimistic item
+        setTransactions((ts) => ts.filter((t) => t.id !== tempId));
         return { ok: false, error: insertError.message };
       }
-      await load();
-      return { ok: true, id: inserted?.id };
+
+      // Replace temp id with real id then do a full refresh to get server order
+      setTransactions((ts) =>
+        ts.map((t) => (t.id === tempId ? { ...t, id: inserted.id } : t))
+      );
+      setRefreshTick((n) => n + 1);
+      return { ok: true, id: inserted.id };
     },
-    [load]
+    [supabase]
   );
 
   const updateTransaction = useCallback(
@@ -126,7 +170,7 @@ export function useFinanceTransactions(month: string) {
       id: string,
       data: Partial<FinanceTransaction>
     ): Promise<{ ok: boolean; error?: string }> => {
-      const prev = transactions;
+      const prev = transactionsRef.current;
       setTransactions((ts) =>
         ts.map((t) => (t.id === id ? { ...t, ...data } : t))
       );
@@ -141,15 +185,15 @@ export function useFinanceTransactions(month: string) {
         setTransactions(prev);
         return { ok: false, error: updateError.message };
       }
-      await load();
+      setRefreshTick((n) => n + 1);
       return { ok: true };
     },
-    [transactions, load]
+    [supabase]
   );
 
   const deleteTransaction = useCallback(
     async (id: string): Promise<{ ok: boolean; error?: string }> => {
-      const prev = transactions;
+      const prev = transactionsRef.current;
       setTransactions((ts) => ts.filter((t) => t.id !== id));
 
       const { error: deleteError } = await supabase
@@ -164,7 +208,7 @@ export function useFinanceTransactions(month: string) {
       }
       return { ok: true };
     },
-    [transactions, load]
+    [supabase]
   );
 
   return {
