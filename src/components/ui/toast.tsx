@@ -1,11 +1,12 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 interface Toast {
   id: number;
   message: string;
-  tone?: "success" | "info";
+  tone?: "success" | "info" | "error";
+  exiting?: boolean;
 }
 
 interface ToastContextValue {
@@ -14,25 +15,37 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
+const DISPLAY_MS = 1800;
+const EXIT_MS = 300;
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const timersRef = useRef<Map<number, NodeJS.Timeout>>(new Map());
 
   const toast = useCallback((message: string, tone: Toast["tone"] = "success") => {
     const id = Date.now() + Math.random();
     setToasts((prev) => [...prev, { id, message, tone }]);
+
+    // Start exit animation after DISPLAY_MS
+    const exitTimer = setTimeout(() => {
+      setToasts((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, exiting: true } : t))
+      );
+      // Remove from DOM after exit animation completes
+      const removeTimer = setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+        timersRef.current.delete(id);
+      }, EXIT_MS);
+      timersRef.current.set(id + 0.5, removeTimer);
+    }, DISPLAY_MS);
+    timersRef.current.set(id, exitTimer);
   }, []);
 
   useEffect(() => {
-    if (toasts.length === 0) return;
-    const timers = toasts.map((t) =>
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((x) => x.id !== t.id));
-      }, 2200)
-    );
     return () => {
-      timers.forEach(clearTimeout);
+      timersRef.current.forEach(clearTimeout);
     };
-  }, [toasts]);
+  }, []);
 
   return (
     <ToastContext.Provider value={{ toast }}>
@@ -44,10 +57,17 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto animate-slide-up-fade rounded-full px-4 py-2 text-sm font-medium shadow-card ${
+            role={t.tone === "error" ? "alert" : undefined}
+            className={`pointer-events-auto rounded-full px-4 py-2 text-sm font-medium shadow-card transition-all duration-300 ${
+              t.exiting
+                ? "opacity-0 translate-y-[-8px]"
+                : "animate-slide-up-fade"
+            } ${
               t.tone === "success"
                 ? "bg-surplus-500 text-white"
-                : "bg-[#161a22] dark:bg-gray-700 text-white"
+                : t.tone === "error"
+                  ? "bg-red-500 text-white"
+                  : "bg-[#161a22] dark:bg-gray-700 text-white"
             }`}
           >
             {t.message}
@@ -61,7 +81,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 export function useToast() {
   const ctx = useContext(ToastContext);
   if (!ctx) {
-    // Gracefully no-op when provider missing (SSR, isolated tests)
     return { toast: () => {} };
   }
   return ctx;

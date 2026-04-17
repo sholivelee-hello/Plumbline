@@ -182,3 +182,21 @@ export const demoInstallments: (FinanceInstallment & { remaining_months: number;
 export const demoSurplusGoal = 500000;
 export const demoSurplusSaved = 320000;
 export const demoMonthlySow = 400000;
+
+export const demoCashbookEntries: FinanceTransaction[] = [
+  // Incomes
+  { id: "cb1", user_id: USER_ID, type: "income", amount: 2200000, category_id: null, account_id: null, description: "급여", date: `${MONTH}-25`, is_auto: false },
+  { id: "cb2", user_id: USER_ID, type: "income", amount: 300000, category_id: null, account_id: null, description: "부수입", date: `${MONTH}-15`, is_auto: false },
+  { id: "cb3", user_id: USER_ID, type: "income", amount: 50000, category_id: null, account_id: null, description: "용돈", date: `${MONTH}-08`, is_auto: false },
+  // Expenses with budget keys
+  { id: "cb4", user_id: USER_ID, type: "expense", amount: 15000, category_id: null, account_id: "necessity_food", description: "점심 식사", date: TODAY, is_auto: false },
+  { id: "cb13", user_id: USER_ID, type: "expense", amount: 8500, category_id: null, account_id: "necessity_food", description: "저녁 외식", date: `${MONTH}-14`, is_auto: false },
+  { id: "cb5", user_id: USER_ID, type: "expense", amount: 3200, category_id: null, account_id: "necessity_transport", description: "버스 출근", date: TODAY, is_auto: false },
+  { id: "cb6", user_id: USER_ID, type: "expense", amount: 65000, category_id: null, account_id: "obligation_utility", description: "통신비", date: `${MONTH}-10`, is_auto: false },
+  { id: "cb7", user_id: USER_ID, type: "expense", amount: 42000, category_id: null, account_id: "necessity_grocery", description: "마트 장보기", date: `${MONTH}-12`, is_auto: false },
+  { id: "cb8", user_id: USER_ID, type: "expense", amount: 550000, category_id: null, account_id: "obligation_utility", description: "월세", date: `${MONTH}-01`, is_auto: false },
+  { id: "cb9", user_id: USER_ID, type: "expense", amount: 89000, category_id: null, account_id: "obligation_utility", description: "전기·수도", date: `${MONTH}-05`, is_auto: false },
+  { id: "cb10", user_id: USER_ID, type: "expense", amount: 220000, category_id: null, account_id: "obligation_tithe", description: "십일조", date: `${MONTH}-01`, is_auto: false },
+  { id: "cb11", user_id: USER_ID, type: "expense", amount: 100000, category_id: null, account_id: "sowing_heaven", description: "선교 헌금", date: `${MONTH}-07`, is_auto: false },
+  { id: "cb12", user_id: USER_ID, type: "expense", amount: 300000, category_id: null, account_id: "obligation_parents", description: "부모님 용돈", date: `${MONTH}-01`, is_auto: false },
+];

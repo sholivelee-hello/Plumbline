@@ -1,18 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
+  role?: "dialog" | "alertdialog";
+  ariaDescribedBy?: string;
 }
 
 const FOCUSABLE_SELECTORS =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, role: roleProp = "dialog", ariaDescribedBy }: ModalProps) {
+  const autoId = useId();
   const [isVisible, setIsVisible] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -84,14 +87,15 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
       />
       <div
         ref={dialogRef}
-        role="dialog"
+        role={roleProp}
         aria-modal="true"
-        aria-labelledby={title ? "modal-title" : undefined}
+        aria-labelledby={title ? `${autoId}-title` : undefined}
+        aria-describedby={ariaDescribedBy}
         className="relative bg-[var(--surface)] rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] overflow-y-auto p-6 transition-transform duration-300 ease-out text-gray-900 dark:text-gray-100"
         style={{ transform: isVisible ? "translateY(0)" : "translateY(100%)" }}
       >
         {title && (
-          <h3 id="modal-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{title}</h3>
+          <h3 id={`${autoId}-title`} className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{title}</h3>
         )}
         {children}
       </div>
