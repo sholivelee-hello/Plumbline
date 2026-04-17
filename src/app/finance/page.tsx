@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -16,6 +16,7 @@ import {
 import { useFinanceHub } from "@/lib/hooks/use-finance-hub";
 import { useFinanceTransactions } from "@/lib/hooks/use-finance-transactions";
 import { useBudgetSettings } from "@/lib/hooks/use-budget-settings";
+import { useRecurring } from "@/lib/hooks/use-recurring";
 import { getCurrentMonth, formatCurrency, parseCurrencyInput } from "@/lib/finance-utils";
 import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
@@ -58,10 +59,30 @@ export default function FinancePage() {
   const [month, setMonth] = useState(getCurrentMonth());
   const { toast } = useToast();
 
-  const { summary, donutData, groupCards, todayTransactions, loading } =
+  const { summary, donutData, groupCards, todayTransactions, loading, refresh } =
     useFinanceHub(month);
   const { addTransaction } = useFinanceTransactions(month);
   const { groups, incomeCategories } = useBudgetSettings();
+  const { executeForMonth } = useRecurring();
+
+  // ── Auto-execute recurring transactions once per month ───────────────────
+  const lastExecutedMonth = useRef<string | null>(null);
+  useEffect(() => {
+    if (loading) return;
+    if (lastExecutedMonth.current === month) return;
+    lastExecutedMonth.current = month;
+
+    let cancelled = false;
+    (async () => {
+      const result = await executeForMonth(month);
+      if (!cancelled && result.executed > 0) {
+        toast(`반복 거래 ${result.executed}건이 자동 기록되었습니다`, "info");
+        refresh();
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [month, loading, executeForMonth, refresh, toast]);
 
   // ── Input sheet state ─────────────────────────────────────────────────────
   const [inputOpen, setInputOpen] = useState(false);
