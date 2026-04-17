@@ -8,8 +8,6 @@ import { useBudgetSettings } from "@/lib/hooks/use-budget-settings";
 import { useRecurring } from "@/lib/hooks/use-recurring";
 import { type FinanceGroup, type GroupItem } from "@/lib/finance-config";
 import { formatCurrency, parseCurrencyInput } from "@/lib/finance-utils";
-import { createClient } from "@/lib/supabase/client";
-import { FIXED_USER_ID } from "@/lib/constants";
 
 import { FinanceCard } from "@/components/finance/finance-card";
 import { BottomSheet } from "@/components/finance/bottom-sheet";
@@ -471,7 +469,6 @@ export default function FinanceSettingsPage() {
     loading: settingsLoading,
     updateGroupConfigs,
     updateIncomeCategories,
-    initializeSettings,
   } = useBudgetSettings();
 
   const {
@@ -481,8 +478,6 @@ export default function FinanceSettingsPage() {
     updateRecurring,
     deleteRecurring,
   } = useRecurring();
-
-  const supabase = useMemo(() => createClient(), []);
 
   // ── Group editor ──────────────────────────────────────────────────────────
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
@@ -594,47 +589,11 @@ export default function FinanceSettingsPage() {
     }
   }
 
-  // ── Data section ──────────────────────────────────────────────────────────
-  const [demoMode, setDemoMode] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("finance-demo-mode") === "true";
-  });
-
-  function toggleDemoMode() {
-    const next = !demoMode;
-    setDemoMode(next);
-    localStorage.setItem("finance-demo-mode", String(next));
-  }
-
-  const [resetStep, setResetStep] = useState<0 | 1 | 2>(0);
-  const [resetting, setResetting] = useState(false);
-
-  async function handleResetData() {
-    setResetting(true);
-    try {
-      const tables = [
-        "finance_transactions",
-        "finance_budgets",
-        "finance_debts",
-        "finance_debt_payments",
-        "finance_installments",
-        "heaven_bank",
-        "finance_wishlist",
-        "finance_recurring",
-        "finance_recurring_logs",
-      ];
-      for (const table of tables) {
-        await supabase.from(table as never).delete().eq("user_id", FIXED_USER_ID);
-      }
-      await initializeSettings();
-      setResetStep(0);
-      toast("모든 데이터가 초기화되었습니다", "success");
-    } catch {
-      toast("초기화 중 오류가 발생했습니다", "error");
-    } finally {
-      setResetting(false);
-    }
-  }
+  // ── Recurring filter (exclude subscription-linked entries) ────────────────
+  const visibleRecurring = useMemo(
+    () => recurring.filter((r) => !r.subscription_id),
+    [recurring]
+  );
 
   // ── Render helpers ─────────────────────────────────────────────────────────
 
@@ -831,13 +790,13 @@ export default function FinanceSettingsPage() {
                 반복 거래
               </p>
               <FinanceCard>
-                {recurring.length === 0 ? (
+                {visibleRecurring.length === 0 ? (
                   <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">
                     반복 거래 없음
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    {recurring.map((rule) => {
+                    {visibleRecurring.map((rule) => {
                       const ruleGroup = rule.group_id ? groups.find((g) => g.id === rule.group_id) : null;
                       const ruleItem = ruleGroup?.items.find((it) => it.id === rule.item_id) ?? null;
                       return (
@@ -921,61 +880,6 @@ export default function FinanceSettingsPage() {
               </FinanceCard>
             </section>
 
-            {/* ── Section 4: 데이터 ─────────────────────────────────────── */}
-            <section className="space-y-3">
-              <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">
-                데이터
-              </p>
-              <FinanceCard>
-                <div className="space-y-4">
-                  {/* Demo mode toggle */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                        데모 데이터로 체험하기
-                      </p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                        샘플 데이터로 앱을 미리 체험합니다
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={toggleDemoMode}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ml-3 ${
-                        demoMode ? "bg-indigo-600" : "bg-gray-300 dark:bg-[#3a3f50]"
-                      }`}
-                      aria-checked={demoMode}
-                      role="switch"
-                      aria-label="데모 모드"
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                          demoMode ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  <div className="border-t border-gray-100 dark:border-[#2d3748]" />
-
-                  {/* Reset button */}
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => setResetStep(1)}
-                      className="w-full min-h-[44px] py-2.5 rounded-xl text-sm font-semibold
-                        text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800
-                        hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors active:scale-[0.98]"
-                    >
-                      데이터 초기화
-                    </button>
-                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5 text-center">
-                      모든 거래 내역, 예산, 반복 거래가 삭제됩니다. 되돌릴 수 없습니다.
-                    </p>
-                  </div>
-                </div>
-              </FinanceCard>
-            </section>
           </>
         )}
       </div>
@@ -1027,30 +931,6 @@ export default function FinanceSettingsPage() {
         variant="danger"
       />
 
-      {/* ── Data Reset Step 1 ────────────────────────────────────────────────── */}
-      <ConfirmDialog
-        isOpen={resetStep === 1}
-        onClose={() => setResetStep(0)}
-        onConfirm={() => setResetStep(2)}
-        title="데이터 초기화"
-        description="모든 재정 데이터를 삭제하시겠어요? 거래 내역, 예산, 반복 거래가 모두 지워집니다."
-        confirmLabel="계속"
-        cancelLabel="취소"
-        variant="danger"
-      />
-
-      {/* ── Data Reset Step 2 ────────────────────────────────────────────────── */}
-      <ConfirmDialog
-        isOpen={resetStep === 2}
-        onClose={() => setResetStep(0)}
-        onConfirm={handleResetData}
-        title="정말 초기화하시겠어요?"
-        description="정말 되돌릴 수 없습니다. 계속하시겠습니까?"
-        confirmLabel="모두 삭제"
-        cancelLabel="돌아가기"
-        variant="danger"
-        loading={resetting}
-      />
     </div>
   );
 }
