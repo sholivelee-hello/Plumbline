@@ -6,6 +6,7 @@ import { useFinanceTransactions } from "@/lib/hooks/use-finance-transactions";
 import { useBudget } from "@/lib/hooks/use-budget";
 import { useBudgetSettings } from "@/lib/hooks/use-budget-settings";
 import { useWishlist } from "@/lib/hooks/use-wishlist";
+import { addWishContribution } from "@/lib/finance-actions";
 import {
   getCurrentMonth,
   formatCurrency,
@@ -184,29 +185,35 @@ export default function CashbookPage() {
     const selectedGroup = groups.find((g) => g.id === selectedGroupId);
     const selectedItem = selectedGroup?.items.find((i) => i.id === selectedItemId);
     const selectedWish = wishes.find((w) => w.id === selectedWishId);
-    const isWantWithWish = selectedGroupId === "want" && selectedWishId !== null;
+    const isWantWithWish =
+      selectedGroupId === "want" && selectedWishId !== null && selectedWish !== undefined;
+
     setAddSaving(true);
-    const result = await addTransaction(
-      isIncome
-        ? {
-            type: "income",
-            amount: parsedAmount,
-            description: description.trim() || incomeCategory || "수입",
-            date,
-          }
-        : {
-            type: "expense",
-            amount: parsedAmount,
-            description:
-              description.trim() ||
-              (isWantWithWish ? selectedWish?.title : selectedItem?.title) ||
-              "지출",
-            date,
-            group_id: selectedGroupId,
-            item_id: isWantWithWish ? "want" : selectedItemId,
-            wishlist_id: isWantWithWish ? selectedWishId : null,
-          }
-    );
+    const result = isWantWithWish
+      ? await addWishContribution({
+          wishId: selectedWish.id,
+          amount: parsedAmount,
+          date,
+          description: description.trim() || selectedWish.title,
+        })
+      : await addTransaction(
+          isIncome
+            ? {
+                type: "income",
+                amount: parsedAmount,
+                description: description.trim() || incomeCategory || "수입",
+                date,
+              }
+            : {
+                type: "expense",
+                amount: parsedAmount,
+                description: description.trim() || selectedItem?.title || "지출",
+                date,
+                group_id: selectedGroupId,
+                item_id: selectedItemId,
+                wishlist_id: null,
+              }
+        );
     setAddSaving(false);
     if (result.ok) {
       toast(

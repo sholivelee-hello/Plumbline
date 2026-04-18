@@ -31,8 +31,9 @@ export function useFinanceHub(month: string) {
   const [heavenBankMonthlySow, setHeavenBankMonthlySow] = useState(0);
   const [heavenBankRefreshTick, setHeavenBankRefreshTick] = useState(0);
 
+  const supabase = useMemo(() => createClient(), []);
+
   useEffect(() => {
-    const supabase = createClient();
     supabase.from("heaven_bank").select("type,amount,date").then(({ data }: { data: Array<{ type: string; amount: number; date: string }> | null }) => {
       if (!data) return;
       const sow = data.filter((e) => e.type === "sow").reduce((s: number, e) => s + e.amount, 0);
@@ -44,7 +45,7 @@ export function useFinanceHub(month: string) {
         .reduce((s: number, e) => s + e.amount, 0);
       setHeavenBankMonthlySow(monthlySow);
     });
-  }, [heavenBankRefreshTick, month]);
+  }, [supabase, heavenBankRefreshTick, month]);
 
   const {
     groups,

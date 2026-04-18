@@ -23,7 +23,8 @@ export function useRollover(month: string) {
 
   const supabase = useMemo(() => createClient(), []);
   const prev = shiftMonth(month, -1);
-  const busTick = useFinanceTick("all");
+  const txTick = useFinanceTick("transactions");
+  const budgetTick = useFinanceTick("budget");
 
   useEffect(() => {
     let cancelled = false;
@@ -77,7 +78,7 @@ export function useRollover(month: string) {
     return () => {
       cancelled = true;
     };
-  }, [supabase, month, prev, busTick]);
+  }, [supabase, month, prev, txTick, budgetTick]);
 
   const rollovers = useMemo(() => {
     const result: Record<string, number> = {};
