@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { FIXED_USER_ID } from "@/lib/constants";
 import { getLogicalDate } from "@/lib/utils/date";
@@ -11,7 +11,7 @@ export function useBasics(dayStartTime: string = "04:00") {
   const [templates, setTemplates] = useState<BasicsTemplate[]>([]);
   const [logs, setLogs] = useState<BasicsLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const today = getLogicalDate(dayStartTime);
 
   const loadTemplates = useCallback(async () => {
@@ -22,7 +22,7 @@ export function useBasics(dayStartTime: string = "04:00") {
       .order("category")
       .order("sort_order");
     if (data) setTemplates(data);
-  }, []);
+  }, [supabase]);
 
   const loadLogs = useCallback(async () => {
     const { data } = await supabase
@@ -30,7 +30,7 @@ export function useBasics(dayStartTime: string = "04:00") {
       .select("*")
       .eq("date", today);
     if (data) setLogs(data);
-  }, [today]);
+  }, [supabase, today]);
 
   // Generate daily logs if missing
   const generateDailyLogs = useCallback(async () => {
@@ -55,7 +55,7 @@ export function useBasics(dayStartTime: string = "04:00") {
         }))
       );
     }
-  }, [today]);
+  }, [supabase, today]);
 
   useEffect(() => {
     async function init() {
@@ -71,7 +71,7 @@ export function useBasics(dayStartTime: string = "04:00") {
       setLoading(false);
     }
     init();
-  }, []);
+  }, [loadTemplates, generateDailyLogs, loadLogs]);
 
   async function toggleCheck(logId: string, completed: boolean) {
     await supabase

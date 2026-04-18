@@ -1,65 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useHeavenBank } from "@/lib/hooks/use-heaven-bank";
-import { useObligations } from "@/lib/hooks/use-obligations";
-import { useFinance } from "@/lib/hooks/use-finance";
+import { useFinanceHub } from "@/lib/hooks/use-finance-hub";
 import { Card } from "@/components/ui/card";
 import { SkeletonCard } from "@/components/ui/skeleton";
-import { formatWon, calcPercent } from "@/lib/utils/format";
+import { formatWon } from "@/lib/utils/format";
 import { getCurrentMonth } from "@/lib/utils/date";
 
 export function FinanceSummary() {
   const month = getCurrentMonth();
-  const { monthlySow, loading: heavenLoading } = useHeavenBank(month);
-  const { obligations, loading: obligationsLoading } = useObligations(month);
-  const { transactions, budgets, surplusSaved, surplusGoal, loading: financeLoading } =
-    useFinance(month);
-
-  const loading = heavenLoading || obligationsLoading || financeLoading;
+  const { groupCards, summary, loading } = useFinanceHub(month);
 
   if (loading) {
     return <SkeletonCard />;
   }
-
-  const paidObligations = obligations.filter((o) => o.is_paid).length;
-  const totalObligations = obligations.length;
-
-  const necessityBudgetTotal = budgets.reduce((sum, b) => sum + b.amount, 0);
-  const necessitySpent = transactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
-  const necessityPercent = calcPercent(necessitySpent, necessityBudgetTotal);
-
-  const rows: {
-    label: string;
-    value: string;
-    hint?: string;
-    accent: string;
-  }[] = [
-    {
-      label: "하늘은행 심은 금액",
-      value: `₩${formatWon(monthlySow)}`,
-      accent: "bg-heaven-400",
-    },
-    {
-      label: "의무지출 납부",
-      value: `${paidObligations}/${totalObligations}건`,
-      accent: "bg-obligation-400",
-    },
-    {
-      label: "생활비 사용",
-      value: `₩${formatWon(necessitySpent)}`,
-      hint: necessityBudgetTotal > 0 ? `${necessityPercent}%` : undefined,
-      accent: "bg-necessity-400",
-    },
-    {
-      label: "여윳돈 저축",
-      value: `₩${formatWon(surplusSaved)}`,
-      hint: surplusGoal > 0 ? `/ ₩${formatWon(surplusGoal)}` : undefined,
-      accent: "bg-surplus-400",
-    },
-  ];
 
   return (
     <Link href="/finance" className="block">
@@ -68,25 +22,48 @@ export function FinanceSummary() {
           이번 달 재정
         </h2>
         <ul className="space-y-2.5">
-          {rows.map((row) => (
-            <li key={row.label} className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <span className={`w-1.5 h-1.5 rounded-full ${row.accent} shrink-0`} aria-hidden />
-                <span className="text-gray-600 dark:text-gray-400 truncate">
-                  {row.label}
+          {groupCards.map((g) => (
+            <li key={g.groupId}>
+              <div className="flex items-center justify-between text-sm mb-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ backgroundColor: g.color }}
+                    aria-hidden
+                  />
+                  <span className="text-gray-600 dark:text-gray-400 truncate">
+                    {g.title}
+                  </span>
+                </div>
+                <span className="font-medium text-gray-900 dark:text-gray-100 tabular-nums">
+                  ₩{formatWon(g.actual)}
+                  {g.budget > 0 && (
+                    <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">
+                      / ₩{formatWon(g.budget)}
+                    </span>
+                  )}
                 </span>
               </div>
-              <span className="font-medium text-gray-900 dark:text-gray-100 tabular-nums">
-                {row.value}
-                {row.hint && (
-                  <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">
-                    {row.hint}
-                  </span>
-                )}
-              </span>
+              {g.budget > 0 && (
+                <div className="h-1 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${Math.min(g.percent, 100)}%`,
+                      backgroundColor: g.color,
+                    }}
+                  />
+                </div>
+              )}
             </li>
           ))}
         </ul>
+        {summary.income > 0 && (
+          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex justify-between text-xs text-gray-400 dark:text-gray-500">
+            <span>수입 ₩{formatWon(summary.income)}</span>
+            <span>잔액 ₩{formatWon(summary.balance)}</span>
+          </div>
+        )}
       </Card>
     </Link>
   );

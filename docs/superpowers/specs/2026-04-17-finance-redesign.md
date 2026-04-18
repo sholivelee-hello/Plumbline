@@ -7,6 +7,22 @@
 
 ---
 
+## Post-Launch Updates (2026-04-17+)
+
+The spec below reflects the original design. After initial implementation, the following changes were made based on user feedback:
+
+1. **Debt management split out**: `/finance/debts` is now a separate page. `/finance/obligation` shows a read-only summary link. The "빚 청산" item in obligation group is display-only (managed via /debts dual-write).
+2. **Subscription feature added**: `/finance/subscriptions` — full CRUD with amount change history (`finance_subscription_amount_changes`), cancellation/rejoin history (`finance_subscription_cancellations`), card label, day-of-month billing. Subscriptions auto-create linked `finance_recurring` rows (hidden from settings recurring list).
+3. **New source value**: `finance_transactions.source` extended with `"subscription"`.
+4. **Demo mode removed**: No "둘러보기" button, no demo toggle in settings. Use localStorage fallback for onboarding state when Supabase unavailable.
+5. **Data reset removed**: Settings data section deleted entirely. Recovery via SQL if needed.
+6. **New necessity item**: `subscription` item added to DEFAULT_GROUPS for necessity group.
+7. **Debt tags**: `finance_debts.tags TEXT[]` now fully supported (input + display).
+
+See migrations 00011 and 00012 for schema changes. No existing spec section is invalidated — these are extensions.
+
+---
+
 ## 1. 정보 아키텍처 & 네비게이션
 
 ### 전체 구조
@@ -15,7 +31,7 @@
 /finance                    허브 대시보드
 ├── /finance/obligation     의무사항 그룹
 ├── /finance/necessity      필요사항 그룹
-├── /finance/sowing         좋은 땅 / 하늘은행
+├── /finance/sowing         하늘은행
 ├── /finance/want           요망사항 / 위시리스트
 ├── /finance/cashbook       출납부 (일일 + 월별)
 ├── /finance/budget         예산 관리
@@ -125,7 +141,7 @@
 
 **입력**: 항목 카드 내 "+" 또는 FAB
 
-### 3-3. 좋은 땅 / 하늘은행 (`/finance/sowing`)
+### 3-3. 하늘은행 (`/finance/sowing`)
 
 **은행 앱 통장 스타일 (깔끔, 메타포 없이):**
 

@@ -64,7 +64,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 : "animate-slide-up-fade"
             } ${
               t.tone === "success"
-                ? "bg-surplus-500 text-white"
+                ? "bg-green-500 text-white"
                 : t.tone === "error"
                   ? "bg-red-500 text-white"
                   : "bg-[#161a22] dark:bg-gray-700 text-white"

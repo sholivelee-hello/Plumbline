@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Settings } from "lucide-react";
 import { BasicsSummary } from "@/components/dashboard/basics-summary";
-import { EventsSummary } from "@/components/dashboard/events-summary";
 import { FinanceSummary } from "@/components/dashboard/finance-summary";
 import { DonutChart } from "@/components/ui/donut-chart";
 import { Card } from "@/components/ui/card";
@@ -71,10 +70,7 @@ export default function DashboardPage() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-        <BasicsSummary dayStartTime={settings?.day_start_time} />
-        <EventsSummary />
-      </div>
+      <BasicsSummary dayStartTime={settings?.day_start_time} />
       <FinanceSummary />
     </div>
   );

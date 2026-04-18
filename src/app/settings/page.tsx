@@ -6,18 +6,10 @@ import { PageHeader } from "@/components/ui/page-header";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { useTheme } from "@/components/ui/theme-provider";
 import { Moon, Sun } from "lucide-react";
-import type { ScheduleTimeUnit } from "@/types/database";
 
 const HOURS = Array.from({ length: 24 }, (_, i) =>
   `${String(i).padStart(2, "0")}:00`
 );
-
-const TIME_UNITS: { label: string; value: ScheduleTimeUnit }[] = [
-  { label: "10분", value: 10 },
-  { label: "15분", value: 15 },
-  { label: "30분", value: 30 },
-  { label: "1시간", value: 60 },
-];
 
 export default function SettingsPage() {
   const { settings, update, loading } = useSettings();
@@ -101,27 +93,6 @@ export default function SettingsPage() {
               </option>
             ))}
           </select>
-        </Card>
-
-        <Card>
-          <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
-            시간 단위
-          </p>
-          <div className="flex gap-2">
-            {TIME_UNITS.map(({ label, value }) => (
-              <button
-                key={value}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors tap-press ${
-                  settings.time_unit === value
-                    ? "bg-primary-500 text-white border-primary-500"
-                    : "bg-gray-50 dark:bg-[#1f242e] text-gray-600 dark:text-gray-300 border-gray-200 dark:border-[#262c38] hover:bg-gray-100 dark:hover:bg-[#262c38]"
-                }`}
-                onClick={() => update({ time_unit: value })}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
         </Card>
 
         <Card>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { FIXED_USER_ID } from "@/lib/constants";
 import type { HeavenBankEntry } from "@/types/database";
@@ -12,7 +12,7 @@ export function useHeavenBank(month: string) {
   const [monthlyReap, setMonthlyReap] = useState(0);
   const [cumulativeSow, setCumulativeSow] = useState(0);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const load = useCallback(async () => {
     try {
@@ -36,7 +36,7 @@ export function useHeavenBank(month: string) {
       setCumulativeSow(demoMonthlySow);
     }
     setLoading(false);
-  }, [month]);
+  }, [supabase, month]);
 
   useEffect(() => { load(); }, [load]);
 

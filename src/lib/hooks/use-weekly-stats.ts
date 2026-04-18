@@ -24,7 +24,8 @@ export interface WeeklyStats {
 
 export function useWeeklyStats(
   dayStartTime: string = "04:00",
-  includeInactive: boolean = false
+  includeInactive: boolean = false,
+  referenceDate?: string
 ): WeeklyStats {
   const [items, setItems] = useState<WeeklyItemStat[]>([]);
   const [weekDates, setWeekDates] = useState<string[]>([]);
@@ -34,7 +35,7 @@ export function useWeeklyStats(
     try {
       const supabase = createClient();
 
-      const today = getLogicalDate(dayStartTime);
+      const today = referenceDate ?? getLogicalDate(dayStartTime);
       const weekStart = getWeekStart(today);
       const dates = getWeekDates(today);
 
@@ -129,7 +130,7 @@ export function useWeeklyStats(
       setItems(result);
     }
     setLoading(false);
-  }, [dayStartTime, includeInactive]);
+  }, [dayStartTime, includeInactive, referenceDate]);
 
   useEffect(() => {
     load();

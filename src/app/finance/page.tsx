@@ -1,910 +1,591 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
-  BookOpen,
-  ChevronRight,
-  ClipboardList,
-  Plus,
   TrendingUp,
-  X,
-  Trash2,
+  TrendingDown,
   Wallet,
+  BookOpen,
+  ClipboardList,
+  CreditCard,
+  BarChart2,
+  Settings,
+  Banknote,
+  Repeat,
+  RotateCw,
+  ChevronRight,
 } from "lucide-react";
-import { useCashbook } from "@/lib/hooks/use-cashbook";
-import {
-  getEffectiveGroups,
-  getItemKey,
-  getBudgetItemTitle,
-  getBudgetGroupId,
-} from "@/lib/faith-budget-config";
-import {
-  getCurrentMonth,
-  toLocalDateString,
-  formatDateKR,
-  formatMonthKR,
-} from "@/lib/utils/date";
-import { formatWon } from "@/lib/utils/format";
+import { useFinanceHub } from "@/lib/hooks/use-finance-hub";
+import { useFinanceTransactions } from "@/lib/hooks/use-finance-transactions";
+import { useBudgetSettings } from "@/lib/hooks/use-budget-settings";
+import { useRecurring } from "@/lib/hooks/use-recurring";
+import { getCurrentMonth, formatCurrency, parseCurrencyInput } from "@/lib/finance-utils";
 import { PageHeader } from "@/components/ui/page-header";
-import { Modal } from "@/components/ui/modal";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
-import type { FinanceTransaction } from "@/types/database";
+import { FinanceCard } from "@/components/finance/finance-card";
+import { FinanceDonutChart } from "@/components/finance/finance-donut-chart";
+import { FinanceProgressBar } from "@/components/finance/progress-bar";
+import { BottomSheet } from "@/components/finance/bottom-sheet";
+import { HubSkeleton } from "@/components/finance/finance-skeleton";
+import { MonthPicker } from "@/components/finance/month-picker";
+import { Fab } from "@/components/finance/fab";
+import { TransactionRow } from "@/components/finance/transaction-row";
+import { AmountInput } from "@/components/finance/amount-input";
 
-const GROUP_CHIP_STYLES: Record<
-  string,
-  { base: string; active: string; badge: string }
-> = {
+// ── Group chip styles (input modal) ──────────────────────────────────────────
+
+const GROUP_CHIP_STYLES: Record<string, { base: string; active: string }> = {
   obligation: {
-    base: "bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400",
-    active: "bg-rose-500 text-white dark:bg-rose-500",
-    badge:
-      "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400",
+    base: "bg-[#73A5CA]/10 text-[#73A5CA] dark:bg-[#73A5CA]/25 dark:text-blue-300",
+    active: "bg-[#73A5CA] text-white",
   },
   necessity: {
-    base: "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400",
-    active: "bg-blue-500 text-white dark:bg-blue-500",
-    badge:
-      "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
+    base: "bg-amber-50 text-amber-800 dark:bg-[#FFC81E]/20 dark:text-amber-200",
+    active: "bg-[#FFC81E] text-white",
   },
   sowing: {
-    base: "bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400",
-    active: "bg-amber-500 text-white dark:bg-amber-500",
-    badge:
-      "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
+    base: "bg-amber-50 text-amber-900 dark:bg-[#B89B4A]/15 dark:text-[#D4C675]",
+    active: "bg-[#B89B4A] text-white",
   },
   want: {
-    base: "bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400",
-    active: "bg-purple-500 text-white dark:bg-purple-500",
-    badge:
-      "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400",
+    base: "bg-[#E87F24]/10 text-[#E87F24] dark:bg-[#E87F24]/25 dark:text-orange-300",
+    active: "bg-[#E87F24] text-white",
   },
 };
 
-function formatCurrencyInput(value: string): string {
-  const digits = value.replace(/[^0-9]/g, "");
-  if (!digits) return "";
-  return Number(digits).toLocaleString("ko-KR");
-}
+// ── Main page ─────────────────────────────────────────────────────────────────
 
-function parseCurrencyInput(value: string): number {
-  return parseInt(value.replace(/[^0-9]/g, ""), 10) || 0;
-}
-
-function FinanceSkeleton() {
-  return (
-    <div className="space-y-5">
-      <div className="text-center space-y-2">
-        <Skeleton className="h-6 w-32 mx-auto" />
-        <Skeleton className="h-4 w-48 mx-auto" />
-      </div>
-      <div className="space-y-3">
-        <Skeleton className="h-4 w-16" />
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="flex gap-2">
-            <Skeleton className="h-8 w-16 rounded-full" />
-            <Skeleton className="h-8 w-16 rounded-full" />
-            <Skeleton className="h-8 w-20 rounded-full" />
-          </div>
-        ))}
-      </div>
-      <Skeleton className="h-24 rounded-xl" />
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-16" />
-        <Skeleton className="h-16 rounded-xl" />
-        <Skeleton className="h-16 rounded-xl" />
-      </div>
-    </div>
-  );
-}
-
-export default function FinancePage() {
-  const today = toLocalDateString(new Date());
-  const month = getCurrentMonth();
-  const { entries, totalIncome, totalExpense, addEntry, deleteEntry, updateEntry, loading } =
-    useCashbook(month);
+function FinancePageInner() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const [month, setMonth] = useState(getCurrentMonth());
   const { toast } = useToast();
-  const budgetGroups = useMemo(() => getEffectiveGroups(), []);
 
-  const todayEntries = entries.filter((e) => e.date === today);
-  const todayIncome = todayEntries
-    .filter((e) => e.type === "income")
-    .reduce((s, e) => s + e.amount, 0);
-  const todayExpense = todayEntries
-    .filter((e) => e.type === "expense")
-    .reduce((s, e) => s + e.amount, 0);
+  const { summary, donutData, groupCards, heavenBankBalance, heavenBankMonthlySow, todayTransactions, loading, refresh } =
+    useFinanceHub(month);
+  const { addTransaction } = useFinanceTransactions(month);
+  const { groups, incomeCategories } = useBudgetSettings();
+  const { executeForMonth } = useRecurring();
 
-  // Chip input
-  const [activeChip, setActiveChip] = useState<string | null>(null);
-  const [activeChipTitle, setActiveChipTitle] = useState("");
-  const [chipAmount, setChipAmount] = useState("");
-  const [chipMemo, setChipMemo] = useState("");
+
+  // ── Auto-execute recurring transactions once per month ───────────────────
+  const lastExecutedMonth = useRef<string | null>(null);
+  useEffect(() => {
+    if (loading) return;
+    if (lastExecutedMonth.current === month) return;
+    lastExecutedMonth.current = month;
+
+    let cancelled = false;
+    (async () => {
+      const result = await executeForMonth(month);
+      if (!cancelled && result.executed > 0) {
+        toast(`반복 거래 ${result.executed}건이 자동 기록되었습니다`, "info");
+        refresh();
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [month, loading, executeForMonth, refresh, toast]);
+
+  // ── Input sheet state ─────────────────────────────────────────────────────
+  const [inputOpen, setInputOpen] = useState(false);
+  const [isIncome, setIsIncome] = useState(false);
+
+  // ── Open input sheet via ?openInput=1 query param ────────────────────────
+  useEffect(() => {
+    if (params.get("openInput") === "1") {
+      setInputOpen(true);
+    }
+  }, [params]);
+
+  // expense
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+
+  // income
+  const [incomeCategory, setIncomeCategory] = useState<string | null>(null);
+
+  // shared
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(() => new Date().toLocaleDateString("sv-SE"));
+  const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Income modal
-  const [showIncome, setShowIncome] = useState(false);
-  const [incomeDesc, setIncomeDesc] = useState("");
-  const [incomeAmount, setIncomeAmount] = useState("");
-
-  // Free input modal
-  const [showFree, setShowFree] = useState(false);
-  const [freeDesc, setFreeDesc] = useState("");
-  const [freeAmount, setFreeAmount] = useState("");
-  const [freeBudgetKey, setFreeBudgetKey] = useState("");
-
-  // Chip form ref for auto-scroll + exit animation
-  const chipFormRef = useRef<HTMLDivElement>(null);
-  const chipAmountRef = useRef<HTMLInputElement>(null);
-  const [chipFormExiting, setChipFormExiting] = useState(false);
-
-  // Delete confirm
-  const [deleteTarget, setDeleteTarget] = useState<{
-    id: string;
-    desc: string;
-  } | null>(null);
-  const [deleting, setDeleting] = useState(false);
-
-  // Edit modal
-  const [editTarget, setEditTarget] = useState<FinanceTransaction | null>(null);
-  const [editDesc, setEditDesc] = useState("");
-  const [editAmount, setEditAmount] = useState("");
-  const [editBudgetKey, setEditBudgetKey] = useState("");
-
-  useEffect(() => {
-    if (activeChip && chipFormRef.current) {
-      chipFormRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-  }, [activeChip]);
-
-  const closeChipForm = useCallback(() => {
-    setChipFormExiting(true);
-    setTimeout(() => {
-      setActiveChip(null);
-      setChipFormExiting(false);
-    }, 250);
-  }, []);
-
-  function handleChipTap(key: string, title: string) {
-    if (activeChip === key) {
-      closeChipForm();
-      return;
-    }
-    setChipFormExiting(false);
-    setActiveChip(key);
-    setActiveChipTitle(title);
-    setChipAmount("");
-    setChipMemo("");
+  function resetInput() {
+    setIsIncome(false);
+    setSelectedGroupId(null);
+    setSelectedItemId(null);
+    setIncomeCategory(null);
+    setAmount("");
+    setDate(new Date().toLocaleDateString("sv-SE"));
+    setDescription("");
   }
 
-  const handleChipSave = useCallback(async () => {
-    const amount = parseCurrencyInput(chipAmount);
-    if (!amount || amount <= 0 || !activeChip) {
-      if (chipAmountRef.current) {
-        chipAmountRef.current.focus();
-        chipAmountRef.current.classList.remove("animate-shake");
-        void chipAmountRef.current.offsetWidth;
-        chipAmountRef.current.classList.add("animate-shake");
-      }
-      return;
-    }
-    setSaving(true);
-    const result = await addEntry({
-      type: "expense",
-      description: chipMemo.trim() || activeChipTitle,
-      amount,
-      date: today,
-      budgetKey: activeChip,
-    });
-    setSaving(false);
-    if (result.ok) {
-      toast(`${activeChipTitle} ₩${formatWon(amount)} 저장됨`, "success");
-      closeChipForm();
-    } else {
-      toast(result.error || "저장에 실패했습니다", "error");
-    }
-  }, [chipAmount, chipMemo, activeChip, activeChipTitle, today, addEntry, toast, closeChipForm]);
-
-  const handleIncomeSave = useCallback(async () => {
-    const amount = parseCurrencyInput(incomeAmount);
-    if (!incomeDesc.trim() || !amount || amount <= 0) return;
-    setSaving(true);
-    const result = await addEntry({
-      type: "income",
-      description: incomeDesc.trim(),
-      amount,
-      date: today,
-    });
-    setSaving(false);
-    if (result.ok) {
-      toast(`수입 ₩${formatWon(amount)} 저장됨`, "success");
-      setShowIncome(false);
-      setIncomeDesc("");
-      setIncomeAmount("");
-    } else {
-      toast(result.error || "저장에 실패했습니다", "error");
-    }
-  }, [incomeDesc, incomeAmount, today, addEntry, toast]);
-
-  const handleFreeSave = useCallback(async () => {
-    const amount = parseCurrencyInput(freeAmount);
-    if (!freeDesc.trim() || !amount || amount <= 0) return;
-    setSaving(true);
-    const result = await addEntry({
-      type: "expense",
-      description: freeDesc.trim(),
-      amount,
-      date: today,
-      budgetKey: freeBudgetKey || null,
-    });
-    setSaving(false);
-    if (result.ok) {
-      toast(`₩${formatWon(amount)} 저장됨`, "success");
-      setShowFree(false);
-      setFreeDesc("");
-      setFreeAmount("");
-      setFreeBudgetKey("");
-    } else {
-      toast(result.error || "저장에 실패했습니다", "error");
-    }
-  }, [freeDesc, freeAmount, freeBudgetKey, today, addEntry, toast]);
-
-  const handleDeleteConfirm = useCallback(async () => {
-    if (!deleteTarget) return;
-    setDeleting(true);
-    const result = await deleteEntry(deleteTarget.id);
-    setDeleting(false);
-    if (result.ok) {
-      toast(`'${deleteTarget.desc}' 삭제됨`, "success");
-    } else {
-      toast(result.error || "삭제에 실패했습니다", "error");
-    }
-    setDeleteTarget(null);
-  }, [deleteTarget, deleteEntry, toast]);
-
-  function openEdit(entry: FinanceTransaction) {
-    setEditTarget(entry);
-    setEditDesc(entry.description || "");
-    setEditAmount(entry.amount > 0 ? entry.amount.toLocaleString("ko-KR") : "");
-    setEditBudgetKey(entry.account_id || "");
+  function openInput() {
+    resetInput();
+    setInputOpen(true);
   }
 
-  const handleEditSave = useCallback(async () => {
-    if (!editTarget) return;
-    const amount = parseCurrencyInput(editAmount);
-    if (!editDesc.trim() || !amount || amount <= 0) return;
-    setSaving(true);
-    const result = await updateEntry(editTarget.id, {
-      description: editDesc.trim(),
-      amount,
-      account_id: editTarget.type === "expense" ? (editBudgetKey || null) : null,
-    });
-    setSaving(false);
-    if (result.ok) {
-      toast("수정됨", "success");
-      setEditTarget(null);
-    } else {
-      toast(result.error || "수정에 실패했습니다", "error");
-    }
-  }, [editTarget, editDesc, editAmount, editBudgetKey, updateEntry, toast]);
+  const parsedAmount = parseCurrencyInput(amount);
 
-  const monthBalance = totalIncome - totalExpense;
+  const canSave = isIncome
+    ? parsedAmount > 0 && incomeCategory !== null
+    : parsedAmount > 0 && selectedGroupId !== null;
+
+  const handleSave = useCallback(async () => {
+    if (!canSave || parsedAmount <= 0) return;
+
+    const selectedGroup = groups.find((g) => g.id === selectedGroupId);
+    const selectedItem = selectedGroup?.items.find((i) => i.id === selectedItemId);
+
+    setSaving(true);
+    const result = await addTransaction(
+      isIncome
+        ? {
+            type: "income",
+            amount: parsedAmount,
+            description: description.trim() || incomeCategory || "수입",
+            date,
+            income_category: incomeCategory,
+          }
+        : {
+            type: "expense",
+            amount: parsedAmount,
+            description: description.trim() || selectedItem?.title || "지출",
+            date,
+            group_id: selectedGroupId,
+            item_id: selectedItemId,
+          }
+    );
+    setSaving(false);
+
+    if (result.ok) {
+      toast(
+        isIncome
+          ? `수입 ${formatCurrency(parsedAmount)}원 저장됨`
+          : `지출 ${formatCurrency(parsedAmount)}원 저장됨`,
+        "success"
+      );
+      setInputOpen(false);
+      resetInput();
+    } else {
+      toast(result.error ?? "저장에 실패했습니다", "error");
+    }
+  }, [
+    canSave,
+    parsedAmount,
+    isIncome,
+    description,
+    incomeCategory,
+    date,
+    selectedGroupId,
+    selectedItemId,
+    groups,
+    addTransaction,
+    toast,
+  ]);
 
   return (
     <div className="min-h-screen pb-32 lg:pb-8 bg-gray-50/50 dark:bg-[#0b0d12]">
       <PageHeader title="재정 관리" contentMaxWidth="max-w-3xl" />
 
       <div className="max-w-3xl mx-auto p-4 lg:p-8 space-y-5">
+
+        {/* ── 1. Month Picker ──────────────────────────────────────────────── */}
+        <MonthPicker
+          month={month}
+          onChange={setMonth}
+          maxMonth={getCurrentMonth()}
+        />
+
         {loading ? (
-          <FinanceSkeleton />
+          <HubSkeleton />
         ) : (
           <>
-            {/* Today header */}
-            <div className="text-center space-y-2">
-              <p className="text-sm font-medium text-gray-400 dark:text-gray-500">
-                {formatDateKR(today)}
-              </p>
-              <p
-                className={`text-3xl font-bold tabular-nums ${
-                  todayExpense > todayIncome
-                    ? "text-red-500 dark:text-red-400"
-                    : "text-gray-900 dark:text-gray-100"
-                }`}
-              >
-                {todayExpense > 0 ? "-" : ""}₩{formatWon(todayExpense)}
-              </p>
-              <div className="flex items-center justify-center gap-4 text-xs">
-                <span className="text-blue-500 font-medium tabular-nums">
-                  수입 +₩{formatWon(todayIncome)}
-                </span>
-                <span className="text-gray-300 dark:text-gray-600">·</span>
-                <span className="text-red-400 font-medium tabular-nums">
-                  지출 -₩{formatWon(todayExpense)}
-                </span>
-              </div>
+            {/* ── 2. Summary Cards ────────────────────────────────────── */}
+            <div className="grid grid-cols-3 gap-2 lg:gap-3">
+              <FinanceCard>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <TrendingUp size={14} className="text-emerald-500 shrink-0" />
+                  <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500">
+                    이번달 수입
+                  </span>
+                </div>
+                <p className="text-sm lg:text-base font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                  +{formatCurrency(summary.income)}
+                </p>
+                <span className="text-[10px] text-gray-400 mt-0.5 block">원</span>
+              </FinanceCard>
+
+              <FinanceCard>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <TrendingDown size={14} className="text-red-500 shrink-0" />
+                  <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500">
+                    이번달 지출
+                  </span>
+                </div>
+                <p className="text-sm lg:text-base font-bold text-red-500 dark:text-red-400 tabular-nums">
+                  -{formatCurrency(summary.expense)}
+                </p>
+                <span className="text-[10px] text-gray-400 mt-0.5 block">원</span>
+              </FinanceCard>
+
+              <FinanceCard>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Wallet size={14} className="text-[#73A5CA] dark:text-blue-300 shrink-0" />
+                  <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500">
+                    이번달 잔액
+                  </span>
+                </div>
+                <p
+                  className={`text-sm lg:text-base font-bold tabular-nums ${
+                    summary.balance >= 0
+                      ? "text-[#73A5CA] dark:text-blue-300"
+                      : "text-red-500 dark:text-red-400"
+                  }`}
+                >
+                  {formatCurrency(summary.balance, { sign: true })}
+                </p>
+                <span className="text-[10px] text-gray-400 mt-0.5 block">원</span>
+              </FinanceCard>
             </div>
 
-            {/* Monthly summary card */}
-            <div className="rounded-2xl bg-white dark:bg-[#161a22] border border-gray-100 dark:border-[#262c38] shadow-card p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Wallet size={14} className="text-gray-400" />
-                <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                  {formatMonthKR(month)} 요약
-                </span>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="text-center">
-                  <p className="text-[11px] text-gray-400 mb-0.5">수입</p>
-                  <p className="text-base font-bold text-blue-600 dark:text-blue-400 tabular-nums">
-                    ₩{formatWon(totalIncome)}
-                  </p>
-                </div>
-                <div className="text-center border-x border-gray-100 dark:border-[#262c38]">
-                  <p className="text-[11px] text-gray-400 mb-0.5">지출</p>
-                  <p className="text-base font-bold text-red-500 dark:text-red-400 tabular-nums">
-                    ₩{formatWon(totalExpense)}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="text-[11px] text-gray-400 mb-0.5">잔액</p>
-                  <p
-                    className={`text-base font-bold tabular-nums ${
-                      monthBalance >= 0
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-red-600 dark:text-red-400"
-                    }`}
+            {/* ── 3. Donut Chart ──────────────────────────────────────── */}
+            <FinanceCard>
+              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4">
+                그룹별 지출
+              </p>
+              <FinanceDonutChart data={donutData} size={180} />
+            </FinanceCard>
+
+            {/* ── 4. Group Cards ──────────────────────────────────────── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {groupCards.map((card) =>
+                card.groupId === "sowing" ? (
+                  // 하늘은행 카드: 누적 잔액 표시
+                  <FinanceCard
+                    key={card.groupId}
+                    groupColor={card.color}
+                    onClick={() => router.push("/finance/sowing")}
+                    className="pl-5"
                   >
-                    {monthBalance >= 0 ? "+" : ""}₩
-                    {formatWon(Math.abs(monthBalance))}
-                  </p>
-                </div>
-              </div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                        {card.title}
+                      </span>
+                      <span className="shrink-0 text-[10px] text-gray-400 dark:text-gray-500 ml-2">
+                        누적 잔액
+                      </span>
+                    </div>
+                    <p className="text-lg font-bold text-[#B89B4A] dark:text-[#D4C675] tabular-nums">
+                      {formatCurrency(heavenBankBalance)}
+                      <span className="text-xs font-normal ml-1">원</span>
+                    </p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums mt-1">
+                      이번 달 심음 {formatCurrency(heavenBankMonthlySow)}원
+                    </p>
+                  </FinanceCard>
+                ) : (
+                  <FinanceCard
+                    key={card.groupId}
+                    groupColor={card.color}
+                    onClick={() => router.push(`/finance/${card.groupId}`)}
+                    className="pl-5"
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                        {card.title}
+                      </span>
+                      <span className="shrink-0 text-[10px] text-gray-400 dark:text-gray-500 ml-2">
+                        {card.percentGuide}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-gray-500 dark:text-gray-400 tabular-nums mb-2">
+                      {formatCurrency(card.actual)}{" "}
+                      <span className="text-gray-300 dark:text-gray-600">/</span>{" "}
+                      {formatCurrency(card.budget)} 원
+                    </p>
+
+                    <FinanceProgressBar
+                      value={card.actual}
+                      max={card.budget}
+                      color={card.color}
+                      height="sm"
+                    />
+
+                    <p
+                      className={`text-[11px] font-medium tabular-nums mt-1 ${
+                        card.percent > 100
+                          ? "text-red-500"
+                          : card.percent >= 80
+                          ? "text-amber-500"
+                          : "text-gray-400"
+                      }`}
+                    >
+                      ({card.percent}%)
+                    </p>
+                  </FinanceCard>
+                )
+              )}
             </div>
 
-            {/* Quick input chips */}
-            <section className="space-y-3">
-              <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                빠른 입력
-              </p>
-
-              {budgetGroups.map((group) => {
-                const styles = GROUP_CHIP_STYLES[group.id];
-                return (
-                  <div key={group.id} className="space-y-1.5">
-                    <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500">
-                      {group.title}
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {group.items.map((item) => {
-                        const key = getItemKey(group.id, item.id);
-                        const isActive = activeChip === key;
-                        return (
-                          <button
-                            key={key}
-                            onClick={() => handleChipTap(key, item.title)}
-                            aria-expanded={isActive}
-                            aria-controls={isActive ? "chip-input-form" : undefined}
-                            className={`px-3.5 py-2 min-h-[44px] rounded-full text-xs font-medium transition-all active:scale-95 flex items-center ${
-                              isActive ? styles.active : styles.base
-                            }`}
-                          >
-                            {item.title}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Extra buttons */}
-              <div className="flex gap-2 pt-1">
-                <button
-                  onClick={() => {
-                    setShowIncome(true);
-                    setIncomeDesc("");
-                    setIncomeAmount("");
-                  }}
-                  className="flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] rounded-full text-xs font-medium bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 active:scale-95 transition-transform"
+            {/* ── 5. Quick Shortcuts ──────────────────────────────────── */}
+            <section className="grid grid-cols-4 gap-2.5 lg:gap-3">
+              {(
+                [
+                  { href: "/finance/cashbook",       icon: BookOpen,      label: "출납부", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
+                  { href: "/finance/budget",         icon: ClipboardList, label: "예산",   color: "text-indigo-600 dark:text-indigo-400",   bg: "bg-indigo-50 dark:bg-indigo-900/20" },
+                  { href: "/finance/report",         icon: BarChart2,     label: "리포트", color: "text-amber-600 dark:text-amber-400",     bg: "bg-amber-50 dark:bg-amber-900/20" },
+                  { href: "/finance/recurring",      icon: RotateCw,      label: "반복",   color: "text-teal-600 dark:text-teal-400",       bg: "bg-teal-50 dark:bg-teal-900/20" },
+                  { href: "/finance/debts",          icon: Banknote,      label: "빚",     color: "text-slate-600 dark:text-slate-300",     bg: "bg-slate-100 dark:bg-slate-800/50" },
+                  { href: "/finance/installments",   icon: CreditCard,    label: "할부",   color: "text-blue-600 dark:text-blue-400",       bg: "bg-blue-50 dark:bg-blue-900/20" },
+                  { href: "/finance/subscriptions",  icon: Repeat,        label: "구독",   color: "text-purple-600 dark:text-purple-400",   bg: "bg-purple-50 dark:bg-purple-900/20" },
+                  { href: "/finance/settings",       icon: Settings,      label: "설정",   color: "text-gray-500 dark:text-gray-300",       bg: "bg-gray-100 dark:bg-gray-800" },
+                ] as const
+              ).map(({ href, icon: Icon, label, color, bg }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl bg-white dark:bg-[#1a2030] border border-gray-100 dark:border-[#2d3748] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-[0.96]"
                 >
-                  <TrendingUp size={12} /> 수입 기록
-                </button>
-                <button
-                  onClick={() => {
-                    setShowFree(true);
-                    setFreeDesc("");
-                    setFreeAmount("");
-                    setFreeBudgetKey("");
-                  }}
-                  className="flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 active:scale-95 transition-transform"
-                >
-                  <Plus size={12} /> 직접 입력
-                </button>
-              </div>
+                  <span className={`w-11 h-11 rounded-2xl flex items-center justify-center ${bg}`}>
+                    <Icon size={20} className={color} strokeWidth={2} />
+                  </span>
+                  <span className="text-[11px] font-medium text-gray-700 dark:text-gray-200">
+                    {label}
+                  </span>
+                </Link>
+              ))}
             </section>
 
-            {/* Inline chip form */}
-            {activeChip && (
-              <div ref={chipFormRef} id="chip-input-form" role="region" aria-label={`${activeChipTitle} 입력`} className={`rounded-xl bg-white dark:bg-[#161a22] border border-gray-200 dark:border-[#262c38] shadow-card p-4 space-y-3 transition-all duration-250 ${chipFormExiting ? "opacity-0 translate-y-2 scale-[0.98]" : "animate-slide-up-fade"}`}>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                    {activeChipTitle}
-                  </span>
-                  <button
-                    onClick={closeChipForm}
-                    className="p-2.5 -mr-1 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-400">₩</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={chipAmount}
-                    onChange={(e) =>
-                      setChipAmount(formatCurrencyInput(e.target.value))
-                    }
-                    ref={chipAmountRef}
-                    placeholder="금액"
-                    aria-label={`${activeChipTitle} 금액`}
-                    autoFocus
-                    className="flex-1 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#1a1f29] text-sm font-medium text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleChipSave();
-                    }}
-                  />
-                </div>
-                <input
-                  type="text"
-                  value={chipMemo}
-                  onChange={(e) => setChipMemo(e.target.value)}
-                  placeholder="메모 (선택)"
-                  aria-label={`${activeChipTitle} 메모`}
-                  className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#1a1f29] text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleChipSave();
-                  }}
-                />
-                <button
-                  onClick={handleChipSave}
-                  disabled={saving || parseCurrencyInput(chipAmount) <= 0}
-                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-gray-900 dark:bg-white dark:text-gray-900 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity active:scale-[0.98]"
-                >
-                  {saving ? "저장 중..." : "저장"}
-                </button>
-              </div>
-            )}
-
-            {/* Today's entries */}
+            {/* ── 6. Today's Transactions ─────────────────────────────── */}
             <section className="space-y-2">
-              <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                오늘 기록
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                  오늘의 거래
+                </p>
+                <Link
+                  href="/finance/cashbook"
+                  className="text-xs text-blue-500 hover:text-blue-600 transition-colors inline-flex items-center gap-0.5"
+                >
+                  더보기 <ChevronRight size={12} />
+                </Link>
+              </div>
 
-              {todayEntries.length === 0 ? (
-                <EmptyState
-                  illustration={
-                    <svg width="88" height="88" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-gray-300 dark:text-gray-600">
-                      {/* Wallet body */}
-                      <rect x="14" y="28" width="60" height="38" rx="6" stroke="currentColor" strokeWidth="2" fill="none" />
-                      {/* Wallet flap */}
-                      <path d="M14 34V26a6 6 0 0 1 6-6h36a6 6 0 0 1 6 6v8" stroke="currentColor" strokeWidth="2" fill="none" />
-                      {/* Card slot */}
-                      <rect x="54" y="40" width="20" height="14" rx="3" stroke="currentColor" strokeWidth="2" fill="none" />
-                      {/* Snap circle */}
-                      <circle cx="64" cy="47" r="2.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
-                      {/* Floating coin 1 */}
-                      <circle cx="30" cy="14" r="6" stroke="currentColor" strokeWidth="1.5" fill="none" strokeDasharray="2 2" />
-                      <text x="30" y="17" textAnchor="middle" fontSize="8" fill="currentColor" fontWeight="600">&#8361;</text>
-                      {/* Floating coin 2 */}
-                      <circle cx="48" cy="10" r="4.5" stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.5" />
-                    </svg>
-                  }
-                  title="아직 오늘 기록이 없습니다"
-                  description="위의 카테고리를 눌러 빠르게 입력해보세요"
-                />
+              {todayTransactions.length === 0 ? (
+                <FinanceCard>
+                  <div className="text-center py-4 space-y-3">
+                    <p className="text-sm text-gray-400 dark:text-gray-500">
+                      아직 기록이 없어요
+                    </p>
+                    <button
+                      onClick={openInput}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium bg-gray-900 dark:bg-white text-white dark:text-gray-900 active:scale-95 transition-transform"
+                    >
+                      + 지출 기록하기
+                    </button>
+                  </div>
+                </FinanceCard>
               ) : (
-                <div className="rounded-xl bg-white dark:bg-[#161a22] border border-gray-100 dark:border-[#262c38] shadow-card overflow-hidden divide-y divide-gray-50 dark:divide-[#262c38]">
-                  {todayEntries.map((entry) => {
-                    const groupId = entry.account_id
-                      ? getBudgetGroupId(entry.account_id)
-                      : null;
-                    const chipStyle = groupId
-                      ? GROUP_CHIP_STYLES[groupId]
-                      : null;
-                    const budgetTitle = entry.account_id
-                      ? getBudgetItemTitle(entry.account_id)
-                      : null;
-                    const isIncome = entry.type === "income";
-
-                    return (
-                      <div
-                        key={entry.id}
-                        className="flex items-center gap-2 px-4 py-3 cursor-pointer active:bg-gray-50 dark:active:bg-[#1a1f29] transition-colors"
-                        onClick={() => openEdit(entry)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") openEdit(entry); }}
-                      >
-                        {budgetTitle && chipStyle ? (
-                          <span
-                            className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-medium ${chipStyle.badge}`}
-                          >
-                            {budgetTitle}
-                          </span>
-                        ) : isIncome ? (
-                          <span className="shrink-0 px-2 py-0.5 rounded-md text-[10px] font-medium bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-                            수입
-                          </span>
-                        ) : null}
-                        <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate min-w-0">
-                          {entry.description}
-                        </span>
-                        <span
-                          className={`shrink-0 text-sm font-semibold tabular-nums ${
-                            isIncome
-                              ? "text-blue-600 dark:text-blue-400"
-                              : "text-red-500 dark:text-red-400"
-                          }`}
-                        >
-                          {isIncome ? "+" : "-"}₩{formatWon(entry.amount)}
-                        </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteTarget({
-                              id: entry.id,
-                              desc: entry.description || "",
-                            });
-                          }}
-                          disabled={deleting}
-                          aria-label={`${entry.description} 삭제`}
-                          className="shrink-0 p-2.5 -mr-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-red-400 dark:hover:text-red-400 active:text-red-500 transition-colors rounded-lg disabled:opacity-30 disabled:pointer-events-none"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    );
-                  })}
+                <div className="space-y-1.5">
+                  {todayTransactions.slice(0, 5).map((tx) => (
+                    <TransactionRow
+                      key={tx.id}
+                      transaction={tx}
+                      groups={groups}
+                      readOnly
+                    />
+                  ))}
                 </div>
               )}
-            </section>
-
-            {/* Quick links */}
-            <section className="grid grid-cols-2 gap-3 pt-2">
-              <Link
-                href="/finance/cashbook"
-                className="rounded-xl bg-white dark:bg-[#161a22] border border-gray-100 dark:border-[#262c38] shadow-card p-4 hover:shadow-card-hover transition-all active:scale-[0.98]"
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/25 flex items-center justify-center">
-                    <BookOpen
-                      size={14}
-                      className="text-emerald-600 dark:text-emerald-400"
-                    />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
-                      월별 출납부
-                    </p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">
-                      전체 내역 조회
-                    </p>
-                  </div>
-                  <ChevronRight size={14} className="shrink-0 text-gray-300 dark:text-gray-600" />
-                </div>
-              </Link>
-              <Link
-                href="/finance/budget"
-                className="rounded-xl bg-white dark:bg-[#161a22] border border-gray-100 dark:border-[#262c38] shadow-card p-4 hover:shadow-card-hover transition-all active:scale-[0.98]"
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/25 flex items-center justify-center">
-                    <ClipboardList
-                      size={14}
-                      className="text-indigo-600 dark:text-indigo-400"
-                    />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
-                      믿음의 예산안
-                    </p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">
-                      예산 vs 실적
-                    </p>
-                  </div>
-                  <ChevronRight size={14} className="shrink-0 text-gray-300 dark:text-gray-600" />
-                </div>
-              </Link>
             </section>
           </>
         )}
       </div>
 
-      {/* Income modal */}
-      <Modal
-        isOpen={showIncome}
-        onClose={() => setShowIncome(false)}
-        title="수입 기록"
-      >
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="income-desc" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              내역
-            </label>
-            <input
-              id="income-desc"
-              type="text"
-              value={incomeDesc}
-              onChange={(e) => setIncomeDesc(e.target.value)}
-              placeholder="예: 급여, 부수입"
-              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#1a1f29] text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  document.getElementById("income-amount")?.focus();
-                }
-              }}
-            />
-          </div>
-          <div>
-            <label htmlFor="income-amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              금액 (원)
-            </label>
-            <input
-              id="income-amount"
-              type="text"
-              inputMode="numeric"
-              value={incomeAmount}
-              onChange={(e) =>
-                setIncomeAmount(formatCurrencyInput(e.target.value))
-              }
-              placeholder="0"
-              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#1a1f29] text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleIncomeSave();
-              }}
-            />
-          </div>
-          <button
-            onClick={handleIncomeSave}
-            disabled={
-              saving ||
-              !incomeDesc.trim() ||
-              parseCurrencyInput(incomeAmount) <= 0
-            }
-            className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 dark:disabled:bg-blue-800 disabled:cursor-not-allowed transition-colors active:scale-[0.98]"
-          >
-            {saving ? "저장 중..." : "저장"}
-          </button>
-        </div>
-      </Modal>
+      {/* ── 7. FAB ──────────────────────────────────────────────────────────── */}
+      <Fab onClick={openInput} label="거래 추가" />
 
-      {/* Free input modal */}
-      <Modal
-        isOpen={showFree}
-        onClose={() => setShowFree(false)}
-        title="직접 입력"
+      {/* ── Universal Input BottomSheet ─────────────────────────────────────── */}
+      <BottomSheet
+        isOpen={inputOpen}
+        onClose={() => setInputOpen(false)}
+        title="거래 입력"
       >
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="free-desc" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              내역
-            </label>
-            <input
-              id="free-desc"
-              type="text"
-              value={freeDesc}
-              onChange={(e) => setFreeDesc(e.target.value)}
-              placeholder="내역을 입력하세요"
-              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#1a1f29] text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  document.getElementById("free-amount")?.focus();
-                }
-              }}
-            />
+        <div className="space-y-5">
+          {/* Segmented toggle */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 dark:bg-[#262c38]">
+            <button
+              type="button"
+              onClick={() => { setIsIncome(false); setIncomeCategory(null); }}
+              className={`flex-1 py-2 min-h-[40px] rounded-lg text-sm font-medium transition-all ${
+                !isIncome
+                  ? "bg-white dark:bg-[#1a2030] text-gray-900 dark:text-gray-100 shadow-sm"
+                  : "text-gray-500 dark:text-gray-400"
+              }`}
+            >
+              지출
+            </button>
+            <button
+              type="button"
+              onClick={() => { setIsIncome(true); setSelectedGroupId(null); setSelectedItemId(null); }}
+              className={`flex-1 py-2 min-h-[40px] rounded-lg text-sm font-medium transition-all ${
+                isIncome
+                  ? "bg-white dark:bg-[#1a2030] text-gray-900 dark:text-gray-100 shadow-sm"
+                  : "text-gray-500 dark:text-gray-400"
+              }`}
+            >
+              수입
+            </button>
           </div>
-          <div>
-            <label htmlFor="free-amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              금액 (원)
-            </label>
-            <input
-              id="free-amount"
-              type="text"
-              inputMode="numeric"
-              value={freeAmount}
-              onChange={(e) =>
-                setFreeAmount(formatCurrencyInput(e.target.value))
-              }
-              placeholder="0"
-              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#1a1f29] text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleFreeSave();
-              }}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              분류
-            </label>
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => setFreeBudgetKey("")}
-                className={`px-3.5 py-2 min-h-[44px] rounded-full text-xs font-medium transition-all ${
-                  freeBudgetKey === ""
-                    ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
-                    : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-                }`}
-              >
-                분류 없음
-              </button>
-              {budgetGroups.map((group) => {
-                const styles = GROUP_CHIP_STYLES[group.id];
-                return (
-                  <div key={group.id} className="space-y-1">
-                    <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500">
-                      {group.title}
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {group.items.map((item) => {
-                        const key = getItemKey(group.id, item.id);
-                        const isSelected = freeBudgetKey === key;
+
+          {isIncome ? (
+            /* ── Income: category chips ─────────────────────────────── */
+            <div>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                수입 분류
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {incomeCategories.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setIncomeCategory(cat)}
+                    className={`px-3.5 py-2 min-h-[44px] rounded-full text-xs font-medium transition-all active:scale-95 ${
+                      incomeCategory === cat
+                        ? "bg-blue-500 text-white"
+                        : "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            /* ── Expense: group → item ──────────────────────────────── */
+            <>
+              <div>
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                  그룹 선택
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {groups.map((g) => {
+                    const style = GROUP_CHIP_STYLES[g.id] ?? GROUP_CHIP_STYLES.want;
+                    const isSelected = selectedGroupId === g.id;
+                    return (
+                      <button
+                        key={g.id}
+                        type="button"
+                        onClick={() => { setSelectedGroupId(g.id); setSelectedItemId(null); }}
+                        className={`flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] rounded-full text-xs font-medium transition-all active:scale-95 ${
+                          isSelected ? style.active : style.base
+                        }`}
+                      >
+                        <span
+                          className="w-2 h-2 rounded-full shrink-0"
+                          style={{ backgroundColor: g.color }}
+                        />
+                        {g.title}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {selectedGroupId && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                    항목 선택
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {groups
+                      .find((g) => g.id === selectedGroupId)
+                      ?.items.map((item) => {
+                        const style = GROUP_CHIP_STYLES[selectedGroupId] ?? GROUP_CHIP_STYLES.want;
+                        const isSelected = selectedItemId === item.id;
                         return (
                           <button
+                            key={item.id}
                             type="button"
-                            key={key}
-                            onClick={() => setFreeBudgetKey(key)}
-                            className={`px-3 py-1.5 min-h-[44px] rounded-full text-[11px] font-medium transition-all flex items-center ${
-                              isSelected ? styles.active : styles.base
+                            onClick={() => setSelectedItemId(item.id)}
+                            className={`px-3.5 py-2 min-h-[44px] rounded-full text-xs font-medium transition-all active:scale-95 ${
+                              isSelected ? style.active : style.base
                             }`}
                           >
                             {item.title}
                           </button>
                         );
                       })}
-                    </div>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Amount */}
+          <div>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+              금액 (원)
+            </p>
+            <AmountInput
+              value={amount}
+              onChange={setAmount}
+              placeholder="금액"
+              autoFocus
+            />
           </div>
+
+          {/* Date */}
+          <div>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+              날짜
+            </p>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748] bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+            />
+          </div>
+
+          {/* Description (optional) */}
+          <div>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+              메모 (선택)
+            </p>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="내역 설명"
+              className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748] bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+              onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
+            />
+          </div>
+
+          {/* Save */}
           <button
-            onClick={handleFreeSave}
-            disabled={
-              saving ||
-              !freeDesc.trim() ||
-              parseCurrencyInput(freeAmount) <= 0
-            }
-            className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-gray-900 dark:bg-white dark:text-gray-900 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity active:scale-[0.98]"
+            type="button"
+            onClick={handleSave}
+            disabled={saving || !canSave}
+            className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white bg-indigo-600 dark:bg-indigo-500 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity active:scale-[0.98]"
           >
             {saving ? "저장 중..." : "저장"}
           </button>
         </div>
-      </Modal>
-
-      {/* Delete confirmation */}
-      <ConfirmDialog
-        isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={handleDeleteConfirm}
-        title="기록 삭제"
-        description={
-          deleteTarget
-            ? `"${deleteTarget.desc}" 기록을 삭제하시겠습니까?`
-            : ""
-        }
-        confirmLabel="삭제"
-        variant="danger"
-        loading={deleting}
-      />
-
-      {/* Edit modal */}
-      <Modal
-        isOpen={!!editTarget}
-        onClose={() => setEditTarget(null)}
-        title="기록 수정"
-      >
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="edit-desc" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              내역
-            </label>
-            <input
-              id="edit-desc"
-              type="text"
-              value={editDesc}
-              onChange={(e) => setEditDesc(e.target.value)}
-              placeholder="내역을 입력하세요"
-              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#1a1f29] text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  document.getElementById("edit-amount")?.focus();
-                }
-              }}
-            />
-          </div>
-          <div>
-            <label htmlFor="edit-amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              금액 (원)
-            </label>
-            <input
-              id="edit-amount"
-              type="text"
-              inputMode="numeric"
-              value={editAmount}
-              onChange={(e) => setEditAmount(formatCurrencyInput(e.target.value))}
-              placeholder="0"
-              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-[#333] bg-gray-50 dark:bg-[#1a1f29] text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleEditSave();
-              }}
-            />
-          </div>
-          {editTarget?.type === "expense" && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                분류
-              </label>
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => setEditBudgetKey("")}
-                  className={`px-3.5 py-2 min-h-[44px] rounded-full text-xs font-medium transition-all ${
-                    editBudgetKey === ""
-                      ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
-                      : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-                  }`}
-                >
-                  분류 없음
-                </button>
-                {budgetGroups.map((group) => {
-                  const styles = GROUP_CHIP_STYLES[group.id];
-                  return (
-                    <div key={group.id} className="space-y-1">
-                      <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500">
-                        {group.title}
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {group.items.map((item) => {
-                          const key = getItemKey(group.id, item.id);
-                          const isSelected = editBudgetKey === key;
-                          return (
-                            <button
-                              type="button"
-                              key={key}
-                              onClick={() => setEditBudgetKey(key)}
-                              className={`px-3 py-1.5 min-h-[44px] rounded-full text-[11px] font-medium transition-all flex items-center ${
-                                isSelected ? styles.active : styles.base
-                              }`}
-                            >
-                              {item.title}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-          <button
-            onClick={handleEditSave}
-            disabled={saving || !editDesc.trim() || parseCurrencyInput(editAmount) <= 0}
-            className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-gray-900 dark:bg-white dark:text-gray-900 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity active:scale-[0.98]"
-          >
-            {saving ? "저장 중..." : "수정"}
-          </button>
-        </div>
-      </Modal>
+      </BottomSheet>
     </div>
+  );
+}
+
+export default function FinancePage() {
+  return (
+    <Suspense>
+      <FinancePageInner />
+    </Suspense>
   );
 }

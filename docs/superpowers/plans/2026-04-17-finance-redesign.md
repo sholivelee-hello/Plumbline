@@ -521,7 +521,7 @@ describe('parseItemKey', () => {
 describe('getGroupById', () => {
   it('finds group', () => {
     const g = getGroupById(DEFAULT_GROUPS, 'sowing');
-    expect(g?.title).toBe('좋은 땅 (하늘은행)');
+    expect(g?.title).toBe('하늘은행');
   });
   it('returns undefined for unknown', () => {
     expect(getGroupById(DEFAULT_GROUPS, 'xxx')).toBeUndefined();
@@ -582,7 +582,7 @@ export const DEFAULT_GROUPS: FinanceGroup[] = [
     ],
   },
   {
-    id: 'sowing', title: '좋은 땅 (하늘은행)', color: '#7C3AED',
+    id: 'sowing', title: '하늘은행', color: '#7C3AED',
     percentMin: 5, percentMax: 10,
     items: [{ id: 'heaven', title: '하늘은행' }],
   },

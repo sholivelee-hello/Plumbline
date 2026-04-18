@@ -13,26 +13,39 @@ export function isSupabaseConfigured() {
   return isConfigured;
 }
 
+function makeNoopQueryBuilder() {
+  const resolved = Promise.resolve({ data: null, error: null });
+  const builder: unknown = new Proxy(
+    {},
+    {
+      get(_target, prop) {
+        if (prop === "then") return resolved.then.bind(resolved);
+        if (prop === "catch") return resolved.catch.bind(resolved);
+        if (prop === "finally") return resolved.finally.bind(resolved);
+        // Any chainable method returns the same builder (supports select, insert, upsert, eq, .maybeSingle(), etc.)
+        return () => builder;
+      },
+    }
+  );
+  return builder;
+}
+
 export function createClient() {
   if (!isConfigured) {
-    // Return a proxy that throws on any table access, triggering catch blocks → demo data
+    // Return a permissive proxy: chains succeed with null data, so UI can still be explored
+    // without a live Supabase backend. Real saves silently no-op.
     return new Proxy({} as ReturnType<typeof createBrowserClient>, {
       get(_target, prop) {
         if (prop === "auth") {
           return {
-            getUser: async () => ({ data: { user: null }, error: new Error("Not configured") }),
+            getUser: async () => ({ data: { user: null }, error: null }),
             signUp: async () => ({ data: null, error: new Error("Not configured") }),
             signInWithPassword: async () => ({ data: null, error: new Error("Not configured") }),
             signOut: async () => ({ error: null }),
           };
         }
         if (prop === "from") {
-          return () => ({
-            select: () => { throw new Error("Supabase not configured"); },
-            insert: () => { throw new Error("Supabase not configured"); },
-            update: () => { throw new Error("Supabase not configured"); },
-            delete: () => { throw new Error("Supabase not configured"); },
-          });
+          return () => makeNoopQueryBuilder();
         }
         return undefined;
       },

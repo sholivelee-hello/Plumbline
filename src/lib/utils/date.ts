@@ -96,39 +96,3 @@ export function getCurrentMonth(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
-/**
- * Generate time slots between start and end with given interval.
- */
-export function generateTimeSlots(
-  startTime: string,
-  endTime: string,
-  intervalMinutes: number
-): string[] {
-  const slots: string[] = [];
-  let [h, m] = startTime.split(":").map(Number);
-  const [endH, endM] = endTime.split(":").map(Number);
-  const endMinutes = endTime === "00:00" ? 24 * 60 : endH * 60 + endM;
-
-  while (h * 60 + m < endMinutes) {
-    slots.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
-    m += intervalMinutes;
-    if (m >= 60) {
-      h += Math.floor(m / 60);
-      m = m % 60;
-    }
-  }
-  return slots;
-}
-
-/**
- * Given a week-start date (Sunday) and a day_of_week (0=Sun..6=Sat),
- * return the calendar date for that slot as 'YYYY-MM-DD'.
- */
-export function getDateFromWeekStart(weekStart: string, dayOfWeek: number): string {
-  const d = new Date(weekStart + "T00:00:00");
-  d.setDate(d.getDate() + dayOfWeek);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
