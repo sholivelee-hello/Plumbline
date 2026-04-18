@@ -5,6 +5,7 @@ import { TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { useFinanceTransactions } from "@/lib/hooks/use-finance-transactions";
 import { useBudget } from "@/lib/hooks/use-budget";
 import { useBudgetSettings } from "@/lib/hooks/use-budget-settings";
+import { useWishlist } from "@/lib/hooks/use-wishlist";
 import {
   getCurrentMonth,
   formatCurrency,
@@ -79,6 +80,7 @@ export default function CashbookPage() {
 
   const { groupTotals, grandTotal: budgetTotal } = useBudget(month);
   const { groups, incomeCategories } = useBudgetSettings();
+  const { wishes, addWish } = useWishlist();
 
   const balance = totalIncome - totalExpense;
 
@@ -140,6 +142,11 @@ export default function CashbookPage() {
   const [isIncome, setIsIncome] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [selectedWishId, setSelectedWishId] = useState<string | null>(null);
+  const [newWishOpen, setNewWishOpen] = useState(false);
+  const [newWishTitle, setNewWishTitle] = useState("");
+  const [newWishTarget, setNewWishTarget] = useState("");
+  const [creatingWish, setCreatingWish] = useState(false);
   const [incomeCategory, setIncomeCategory] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(() => new Date().toLocaleDateString("sv-SE"));
@@ -150,6 +157,10 @@ export default function CashbookPage() {
     setIsIncome(false);
     setSelectedGroupId(null);
     setSelectedItemId(null);
+    setSelectedWishId(null);
+    setNewWishOpen(false);
+    setNewWishTitle("");
+    setNewWishTarget("");
     setIncomeCategory(null);
     setAmount("");
     setDate(new Date().toLocaleDateString("sv-SE"));
@@ -164,12 +175,16 @@ export default function CashbookPage() {
   const parsedAmount = parseCurrencyInput(amount);
   const canSave = isIncome
     ? parsedAmount > 0 && incomeCategory !== null
-    : parsedAmount > 0 && selectedGroupId !== null;
+    : parsedAmount > 0 &&
+      selectedGroupId !== null &&
+      (selectedGroupId !== "want" || selectedWishId !== null);
 
   const handleAddSave = useCallback(async () => {
     if (!canSave || parsedAmount <= 0) return;
     const selectedGroup = groups.find((g) => g.id === selectedGroupId);
     const selectedItem = selectedGroup?.items.find((i) => i.id === selectedItemId);
+    const selectedWish = wishes.find((w) => w.id === selectedWishId);
+    const isWantWithWish = selectedGroupId === "want" && selectedWishId !== null;
     setAddSaving(true);
     const result = await addTransaction(
       isIncome
@@ -182,10 +197,14 @@ export default function CashbookPage() {
         : {
             type: "expense",
             amount: parsedAmount,
-            description: description.trim() || selectedItem?.title || "지출",
+            description:
+              description.trim() ||
+              (isWantWithWish ? selectedWish?.title : selectedItem?.title) ||
+              "지출",
             date,
             group_id: selectedGroupId,
-            item_id: selectedItemId,
+            item_id: isWantWithWish ? "want" : selectedItemId,
+            wishlist_id: isWantWithWish ? selectedWishId : null,
           }
     );
     setAddSaving(false);
@@ -210,10 +229,30 @@ export default function CashbookPage() {
     date,
     selectedGroupId,
     selectedItemId,
+    selectedWishId,
     groups,
+    wishes,
     addTransaction,
     toast,
   ]);
+
+  const handleCreateWish = useCallback(async () => {
+    const title = newWishTitle.trim();
+    const target = parseCurrencyInput(newWishTarget);
+    if (!title || target <= 0) return;
+    setCreatingWish(true);
+    const result = await addWish(title, target);
+    setCreatingWish(false);
+    if (result.ok && result.id) {
+      setSelectedWishId(result.id);
+      setNewWishOpen(false);
+      setNewWishTitle("");
+      setNewWishTarget("");
+      toast(`'${title}' 요망사항이 생성됐습니다`, "success");
+    } else {
+      toast(result.error ?? "요망사항 생성에 실패했습니다", "error");
+    }
+  }, [newWishTitle, newWishTarget, addWish, toast]);
 
   // ── Monthly tab data ─────────────────────────────────────────────────────
 
@@ -384,7 +423,7 @@ export default function CashbookPage() {
             </button>
             <button
               type="button"
-              onClick={() => { setIsIncome(true); setSelectedGroupId(null); setSelectedItemId(null); }}
+              onClick={() => { setIsIncome(true); setSelectedGroupId(null); setSelectedItemId(null); setSelectedWishId(null); setNewWishOpen(false); }}
               className={`flex-1 py-2 min-h-[40px] rounded-lg text-sm font-medium transition-all ${
                 isIncome
                   ? "bg-white dark:bg-[#1a2030] text-gray-900 dark:text-gray-100 shadow-sm"
@@ -426,7 +465,7 @@ export default function CashbookPage() {
                       <button
                         key={g.id}
                         type="button"
-                        onClick={() => { setSelectedGroupId(g.id); setSelectedItemId(null); }}
+                        onClick={() => { setSelectedGroupId(g.id); setSelectedItemId(null); setSelectedWishId(null); setNewWishOpen(false); }}
                         className={`flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] rounded-full text-xs font-medium transition-all active:scale-95 ${
                           selectedGroupId === g.id ? style.active : style.base
                         }`}
@@ -438,7 +477,7 @@ export default function CashbookPage() {
                   })}
                 </div>
               </div>
-              {selectedGroupId && (
+              {selectedGroupId && selectedGroupId !== "want" && (
                 <div>
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">항목 선택</p>
                   <div className="flex flex-wrap gap-2">
@@ -459,6 +498,86 @@ export default function CashbookPage() {
                           </button>
                         );
                       })}
+                  </div>
+                </div>
+              )}
+
+              {selectedGroupId === "want" && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">요망사항 선택</p>
+                  <div className="space-y-1.5">
+                    {wishes.map((w) => {
+                      const isSelected = selectedWishId === w.id;
+                      const pct = w.target_amount > 0
+                        ? Math.min(100, Math.round((w.cumulative_saved / w.target_amount) * 100))
+                        : 0;
+                      return (
+                        <button
+                          key={w.id}
+                          type="button"
+                          onClick={() => setSelectedWishId(w.id)}
+                          className={`w-full text-left rounded-xl border px-3.5 py-2.5 transition-all active:scale-[0.98] ${
+                            isSelected
+                              ? "border-[#EA580C] bg-[#EA580C]/5 dark:bg-[#EA580C]/15"
+                              : "border-gray-200 dark:border-[#2d3748] bg-white dark:bg-[#1a2030]"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                              {w.title}
+                            </span>
+                            <span className="text-[11px] tabular-nums text-gray-500 dark:text-gray-400 shrink-0 ml-2">
+                              {formatCurrency(w.cumulative_saved)} / {formatCurrency(w.target_amount)}
+                            </span>
+                          </div>
+                          <div className="mt-1.5 h-1.5 rounded-full bg-gray-100 dark:bg-[#262c38] overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-[#EA580C] transition-all"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </button>
+                      );
+                    })}
+
+                    {!newWishOpen ? (
+                      <button
+                        type="button"
+                        onClick={() => setNewWishOpen(true)}
+                        className="w-full min-h-[44px] rounded-xl border border-dashed border-[#EA580C]/50 text-xs font-medium text-[#EA580C] hover:bg-[#EA580C]/5 transition-colors"
+                      >
+                        + 새 요망사항 만들기
+                      </button>
+                    ) : (
+                      <div className="rounded-xl border border-[#EA580C]/50 bg-[#EA580C]/5 dark:bg-[#EA580C]/10 p-3 space-y-2">
+                        <input
+                          type="text"
+                          value={newWishTitle}
+                          onChange={(e) => setNewWishTitle(e.target.value)}
+                          placeholder="요망사항 제목"
+                          autoFocus
+                          className="w-full min-h-[40px] px-3 py-2 rounded-lg border border-gray-200 dark:border-[#2d3748] bg-white dark:bg-[#1a2030] text-sm focus:outline-none focus:ring-2 focus:ring-[#EA580C]/40"
+                        />
+                        <AmountInput value={newWishTarget} onChange={setNewWishTarget} placeholder="목표 금액" />
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => { setNewWishOpen(false); setNewWishTitle(""); setNewWishTarget(""); }}
+                            className="flex-1 min-h-[40px] py-2 rounded-lg text-xs font-medium text-gray-500 bg-gray-100 dark:bg-[#262c38]"
+                          >
+                            취소
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCreateWish}
+                            disabled={creatingWish || !newWishTitle.trim() || parseCurrencyInput(newWishTarget) <= 0}
+                            className="flex-1 min-h-[40px] py-2 rounded-lg text-xs font-semibold text-white bg-[#EA580C] disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            {creatingWish ? "생성 중..." : "생성"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
