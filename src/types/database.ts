@@ -1,6 +1,5 @@
 export type BasicCategory = "spiritual" | "physical";
 export type BasicType = "check" | "number";
-export type ScheduleTimeUnit = 10 | 15 | 30 | 60;
 export type HeavenBankEntryType = "sow" | "reap";
 export type TransactionType = "income" | "expense";
 
@@ -10,7 +9,6 @@ export interface UserSettings {
   day_start_time: string;
   day_end_time: string;
   timezone: string;
-  time_unit: ScheduleTimeUnit;
   salary_day?: number | null;
 }
 
@@ -36,50 +34,6 @@ export interface BasicsLog {
   completed: boolean;
   value: number | null;
   completed_at: string | null;
-}
-
-export interface Event {
-  id: string;
-  user_id: string;
-  title: string;
-  start_date: string;
-  end_date: string;
-  start_time: string | null;
-  color: string;
-  memo: string | null;
-}
-
-export interface SchedulePreset {
-  id: string;
-  user_id: string;
-  title: string;
-  duration: number;
-  color: string;
-  usage_count: number;
-  last_used_at: string | null;
-}
-
-export interface SchedulePlan {
-  id: string;
-  user_id: string;
-  date: string;
-  start_time: string;
-  end_time: string;
-  title: string;
-  color: string;
-  preset_id: string | null;
-}
-
-export interface ScheduleActual {
-  id: string;
-  user_id: string;
-  plan_id: string | null;
-  date: string;
-  start_time: string;
-  end_time: string;
-  title: string;
-  color: string;
-  is_from_plan: boolean;
 }
 
 export interface HeavenBankEntry {
@@ -214,24 +168,6 @@ export interface FinanceInstallmentPayment {
   paid_at: string;
   amount: number;
   created_at: string;
-}
-
-export interface WeeklyTemplate {
-  id: string;
-  user_id: string;
-  name: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface WeeklyTemplateBlock {
-  id: string;
-  template_id: string;
-  day_of_week: number; // 0=일, 1=월, ..., 6=토
-  start_time: string;
-  end_time: string;
-  title: string;
-  color: string;
 }
 
 export interface FinanceSubscription {

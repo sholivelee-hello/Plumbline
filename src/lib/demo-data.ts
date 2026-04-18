@@ -1,10 +1,6 @@
 import type {
   BasicsTemplate,
   BasicsLog,
-  Event,
-  SchedulePlan,
-  ScheduleActual,
-  SchedulePreset,
   UserSettings,
   HeavenBankEntry,
   FinanceTransaction,
@@ -12,8 +8,6 @@ import type {
   FinanceDebt,
   FinanceDebtPayment,
   FinanceInstallment,
-  WeeklyTemplate,
-  WeeklyTemplateBlock,
 } from "@/types/database";
 
 const USER_ID = "demo-user-000";
@@ -41,7 +35,6 @@ export const demoSettings: UserSettings = {
   day_start_time: "05:00",
   day_end_time: "23:00",
   timezone: "Asia/Seoul",
-  time_unit: 30,
   salary_day: 25,
 };
 
@@ -61,58 +54,6 @@ export const demoLogs: BasicsLog[] = [
   { id: "bl4", user_id: USER_ID, template_id: "bt4", date: TODAY, completed: true, value: 45, completed_at: "" },
   { id: "bl5", user_id: USER_ID, template_id: "bt5", date: TODAY, completed: false, value: 5, completed_at: null },
   { id: "bl6", user_id: USER_ID, template_id: "bt6", date: TODAY, completed: false, value: null, completed_at: null },
-];
-
-export const demoEvents: Event[] = [
-  { id: "ev1", user_id: USER_ID, title: "팀 미팅", start_date: TODAY, end_date: TODAY, start_time: "10:00", color: "#7575D8", memo: null },
-  { id: "ev2", user_id: USER_ID, title: "치과 예약", start_date: daysFromToday(2), end_date: daysFromToday(2), start_time: "14:00", color: "#D4A5A5", memo: null },
-  { id: "ev3", user_id: USER_ID, title: "부모님 생신", start_date: daysFromToday(5), end_date: daysFromToday(5), start_time: "18:00", color: "#A8C5A0", memo: "선물 준비" },
-  { id: "ev4", user_id: USER_ID, title: "연휴 여행", start_date: daysFromToday(10), end_date: daysFromToday(12), start_time: null, color: "#93B5C6", memo: null },
-];
-
-export const demoPresets: SchedulePreset[] = [
-  { id: "sp1", user_id: USER_ID, title: "기도", duration: 30, color: "#7575D8", usage_count: 12, last_used_at: null },
-  { id: "sp2", user_id: USER_ID, title: "운동", duration: 60, color: "#A8C5A0", usage_count: 8, last_used_at: null },
-  { id: "sp3", user_id: USER_ID, title: "독서", duration: 30, color: "#93B5C6", usage_count: 5, last_used_at: null },
-];
-
-export const demoPlans: SchedulePlan[] = [
-  { id: "pl1", user_id: USER_ID, date: TODAY, start_time: "05:00", end_time: "05:30", title: "QT", color: "#7575D8", preset_id: null },
-  { id: "pl2", user_id: USER_ID, date: TODAY, start_time: "05:30", end_time: "06:00", title: "기도", color: "#7575D8", preset_id: "sp1" },
-  { id: "pl3", user_id: USER_ID, date: TODAY, start_time: "06:30", end_time: "07:30", title: "운동", color: "#A8C5A0", preset_id: "sp2" },
-  { id: "pl4", user_id: USER_ID, date: TODAY, start_time: "09:00", end_time: "12:00", title: "업무", color: "#93B5C6", preset_id: null },
-  { id: "pl5", user_id: USER_ID, date: TODAY, start_time: "14:00", end_time: "17:00", title: "업무", color: "#93B5C6", preset_id: null },
-  { id: "pl6", user_id: USER_ID, date: TODAY, start_time: "20:00", end_time: "20:30", title: "독서", color: "#C4A8C5", preset_id: "sp3" },
-];
-
-export const demoActuals: ScheduleActual[] = [
-  { id: "ac1", user_id: USER_ID, plan_id: "pl1", date: TODAY, start_time: "05:00", end_time: "05:30", title: "QT", color: "#7575D8", is_from_plan: true },
-  { id: "ac2", user_id: USER_ID, plan_id: "pl2", date: TODAY, start_time: "05:30", end_time: "06:10", title: "기도", color: "#7575D8", is_from_plan: true },
-  { id: "ac3", user_id: USER_ID, plan_id: null, date: daysFromToday(-1), start_time: "07:00", end_time: "08:00", title: "아침 산책", color: "#A8C5A0", is_from_plan: false },
-  { id: "ac4", user_id: USER_ID, plan_id: null, date: daysFromToday(-1), start_time: "22:00", end_time: "22:30", title: "일기 쓰기", color: "#C4A8C5", is_from_plan: false },
-];
-
-export const demoWeeklyTemplates: WeeklyTemplate[] = [
-  { id: "wt1", user_id: USER_ID, name: "평일 루틴", created_at: THIRTY_DAYS_AGO, updated_at: THIRTY_DAYS_AGO },
-  { id: "wt2", user_id: USER_ID, name: "주말 루틴", created_at: THIRTY_DAYS_AGO, updated_at: THIRTY_DAYS_AGO },
-];
-
-export const demoWeeklyTemplateBlocks: WeeklyTemplateBlock[] = [
-  // 평일 루틴 (wt1): 월~금
-  { id: "wtb1", template_id: "wt1", day_of_week: 1, start_time: "05:00", end_time: "05:30", title: "QT", color: "#7575D8" },
-  { id: "wtb2", template_id: "wt1", day_of_week: 1, start_time: "06:30", end_time: "07:30", title: "운동", color: "#A8C5A0" },
-  { id: "wtb3", template_id: "wt1", day_of_week: 2, start_time: "05:00", end_time: "05:30", title: "QT", color: "#7575D8" },
-  { id: "wtb4", template_id: "wt1", day_of_week: 2, start_time: "06:30", end_time: "07:30", title: "운동", color: "#A8C5A0" },
-  { id: "wtb5", template_id: "wt1", day_of_week: 3, start_time: "05:00", end_time: "05:30", title: "QT", color: "#7575D8" },
-  { id: "wtb6", template_id: "wt1", day_of_week: 3, start_time: "06:30", end_time: "07:30", title: "운동", color: "#A8C5A0" },
-  { id: "wtb7", template_id: "wt1", day_of_week: 4, start_time: "05:00", end_time: "05:30", title: "QT", color: "#7575D8" },
-  { id: "wtb8", template_id: "wt1", day_of_week: 5, start_time: "05:00", end_time: "05:30", title: "QT", color: "#7575D8" },
-  { id: "wtb9", template_id: "wt1", day_of_week: 5, start_time: "19:00", end_time: "20:00", title: "셀 모임", color: "#C4A8C5" },
-  // 주말 루틴 (wt2): 일, 토
-  { id: "wtb10", template_id: "wt2", day_of_week: 0, start_time: "08:30", end_time: "09:30", title: "새벽예배", color: "#7575D8" },
-  { id: "wtb11", template_id: "wt2", day_of_week: 0, start_time: "11:00", end_time: "12:30", title: "주일예배", color: "#7575D8" },
-  { id: "wtb12", template_id: "wt2", day_of_week: 6, start_time: "09:00", end_time: "10:30", title: "등산", color: "#A8C5A0" },
-  { id: "wtb13", template_id: "wt2", day_of_week: 6, start_time: "15:00", end_time: "17:00", title: "독서", color: "#93B5C6" },
 ];
 
 export const demoHeavenBank: HeavenBankEntry[] = [
