@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, ReactNode } from "react";
+import { useEffect, useRef, useState, ReactNode } from "react";
 
 interface BottomSheetProps {
   isOpen: boolean;
@@ -15,6 +15,25 @@ const FOCUSABLE_SELECTORS =
 export function BottomSheet({ isOpen, onClose, title, children }: BottomSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+  const [vpHeight, setVpHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) { setKeyboardOffset(0); setVpHeight(null); return; }
+    const vv = window.visualViewport;
+    if (!vv) return;
+    function onViewportChange() {
+      const offset = window.innerHeight - vv!.height - vv!.offsetTop;
+      setKeyboardOffset(Math.max(0, offset));
+      setVpHeight(vv!.height);
+    }
+    vv.addEventListener("resize", onViewportChange);
+    vv.addEventListener("scroll", onViewportChange);
+    return () => {
+      vv.removeEventListener("resize", onViewportChange);
+      vv.removeEventListener("scroll", onViewportChange);
+    };
+  }, [isOpen]);
 
   // Save trigger element and manage scroll lock
   useEffect(() => {
@@ -86,9 +105,13 @@ export function BottomSheet({ isOpen, onClose, title, children }: BottomSheetPro
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`fixed bottom-0 left-0 right-0 z-[60] bg-white dark:bg-[#1a2030]
+        style={{
+          bottom: keyboardOffset,
+          maxHeight: vpHeight ? vpHeight * 0.92 : undefined,
+          transition: "transform 0.3s ease-out, bottom 0.25s ease-out, max-height 0.25s ease-out",
+        }}
+        className={`fixed left-0 right-0 z-[60] bg-white dark:bg-[#1a2030]
           rounded-t-3xl shadow-2xl max-h-[85vh] overflow-y-auto
-          transform transition-transform duration-300 ease-out
           ${isOpen ? "translate-y-0" : "translate-y-full pointer-events-none"}`}
       >
         {/* Sticky header: drag handle + title + close */}
