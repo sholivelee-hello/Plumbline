@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { FIXED_USER_ID } from "@/lib/constants";
+import { bumpFinance } from "@/lib/finance-bus";
 
 export interface WishContributionInput {
   wishId: string;
@@ -29,12 +30,15 @@ export async function addWishContribution(
       amount: input.amount,
       description: input.description ?? "요망사항 기여",
       wishlist_id: input.wishId,
+      source: "manual",
     })
     .select("id")
     .single();
 
   if (error) {
-    return { ok: false, error: (error as { message: string }).message };
+    return { ok: false, error: error.message };
   }
+  bumpFinance("transactions");
+  bumpFinance("wishlist");
   return { ok: true, transactionId: (data as { id: string }).id };
 }

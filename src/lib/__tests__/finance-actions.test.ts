@@ -1,21 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { addWishContribution } from '../finance-actions';
 
-// Supabase 클라이언트 모킹 - factory chain
+// Supabase 클라이언트 모킹 - spy chain
 const makeMockClient = (insertResult: { data?: unknown; error?: unknown } = { data: { id: 'tx-1' }, error: null }) => {
-  const insertMock = vi.fn().mockResolvedValue(insertResult);
-  const fromMock = vi.fn(() => ({
-    insert: () => ({
-      select: () => ({
-        single: insertMock,
-      }),
-    }),
-  }));
-  return { fromMock, insertMock, from: fromMock };
+  const singleMock = vi.fn().mockResolvedValue(insertResult);
+  const selectMock = vi.fn(() => ({ single: singleMock }));
+  const insertMock = vi.fn(() => ({ select: selectMock }));
+  const fromMock = vi.fn(() => ({ insert: insertMock }));
+  return { fromMock, insertMock, singleMock, from: fromMock };
 };
 
 vi.mock('@/lib/supabase/client', () => ({
   createClient: vi.fn(),
+}));
+
+vi.mock('@/lib/finance-bus', () => ({
+  bumpFinance: vi.fn(),
 }));
 
 import { createClient } from '@/lib/supabase/client';
@@ -39,6 +39,15 @@ describe('addWishContribution', () => {
     expect(result.ok).toBe(true);
     expect(result.transactionId).toBe('tx-1');
     expect(mock.fromMock).toHaveBeenCalledWith('finance_transactions');
+    expect(mock.insertMock).toHaveBeenCalledWith(expect.objectContaining({
+      wishlist_id: 'wish-1',
+      group_id: 'want',
+      item_id: 'want',
+      type: 'expense',
+      description: '등록금 저축',
+      amount: 100000,
+      source: 'manual',
+    }));
   });
 
   it('returns error when insert fails', async () => {
@@ -65,6 +74,8 @@ describe('addWishContribution', () => {
       date: '2026-05-10',
     });
 
-    expect(mock.fromMock).toHaveBeenCalled();
+    expect(mock.insertMock).toHaveBeenCalledWith(expect.objectContaining({
+      description: '요망사항 기여',
+    }));
   });
 });
