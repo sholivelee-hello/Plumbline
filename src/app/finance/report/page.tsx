@@ -41,7 +41,7 @@ export default function ReportPage() {
   const [month, setMonth] = useState(getCurrentMonth());
 
   // ── Core data ──────────────────────────────────────────────────────────────
-  const { summary, donutData, groupCards, loading: hubLoading } = useFinanceHub(month);
+  const { summary, donutData, groupCards, rollovers, loading: hubLoading } = useFinanceHub(month);
   const { incomes, totalExpense } = useFinanceTransactions(month);
   const { grandTotal } = useBudget(month);
 
@@ -391,7 +391,7 @@ export default function ReportPage() {
                 하늘은행
               </p>
 
-              <div className="grid grid-cols-3 gap-3 mb-4">
+              <div className="grid grid-cols-3 gap-3 mb-3">
                 <div className="text-center">
                   <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1">심음</p>
                   <p className="text-sm font-bold text-purple-600 dark:text-purple-400 tabular-nums">
@@ -417,6 +417,17 @@ export default function ReportPage() {
                   </p>
                 </div>
               </div>
+
+              {(rollovers.sowing ?? 0) > 0 && (
+                <div className="mb-4 flex items-center justify-between rounded-xl bg-purple-50/60 dark:bg-purple-900/15 px-3 py-2">
+                  <span className="text-xs text-purple-700 dark:text-purple-300 font-medium">
+                    지난달 심음 이월
+                  </span>
+                  <span className="text-xs font-semibold tabular-nums text-purple-700 dark:text-purple-300">
+                    +{formatCurrency(rollovers.sowing ?? 0)}원
+                  </span>
+                </div>
+              )}
 
               {topTargets.length > 0 ? (
                 <div>
