@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BookOpen, Calendar, Wallet, Settings } from "lucide-react";
+import { Home, BookOpen, Calendar, Wallet, Settings, Scale } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "홈", icon: Home },
   { href: "/basics", label: "베이직", icon: BookOpen },
   { href: "/schedule", label: "일정", icon: Calendar },
   { href: "/finance", label: "재정", icon: Wallet },
+  { href: "/manage", label: "관리", icon: Scale },
 ];
 
 export function Sidebar() {
