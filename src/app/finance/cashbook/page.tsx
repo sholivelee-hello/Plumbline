@@ -108,6 +108,7 @@ export default function CashbookPage() {
   const [editDesc, setEditDesc] = useState("");
   const [editGroupId, setEditGroupId] = useState<string | null>(null);
   const [editItemId, setEditItemId] = useState<string | null>(null);
+  const [editWishId, setEditWishId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   function openEdit(tx: FinanceTransaction) {
@@ -116,18 +117,31 @@ export default function CashbookPage() {
     setEditDesc(tx.description || "");
     setEditGroupId(tx.group_id ?? null);
     setEditItemId(tx.item_id ?? null);
+    setEditWishId(tx.wishlist_id ?? null);
   }
+
+  const canEditSave =
+    editTarget !== null &&
+    editDesc.trim().length > 0 &&
+    parseCurrencyInput(editAmount) > 0 &&
+    (editTarget.type !== "expense" ||
+      editGroupId !== "want" ||
+      editWishId !== null);
 
   const handleEditSave = useCallback(async () => {
     if (!editTarget) return;
     const amount = parseCurrencyInput(editAmount);
     if (!editDesc.trim() || amount <= 0) return;
+    if (editTarget.type === "expense" && editGroupId === "want" && !editWishId) return;
     setSaving(true);
+    const isExpense = editTarget.type === "expense";
+    const isWant = isExpense && editGroupId === "want";
     const result = await updateTransaction(editTarget.id, {
       description: editDesc.trim(),
       amount,
-      group_id: editTarget.type === "expense" ? (editGroupId ?? null) : null,
-      item_id: editTarget.type === "expense" ? (editItemId ?? null) : null,
+      group_id: isExpense ? (editGroupId ?? null) : null,
+      item_id: isExpense ? (isWant ? "want" : editItemId ?? null) : null,
+      wishlist_id: isWant ? editWishId : null,
     });
     setSaving(false);
     if (result.ok) {
@@ -136,7 +150,7 @@ export default function CashbookPage() {
     } else {
       toast(result.error || "수정에 실패했습니다", "error");
     }
-  }, [editTarget, editAmount, editDesc, editGroupId, editItemId, updateTransaction, toast]);
+  }, [editTarget, editAmount, editDesc, editGroupId, editItemId, editWishId, updateTransaction, toast]);
 
   // ── Add transaction state (FAB) ──────────────────────────────────────────
   const [inputOpen, setInputOpen] = useState(false);
@@ -656,7 +670,7 @@ export default function CashbookPage() {
               <div className="space-y-2">
                 <button
                   type="button"
-                  onClick={() => { setEditGroupId(null); setEditItemId(null); }}
+                  onClick={() => { setEditGroupId(null); setEditItemId(null); setEditWishId(null); }}
                   className={`px-3.5 py-2 min-h-[44px] rounded-full text-xs font-medium transition-all ${
                     editGroupId === null
                       ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
@@ -671,33 +685,91 @@ export default function CashbookPage() {
                     <div key={g.id} className="space-y-1">
                       <span className="text-[10px] font-medium text-gray-400">{g.title}</span>
                       <div className="flex flex-wrap gap-1.5">
-                        {g.items.map((item) => {
-                          const key = getItemKey(g.id, item.id);
-                          const isSelected = editGroupId === g.id && editItemId === item.id;
-                          return (
-                            <button
-                              type="button"
-                              key={key}
-                              onClick={() => { setEditGroupId(g.id); setEditItemId(item.id); }}
-                              className={`px-3 py-1.5 min-h-[44px] rounded-full text-[11px] font-medium transition-all flex items-center active:scale-95 ${
-                                isSelected ? style.active : style.base
-                              }`}
-                            >
-                              {item.title}
-                            </button>
-                          );
-                        })}
+                        {g.id === "want" ? (
+                          <button
+                            type="button"
+                            onClick={() => { setEditGroupId("want"); setEditItemId("want"); }}
+                            className={`px-3 py-1.5 min-h-[44px] rounded-full text-[11px] font-medium transition-all flex items-center active:scale-95 ${
+                              editGroupId === "want" ? style.active : style.base
+                            }`}
+                          >
+                            요망사항
+                          </button>
+                        ) : (
+                          g.items.map((item) => {
+                            const key = getItemKey(g.id, item.id);
+                            const isSelected = editGroupId === g.id && editItemId === item.id;
+                            return (
+                              <button
+                                type="button"
+                                key={key}
+                                onClick={() => { setEditGroupId(g.id); setEditItemId(item.id); setEditWishId(null); }}
+                                className={`px-3 py-1.5 min-h-[44px] rounded-full text-[11px] font-medium transition-all flex items-center active:scale-95 ${
+                                  isSelected ? style.active : style.base
+                                }`}
+                              >
+                                {item.title}
+                              </button>
+                            );
+                          })
+                        )}
                       </div>
                     </div>
                   );
                 })}
               </div>
+              {editGroupId === "want" && (
+                <div className="mt-3">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">요망사항 선택</p>
+                  <div className="space-y-1.5">
+                    {wishes.length === 0 ? (
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                        활성화된 요망사항이 없습니다. 요망사항 페이지에서 추가해주세요.
+                      </p>
+                    ) : (
+                      wishes.map((w) => {
+                        const isSelected = editWishId === w.id;
+                        const pct = w.target_amount > 0
+                          ? Math.min(100, Math.round((w.cumulative_saved / w.target_amount) * 100))
+                          : 0;
+                        return (
+                          <button
+                            key={w.id}
+                            type="button"
+                            onClick={() => setEditWishId(w.id)}
+                            className={`w-full text-left rounded-xl border px-3.5 py-2.5 transition-all active:scale-[0.98] ${
+                              isSelected
+                                ? "border-[#EA580C] bg-[#EA580C]/5 dark:bg-[#EA580C]/15"
+                                : "border-gray-200 dark:border-[#2d3748] bg-white dark:bg-[#1a2030]"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                                {w.title}
+                              </span>
+                              <span className="text-[11px] tabular-nums text-gray-500 dark:text-gray-400 shrink-0 ml-2">
+                                {formatCurrency(w.cumulative_saved)} / {formatCurrency(w.target_amount)}
+                              </span>
+                            </div>
+                            <div className="mt-1.5 h-1.5 rounded-full bg-gray-100 dark:bg-[#262c38] overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-[#EA580C] transition-all"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           <button
             type="button"
             onClick={handleEditSave}
-            disabled={saving || !editDesc.trim() || parseCurrencyInput(editAmount) <= 0}
+            disabled={saving || !canEditSave}
             className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white bg-indigo-600 dark:bg-indigo-500 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity active:scale-[0.98]"
           >
             {saving ? "저장 중..." : "수정"}
