@@ -118,11 +118,12 @@ export default function WantPage() {
 
   // ── Save Sheet (저축하기) ──────────────────────────────────────────────────
   const [saveSheet, setSaveSheet] = useState(false);
-  const [saveWish, setSaveWish] = useState<FinanceWishlist | null>(null);
+  const [saveWish, setSaveWish] = useState<(FinanceWishlist & { cumulative_saved: number }) | null>(null);
   const [saveAmount, setSaveAmount] = useState("");
   const [savingSave, setSavingSave] = useState(false);
+  const [overrunConfirm, setOverrunConfirm] = useState(false);
 
-  function openSaveSheet(wish: FinanceWishlist) {
+  function openSaveSheet(wish: FinanceWishlist & { cumulative_saved: number }) {
     setSaveWish(wish);
     setSaveAmount("");
     setSaveSheet(true);
@@ -130,8 +131,10 @@ export default function WantPage() {
 
   const parsedSaveAmount = parseCurrencyInput(saveAmount);
   const canSave = parsedSaveAmount > 0;
+  const wouldOverrun =
+    !!saveWish && saveWish.cumulative_saved + parsedSaveAmount > saveWish.target_amount;
 
-  const handleSaveSaved = useCallback(async () => {
+  const performSaveContribution = useCallback(async () => {
     if (!saveWish || !canSave) return;
     setSavingSave(true);
     const result = await addContribution(saveWish.id, parsedSaveAmount);
@@ -139,10 +142,20 @@ export default function WantPage() {
     if (result.ok) {
       toast(`${formatCurrency(parsedSaveAmount)}원 저축됨`, "success");
       setSaveSheet(false);
+      setOverrunConfirm(false);
     } else {
       toast(result.error ?? "저장에 실패했습니다", "error");
     }
   }, [saveWish, canSave, parsedSaveAmount, addContribution, toast]);
+
+  const handleSaveSaved = useCallback(() => {
+    if (!saveWish || !canSave) return;
+    if (wouldOverrun) {
+      setOverrunConfirm(true);
+      return;
+    }
+    void performSaveContribution();
+  }, [saveWish, canSave, wouldOverrun, performSaveContribution]);
 
   // ── Complete Wish Dialog ───────────────────────────────────────────────────
   const [completeDialog, setCompleteDialog] = useState(false);
@@ -386,7 +399,7 @@ export default function WantPage() {
               ) : (
                 wishes.map((wish, index) => {
                   const percent = wish.target_amount > 0
-                    ? Math.round((wish.saved_amount / wish.target_amount) * 100)
+                    ? Math.round((wish.cumulative_saved / wish.target_amount) * 100)
                     : 0;
                   const isMenuOpen = menuWishId === wish.id;
 
@@ -501,7 +514,7 @@ export default function WantPage() {
                         {/* Saved amount + progress bar */}
                         <div className="mb-1.5">
                           <FinanceProgressBar
-                            value={wish.saved_amount}
+                            value={wish.cumulative_saved}
                             max={wish.target_amount}
                             color={WANT_COLOR}
                             height="md"
@@ -514,14 +527,14 @@ export default function WantPage() {
                             {percent}% 저축됨
                           </span>
                           <span className="text-[10px] tabular-nums text-gray-500 dark:text-gray-400">
-                            {formatCurrency(wish.saved_amount)}
+                            {formatCurrency(wish.cumulative_saved)}
                             <span className="text-gray-300 dark:text-gray-600">
                               {" / "}{formatCurrency(wish.target_amount)}
                             </span>
                           </span>
                         </div>
 
-                        {/* 저축하기 button */}
+                        {/* + 저축하기 button */}
                         <button
                           type="button"
                           onClick={() => openSaveSheet(wish)}
@@ -530,7 +543,7 @@ export default function WantPage() {
                             hover:bg-[#EA580C]/12 dark:hover:bg-[#EA580C]/30
                             transition-colors active:scale-[0.98]"
                         >
-                          저축하기
+                          + 저축하기
                         </button>
                       </div>
                     </FinanceCard>
@@ -670,7 +683,7 @@ export default function WantPage() {
             <div className="p-3 rounded-xl bg-gray-50 dark:bg-[#262c38] text-xs text-gray-500 dark:text-gray-400">
               남은 금액:{" "}
               <span className="font-semibold text-[#EA580C] dark:text-orange-300 tabular-nums">
-                {formatCurrency(saveWish.target_amount - saveWish.saved_amount)}원
+                {formatCurrency(Math.max(saveWish.target_amount - saveWish.cumulative_saved, 0))}원
               </span>
             </div>
             <div>
@@ -813,6 +826,23 @@ export default function WantPage() {
         confirmLabel="삭제"
         variant="danger"
         loading={deletingWish}
+      />
+
+      {/* ── Overrun Confirm Dialog ──────────────────────────────────────────── */}
+      <ConfirmDialog
+        isOpen={overrunConfirm}
+        onClose={() => setOverrunConfirm(false)}
+        onConfirm={performSaveContribution}
+        title="목표를 초과합니다"
+        description={
+          saveWish
+            ? `${saveWish.title}의 목표 금액(${formatCurrency(saveWish.target_amount)}원)을 ${formatCurrency(
+                saveWish.cumulative_saved + parsedSaveAmount - saveWish.target_amount,
+              )}원 초과합니다. 계속 저축하시겠어요?`
+            : undefined
+        }
+        confirmLabel="계속 저축"
+        loading={savingSave}
       />
     </div>
   );
