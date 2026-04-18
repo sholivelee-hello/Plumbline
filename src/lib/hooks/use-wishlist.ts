@@ -4,16 +4,22 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { FIXED_USER_ID } from "@/lib/constants";
 import type { FinanceWishlist } from "@/types/database";
+import { bumpFinance, useFinanceTick } from "@/lib/finance-bus";
+import { addWishContribution } from "@/lib/finance-actions";
+import { ROLLOVER_START_MONTH } from "@/lib/finance-config";
+
+export type WishWithRollup = FinanceWishlist & { cumulative_saved: number };
 
 export function useWishlist() {
   const [wishes, setWishes] = useState<FinanceWishlist[]>([]);
+  const [contributions, setContributions] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const supabase = useMemo(() => createClient(), []);
 
-  const [refreshTick, setRefreshTick] = useState(0);
+  const wishTick = useFinanceTick("wishlist");
+  const txTick = useFinanceTick("transactions");
 
-  // Keep ref to latest state for stable rollback captures inside callbacks
   const wishesRef = useRef(wishes);
   useEffect(() => {
     wishesRef.current = wishes;
@@ -24,9 +30,11 @@ export function useWishlist() {
     setLoading(true);
     setError(null);
 
+    const rolloverStart = `${ROLLOVER_START_MONTH}-01`;
+
     const run = async () => {
       try {
-        const { data, error: fetchError } = await supabase
+        const { data: wishesData, error: wishErr } = await supabase
           .from("finance_wishlist")
           .select("*")
           .eq("user_id", FIXED_USER_ID)
@@ -34,8 +42,32 @@ export function useWishlist() {
           .order("priority", { ascending: true });
 
         if (cancelled) return;
-        if (fetchError) throw fetchError;
-        setWishes(data ?? []);
+        if (wishErr) throw wishErr;
+
+        const list = wishesData ?? [];
+        const map: Record<string, number> = {};
+
+        if (list.length > 0) {
+          const ids = list.map((w: FinanceWishlist) => w.id);
+          const { data: txData, error: txErr } = await supabase
+            .from("finance_transactions")
+            .select("wishlist_id, amount")
+            .eq("user_id", FIXED_USER_ID)
+            .eq("type", "expense")
+            .gte("date", rolloverStart)
+            .in("wishlist_id", ids);
+
+          if (cancelled) return;
+          if (txErr) throw txErr;
+
+          for (const row of txData ?? []) {
+            if (!row.wishlist_id) continue;
+            map[row.wishlist_id] = (map[row.wishlist_id] ?? 0) + row.amount;
+          }
+        }
+
+        setWishes(list);
+        setContributions(map);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "위시리스트를 불러오지 못했습니다.");
@@ -49,10 +81,19 @@ export function useWishlist() {
     return () => {
       cancelled = true;
     };
-  }, [supabase, refreshTick]);
+  }, [supabase, wishTick, txTick]);
+
+  const wishesWithRollup = useMemo<WishWithRollup[]>(
+    () =>
+      wishes.map((w) => ({
+        ...w,
+        cumulative_saved: w.saved_amount + (contributions[w.id] ?? 0),
+      })),
+    [wishes, contributions]
+  );
 
   const refresh = useCallback(() => {
-    setRefreshTick((n) => n + 1);
+    bumpFinance("wishlist");
   }, []);
 
   const addWish = useCallback(
@@ -60,7 +101,7 @@ export function useWishlist() {
       title: string,
       targetAmount: number,
       priority?: number
-    ): Promise<{ ok: boolean; error?: string }> => {
+    ): Promise<{ ok: boolean; error?: string; id?: string }> => {
       const existingPriorities = wishesRef.current.map((w) => w.priority);
       const nextPriority =
         priority !== undefined
@@ -107,8 +148,8 @@ export function useWishlist() {
       setWishes((ws) =>
         ws.map((w) => (w.id === tempId ? { ...w, id: inserted.id } : w))
       );
-      setRefreshTick((n) => n + 1);
-      return { ok: true };
+      bumpFinance("wishlist");
+      return { ok: true, id: inserted.id };
     },
     [supabase]
   );
@@ -131,47 +172,29 @@ export function useWishlist() {
         setWishes(prev);
         return { ok: false, error: updateError.message };
       }
-      setRefreshTick((n) => n + 1);
+      bumpFinance("wishlist");
       return { ok: true };
     },
     [supabase]
   );
 
-  const updateSaved = useCallback(
-    async (id: string, addAmount: number): Promise<{ ok: boolean; error?: string }> => {
-      const prev = wishesRef.current;
-      const wish = prev.find((w) => w.id === id);
-      if (!wish) return { ok: false, error: "위시 항목을 찾을 수 없습니다." };
-
-      const newSaved = Math.min(
-        Math.max(0, wish.saved_amount + addAmount),
-        wish.target_amount
-      );
-
-      setWishes((ws) =>
-        ws.map((w) => (w.id === id ? { ...w, saved_amount: newSaved } : w))
-      );
-
-      const { error: updateError } = await supabase
-        .from("finance_wishlist")
-        .update({ saved_amount: newSaved, updated_at: new Date().toISOString() })
-        .eq("id", id)
-        .eq("user_id", FIXED_USER_ID);
-
-      if (updateError) {
-        setWishes(prev);
-        return { ok: false, error: updateError.message };
-      }
-      return { ok: true };
+  const addContribution = useCallback(
+    async (
+      wishId: string,
+      amount: number,
+      date?: string,
+      description?: string
+    ): Promise<{ ok: boolean; error?: string; transactionId?: string }> => {
+      const txDate = date ?? new Date().toLocaleDateString("sv-SE");
+      return addWishContribution({ wishId, amount, date: txDate, description });
     },
-    [supabase]
+    []
   );
 
   const reorderWishes = useCallback(
     async (orderedIds: string[]): Promise<{ ok: boolean; error?: string }> => {
       const prev = wishesRef.current;
 
-      // Optimistically update priorities
       setWishes((ws) => {
         const updated = ws.map((w) => {
           const newPriority = orderedIds.indexOf(w.id) + 1;
@@ -180,7 +203,6 @@ export function useWishlist() {
         return updated.sort((a, b) => a.priority - b.priority);
       });
 
-      // Bulk update each row
       const updates = orderedIds.map((id, index) =>
         supabase
           .from("finance_wishlist")
@@ -195,6 +217,7 @@ export function useWishlist() {
         setWishes(prev);
         return { ok: false, error: firstError.message };
       }
+      bumpFinance("wishlist");
       return { ok: true };
     },
     [supabase]
@@ -203,7 +226,6 @@ export function useWishlist() {
   const completeWish = useCallback(
     async (id: string): Promise<{ ok: boolean; error?: string }> => {
       const prev = wishesRef.current;
-      // Remove from active list optimistically
       setWishes((ws) => ws.filter((w) => w.id !== id));
 
       const { error: updateError } = await supabase
@@ -220,6 +242,7 @@ export function useWishlist() {
         setWishes(prev);
         return { ok: false, error: updateError.message };
       }
+      bumpFinance("wishlist");
       return { ok: true };
     },
     [supabase]
@@ -240,18 +263,19 @@ export function useWishlist() {
         setWishes(prev);
         return { ok: false, error: deleteError.message };
       }
+      bumpFinance("wishlist");
       return { ok: true };
     },
     [supabase]
   );
 
   return {
-    wishes,
+    wishes: wishesWithRollup,
     loading,
     error,
     addWish,
     updateWish,
-    updateSaved,
+    addContribution,
     reorderWishes,
     completeWish,
     deleteWish,

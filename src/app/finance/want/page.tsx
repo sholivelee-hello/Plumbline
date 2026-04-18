@@ -32,7 +32,7 @@ export default function WantPage() {
   const [month, setMonth] = useState(getCurrentMonth());
   const { toast } = useToast();
 
-  const { wishes, loading: wishesLoading, addWish, updateWish, updateSaved, reorderWishes, completeWish, deleteWish } =
+  const { wishes, loading: wishesLoading, addWish, updateWish, addContribution, reorderWishes, completeWish, deleteWish } =
     useWishlist();
   const { groups, loading: settingsLoading } = useBudgetSettings();
   const { transactions, byGroup, loading: txLoading, addTransaction, updateTransaction, deleteTransaction } =
@@ -134,7 +134,7 @@ export default function WantPage() {
   const handleSaveSaved = useCallback(async () => {
     if (!saveWish || !canSave) return;
     setSavingSave(true);
-    const result = await updateSaved(saveWish.id, parsedSaveAmount);
+    const result = await addContribution(saveWish.id, parsedSaveAmount);
     setSavingSave(false);
     if (result.ok) {
       toast(`${formatCurrency(parsedSaveAmount)}원 저축됨`, "success");
@@ -142,7 +142,7 @@ export default function WantPage() {
     } else {
       toast(result.error ?? "저장에 실패했습니다", "error");
     }
-  }, [saveWish, canSave, parsedSaveAmount, updateSaved, toast]);
+  }, [saveWish, canSave, parsedSaveAmount, addContribution, toast]);
 
   // ── Complete Wish Dialog ───────────────────────────────────────────────────
   const [completeDialog, setCompleteDialog] = useState(false);
