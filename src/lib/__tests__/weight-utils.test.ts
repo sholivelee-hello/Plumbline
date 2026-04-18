@@ -60,7 +60,7 @@ describe("calcWeeklyPace", () => {
 
 describe("calcStats", () => {
   it("aggregates current/start/lost/remain", () => {
-    const s = calcStats(entries, { target_kg: 62.0, deadline: "2026-05-23" } as any, today);
+    const s = calcStats(entries, { target_kg: 62.0, deadline: "2026-05-23" }, today);
     expect(s.currentKg).toBe(67.3);
     expect(s.startKg).toBe(73.5);
     expect(s.lostKg).toBeCloseTo(6.2, 1);
