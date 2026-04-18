@@ -4,6 +4,7 @@ import { useMemo, useCallback, useEffect, useState } from "react";
 import { useBudgetSettings } from "@/lib/hooks/use-budget-settings";
 import { useFinanceTransactions } from "@/lib/hooks/use-finance-transactions";
 import { useBudget } from "@/lib/hooks/use-budget";
+import { useRollover } from "@/lib/hooks/use-rollover";
 import { createClient } from "@/lib/supabase/client";
 import type { FinanceTransaction } from "@/types/database";
 
@@ -69,6 +70,12 @@ export function useFinanceHub(month: string) {
     refresh: refreshBudget,
   } = useBudget(month);
 
+  const {
+    rollovers,
+    loading: rolloverLoading,
+    error: rolloverError,
+  } = useRollover(month);
+
   const summary = useMemo(
     () => ({
       income: totalIncome,
@@ -93,9 +100,17 @@ export function useFinanceHub(month: string) {
     });
   }, [groups, byGroup, totalExpense]);
 
+  const effectiveBudgets = useMemo<Record<string, number>>(() => {
+    const result: Record<string, number> = {};
+    for (const g of groups) {
+      result[g.id] = (groupTotals[g.id] ?? 0) + (rollovers[g.id] ?? 0);
+    }
+    return result;
+  }, [groups, groupTotals, rollovers]);
+
   const groupCards = useMemo<GroupCardItem[]>(() => {
     return groups.map((g) => {
-      const budget = groupTotals[g.id] ?? 0;
+      const budget = effectiveBudgets[g.id] ?? 0;
       const actual = byGroup[g.id]?.total ?? 0;
       const percent = budget > 0 ? Math.round((actual / budget) * 100) : 0;
       const percentGuide = `${g.percentMin}~${g.percentMax}%`;
@@ -109,10 +124,10 @@ export function useFinanceHub(month: string) {
         percent,
       };
     });
-  }, [groups, groupTotals, byGroup]);
+  }, [groups, effectiveBudgets, byGroup]);
 
-  const loading = settingsLoading || txLoading || budgetLoading;
-  const error = settingsError ?? txError ?? budgetError;
+  const loading = settingsLoading || txLoading || budgetLoading || rolloverLoading;
+  const error = settingsError ?? txError ?? budgetError ?? rolloverError;
 
   const refresh = useCallback(() => {
     refreshSettings();
@@ -125,6 +140,8 @@ export function useFinanceHub(month: string) {
     summary,
     donutData,
     groupCards,
+    effectiveBudgets,
+    rollovers,
     heavenBankBalance,
     heavenBankMonthlySow,
     todayTransactions: todayTransactions as FinanceTransaction[],
