@@ -8,22 +8,40 @@ import { Fab } from "@/components/finance/fab";
 import { useWeight } from "@/lib/hooks/use-weight";
 import { WeightHero } from "@/components/manage/weight-hero";
 import { WeightInputSheet } from "@/components/manage/weight-input-sheet";
+import { WeightLogList } from "@/components/manage/weight-log-list";
+import type { WeightEntry } from "@/types/database";
 
 export default function ManagePage() {
-  const { entries, goal, stats, loading, addEntry } = useWeight();
+  const { entries, goal, stats, loading, addEntry, updateEntry, deleteEntry } = useWeight();
   const { toast } = useToast();
   const [inputOpen, setInputOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState<WeightEntry | null>(null);
 
-  async function handleAdd(weight_kg: number, weighed_on: string) {
+  async function handleSubmit(weight_kg: number, weighed_on: string) {
     setSaving(true);
-    const res = await addEntry(weight_kg, weighed_on);
+    const res = editing
+      ? await updateEntry(editing.id, weight_kg, weighed_on)
+      : await addEntry(weight_kg, weighed_on);
     setSaving(false);
     if (res.ok) {
-      toast(`${weight_kg.toFixed(1)}kg 기록됨`, "success");
+      toast(editing ? "기록이 수정됨" : `${weight_kg.toFixed(1)}kg 기록됨`, "success");
       setInputOpen(false);
+      setEditing(null);
     } else {
       toast(res.error ?? "저장 실패", "error");
+    }
+  }
+
+  async function handleDelete() {
+    if (!editing) return;
+    const res = await deleteEntry(editing.id);
+    if (res.ok) {
+      toast("기록이 삭제됨", "success");
+      setInputOpen(false);
+      setEditing(null);
+    } else {
+      toast(res.error ?? "삭제 실패", "error");
     }
   }
 
@@ -52,7 +70,16 @@ export default function ManagePage() {
             <p className="text-xs text-gray-500 dark:text-gray-400">우측 하단 + 버튼으로 시작</p>
           </div>
         ) : (
-          <WeightHero stats={stats} goal={goal} />
+          <>
+            <WeightHero stats={stats} goal={goal} />
+            <WeightLogList
+              entries={entries}
+              onTap={(e) => {
+                setEditing(e);
+                setInputOpen(true);
+              }}
+            />
+          </>
         )}
       </div>
 
@@ -60,9 +87,14 @@ export default function ManagePage() {
 
       <WeightInputSheet
         isOpen={inputOpen}
-        onClose={() => setInputOpen(false)}
-        mode="create"
-        onSubmit={handleAdd}
+        onClose={() => {
+          setInputOpen(false);
+          setEditing(null);
+        }}
+        mode={editing ? "edit" : "create"}
+        initial={editing ? { weight_kg: editing.weight_kg, weighed_on: editing.weighed_on } : undefined}
+        onSubmit={handleSubmit}
+        onDelete={editing ? handleDelete : undefined}
         saving={saving}
       />
     </div>
