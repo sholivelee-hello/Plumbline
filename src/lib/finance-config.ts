@@ -125,3 +125,14 @@ export const GROUP_COLORS: Record<string, { bg: string; text: string; darkBg: st
   sowing:     { bg: 'bg-[#7C3AED]/10', text: 'text-[#7C3AED]', darkBg: 'dark:bg-[#C4B5FD]/10', border: 'border-[#7C3AED]' },
   want:       { bg: 'bg-[#EA580C]/10', text: 'text-[#EA580C]', darkBg: 'dark:bg-[#FDBA74]/10', border: 'border-[#EA580C]' },
 };
+
+export const ROLLOVER_START_MONTH = '2026-05';
+
+export type RolloverPolicy = 'clamp_positive' | 'none';
+
+export const ROLLOVER_POLICY: Record<string, RolloverPolicy> = {
+  obligation: 'clamp_positive',
+  necessity:  'clamp_positive',
+  sowing:     'clamp_positive',
+  want:       'none',
+};
