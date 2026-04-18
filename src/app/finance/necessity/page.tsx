@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { useBudgetSettings } from "@/lib/hooks/use-budget-settings";
 import { useFinanceTransactions } from "@/lib/hooks/use-finance-transactions";
@@ -252,11 +252,12 @@ export default function NecessityPage() {
                             )}
                           </span>
                           <span
-                            className={`text-xs transition-transform duration-200 ${
+                            className={`inline-flex items-center text-gray-400 dark:text-gray-500 transition-transform duration-200 ${
                               isExpanded ? "rotate-90" : ""
                             }`}
+                            aria-hidden="true"
                           >
-                            ▶
+                            <ChevronRight size={14} />
                           </span>
                         </div>
                       </div>

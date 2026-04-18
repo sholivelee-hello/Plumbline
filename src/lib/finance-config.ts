@@ -40,7 +40,7 @@ export const DEFAULT_GROUPS: FinanceGroup[] = [
     ],
   },
   {
-    id: 'sowing', title: '하늘은행', color: '#FEFDDF',
+    id: 'sowing', title: '하늘은행', color: '#B89B4A',
     percentMin: 5, percentMax: 10,
     items: [{ id: 'heaven', title: '하늘은행' }],
   },
@@ -102,7 +102,7 @@ export function parseGroupConfigs(raw: unknown): FinanceGroup[] {
 export const GROUP_COLORS: Record<string, { bg: string; text: string; darkBg: string; border: string }> = {
   obligation: { bg: 'bg-[#73A5CA]/10', text: 'text-[#73A5CA]', darkBg: 'dark:bg-[#93B8E8]/10', border: 'border-[#73A5CA]' },
   necessity:  { bg: 'bg-[#FFC81E]/10', text: 'text-[#FFC81E]', darkBg: 'dark:bg-[#6EE7B7]/10', border: 'border-[#FFC81E]' },
-  sowing:     { bg: 'bg-[#FEFDDF]/10', text: 'text-[#FEFDDF]', darkBg: 'dark:bg-[#C4B5FD]/10', border: 'border-[#FEFDDF]' },
+  sowing:     { bg: 'bg-[#FEFDDF]/40', text: 'text-[#B89B4A]', darkBg: 'dark:bg-[#B89B4A]/15', border: 'border-[#B89B4A]' },
   want:       { bg: 'bg-[#E87F24]/10', text: 'text-[#E87F24]', darkBg: 'dark:bg-[#FDBA74]/10', border: 'border-[#E87F24]' },
 };
 
