@@ -8,17 +8,32 @@ import { Fab } from "@/components/finance/fab";
 import { useWeight } from "@/lib/hooks/use-weight";
 import { WeightHero } from "@/components/manage/weight-hero";
 import { WeightInputSheet } from "@/components/manage/weight-input-sheet";
+import { WeightGoalSheet } from "@/components/manage/weight-goal-sheet";
 import { WeightLogList } from "@/components/manage/weight-log-list";
 import { WeightChart } from "@/components/manage/weight-chart";
 import { WeightComparisons } from "@/components/manage/weight-comparisons";
 import type { WeightEntry } from "@/types/database";
 
 export default function ManagePage() {
-  const { entries, goal, stats, loading, addEntry, updateEntry, deleteEntry } = useWeight();
+  const { entries, goal, stats, loading, addEntry, updateEntry, deleteEntry, setGoal } = useWeight();
   const { toast } = useToast();
   const [inputOpen, setInputOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<WeightEntry | null>(null);
+  const [goalOpen, setGoalOpen] = useState(false);
+  const [savingGoal, setSavingGoal] = useState(false);
+
+  async function handleSaveGoal(target_kg: number, deadline: string) {
+    setSavingGoal(true);
+    const res = await setGoal(target_kg, deadline);
+    setSavingGoal(false);
+    if (res.ok) {
+      toast("목표가 저장되었어요", "success");
+      setGoalOpen(false);
+    } else {
+      toast(res.error ?? "저장 실패", "error");
+    }
+  }
 
   async function handleSubmit(weight_kg: number, weighed_on: string) {
     setSaving(true);
@@ -55,6 +70,7 @@ export default function ManagePage() {
         rightAction={
           <button
             type="button"
+            onClick={() => setGoalOpen(true)}
             aria-label="목표 설정"
             className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#2d3748] transition-colors"
           >
@@ -73,7 +89,7 @@ export default function ManagePage() {
           </div>
         ) : (
           <>
-            <WeightHero stats={stats} goal={goal} />
+            <WeightHero stats={stats} goal={goal} onOpenGoal={() => setGoalOpen(true)} />
             <WeightChart entries={entries} goal={goal} />
             <WeightComparisons comparisons={stats.comparisons} />
             <WeightLogList
@@ -100,6 +116,15 @@ export default function ManagePage() {
         onSubmit={handleSubmit}
         onDelete={editing ? handleDelete : undefined}
         saving={saving}
+      />
+
+      <WeightGoalSheet
+        isOpen={goalOpen}
+        onClose={() => setGoalOpen(false)}
+        currentKg={stats.currentKg}
+        initial={goal}
+        onSubmit={handleSaveGoal}
+        saving={savingGoal}
       />
     </div>
   );
