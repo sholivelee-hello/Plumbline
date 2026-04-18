@@ -26,7 +26,11 @@ interface EntryWithBalance extends HeavenBankEntry {
 
 // ── Custom hook: fetch ALL heaven_bank entries (no month filter) ─────────────
 
-type InsertEntryInput = Omit<HeavenBankEntry, "id" | "user_id" | "transaction_id">;
+type InsertEntryInput = Omit<HeavenBankEntry, "id" | "user_id" | "transaction_id"> & {
+  // When false (reap-only), skip creating a finance_transactions income row.
+  // Defaults to true to preserve existing behavior.
+  createTransaction?: boolean;
+};
 
 function useAllHeavenBank() {
   const [entries, setEntries] = useState<HeavenBankEntry[]>([]);
@@ -55,7 +59,28 @@ function useAllHeavenBank() {
 
   // Canonical flow: insert finance_transactions FIRST, then heaven_bank linked
   // via transaction_id. On cashbook deletion DB CASCADE handles the heaven_bank row.
+  // When createTransaction is explicitly false (reap-only intangible valuation),
+  // skip the finance_transactions insert and record in heaven_bank alone.
   const insertEntry = useCallback(async (entry: InsertEntryInput): Promise<{ ok: boolean; error?: string }> => {
+    const shouldCreateTx = entry.createTransaction !== false;
+
+    if (!shouldCreateTx) {
+      const { error: hbError } = await supabase
+        .from("heaven_bank")
+        .insert({
+          user_id: FIXED_USER_ID,
+          date: entry.date,
+          type: entry.type,
+          target: entry.target,
+          description: entry.description,
+          amount: entry.amount,
+          transaction_id: null,
+        });
+      if (hbError) return { ok: false, error: hbError.message };
+      bumpFinance("heaven_bank");
+      return { ok: true };
+    }
+
     const txType = entry.type === "sow" ? "expense" : "income";
     const targetLabel = entry.target ?? "하늘은행";
     const descParts = [`하늘은행: ${targetLabel}`, entry.description?.trim()].filter(Boolean);
@@ -252,12 +277,14 @@ export default function SowingPage() {
   const [reapDesc, setReapDesc] = useState("");
   const [reapAmount, setReapAmount] = useState("");
   const [reapDate, setReapDate] = useState(() => new Date().toLocaleDateString("sv-SE"));
+  const [reapAsIncome, setReapAsIncome] = useState(false);
   const [reapSaving, setReapSaving] = useState(false);
 
   function openReapSheet() {
     setReapDesc("");
     setReapAmount("");
     setReapDate(new Date().toLocaleDateString("sv-SE"));
+    setReapAsIncome(false);
     setReapSheet(true);
   }
 
@@ -274,6 +301,7 @@ export default function SowingPage() {
       target: null,
       description: reapDesc.trim(),
       amount: parsedReapAmount,
+      createTransaction: reapAsIncome,
     });
 
     setReapSaving(false);
@@ -283,9 +311,14 @@ export default function SowingPage() {
       return;
     }
 
-    toast(`거둠 ${formatCurrency(parsedReapAmount)}원 기록됨`, "success");
+    toast(
+      reapAsIncome
+        ? `거둠 ${formatCurrency(parsedReapAmount)}원 · 수입에도 기록됨`
+        : `거둠 ${formatCurrency(parsedReapAmount)}원 · 하늘은행에만 기록됨`,
+      "success",
+    );
     setReapSheet(false);
-  }, [canSaveReap, parsedReapAmount, reapDesc, reapDate, insertEntry, toast]);
+  }, [canSaveReap, parsedReapAmount, reapDesc, reapDate, reapAsIncome, insertEntry, toast]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -583,6 +616,38 @@ export default function SowingPage() {
                 focus:outline-none focus:ring-2 focus:ring-[#FEFDDF]/40"
             />
           </div>
+
+          {/* Income toggle */}
+          <button
+            type="button"
+            onClick={() => setReapAsIncome((v) => !v)}
+            className={`w-full flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
+              reapAsIncome
+                ? "border-[#B89B4A] bg-[#FEFDDF]/60 dark:bg-[#B89B4A]/20"
+                : "border-gray-200 dark:border-[#2d3748] bg-white dark:bg-[#1a2030]"
+            }`}
+          >
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">실제 수입으로도 기록</p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                {reapAsIncome
+                  ? "출납부에 수입 거래가 함께 생성됩니다"
+                  : "하늘은행에만 기록됩니다 (출납부 잔액 영향 없음)"}
+              </p>
+            </div>
+            <span
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                reapAsIncome ? "bg-[#B89B4A]" : "bg-gray-200 dark:bg-gray-700"
+              }`}
+              aria-hidden="true"
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                  reapAsIncome ? "translate-x-5" : "translate-x-0.5"
+                }`}
+              />
+            </span>
+          </button>
 
           <button
             type="button"
