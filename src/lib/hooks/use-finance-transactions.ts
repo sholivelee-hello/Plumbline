@@ -15,6 +15,7 @@ type AddTransactionData = {
   group_id?: string | null;
   item_id?: string | null;
   wishlist_id?: string | null;
+  income_category?: string | null;
   source?: "manual" | "recurring" | "installment" | "debt" | "heaven_bank" | "subscription";
 };
 
@@ -128,6 +129,7 @@ export function useFinanceTransactions(month: string) {
         group_id: data.group_id ?? null,
         item_id: data.item_id ?? null,
         wishlist_id: data.wishlist_id ?? null,
+        income_category: data.income_category ?? null,
         source: data.source ?? "manual",
       };
 
@@ -145,6 +147,7 @@ export function useFinanceTransactions(month: string) {
           group_id: data.group_id ?? null,
           item_id: data.item_id ?? null,
           wishlist_id: data.wishlist_id ?? null,
+          income_category: data.income_category ?? null,
           source: data.source ?? "manual",
         })
         .select("id")

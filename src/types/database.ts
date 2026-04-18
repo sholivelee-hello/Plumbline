@@ -58,6 +58,7 @@ export interface FinanceTransaction {
   group_id: string | null;
   item_id: string | null;
   wishlist_id: string | null;
+  income_category: string | null;
   source: 'manual' | 'recurring' | 'installment' | 'debt' | 'heaven_bank' | 'subscription';
 }
 
@@ -132,6 +133,7 @@ export interface FinanceDebt {
   total_amount: number;
   tags: string[];
   created_at: string;
+  updated_at?: string;
   is_completed: boolean;
 }
 

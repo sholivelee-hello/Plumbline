@@ -15,6 +15,7 @@ import {
   Banknote,
   Repeat,
   RotateCw,
+  ChevronRight,
 } from "lucide-react";
 import { useFinanceHub } from "@/lib/hooks/use-finance-hub";
 import { useFinanceTransactions } from "@/lib/hooks/use-finance-transactions";
@@ -41,12 +42,12 @@ const GROUP_CHIP_STYLES: Record<string, { base: string; active: string }> = {
     active: "bg-[#73A5CA] text-white",
   },
   necessity: {
-    base: "bg-[#FFC81E]/10 text-[#FFC81E] dark:bg-[#FFC81E]/25 dark:text-emerald-300",
+    base: "bg-amber-50 text-amber-800 dark:bg-[#FFC81E]/20 dark:text-amber-200",
     active: "bg-[#FFC81E] text-white",
   },
   sowing: {
-    base: "bg-[#FEFDDF]/10 text-[#FEFDDF] dark:bg-[#FEFDDF]/25 dark:text-purple-300",
-    active: "bg-[#FEFDDF] text-white",
+    base: "bg-amber-50 text-amber-900 dark:bg-[#B89B4A]/15 dark:text-[#D4C675]",
+    active: "bg-[#B89B4A] text-white",
   },
   want: {
     base: "bg-[#E87F24]/10 text-[#E87F24] dark:bg-[#E87F24]/25 dark:text-orange-300",
@@ -147,6 +148,7 @@ function FinancePageInner() {
             amount: parsedAmount,
             description: description.trim() || incomeCategory || "수입",
             date,
+            income_category: incomeCategory,
           }
         : {
             type: "expense",
@@ -277,7 +279,7 @@ function FinancePageInner() {
                         누적 잔액
                       </span>
                     </div>
-                    <p className="text-lg font-bold text-[#FEFDDF] dark:text-violet-400 tabular-nums">
+                    <p className="text-lg font-bold text-[#B89B4A] dark:text-[#D4C675] tabular-nums">
                       {formatCurrency(heavenBankBalance)}
                       <span className="text-xs font-normal ml-1">원</span>
                     </p>
@@ -367,9 +369,9 @@ function FinancePageInner() {
                 </p>
                 <Link
                   href="/finance/cashbook"
-                  className="text-xs text-blue-500 hover:text-blue-600 transition-colors"
+                  className="text-xs text-blue-500 hover:text-blue-600 transition-colors inline-flex items-center gap-0.5"
                 >
-                  더보기 →
+                  더보기 <ChevronRight size={12} />
                 </Link>
               </div>
 

@@ -36,12 +36,12 @@ const GROUP_CHIP_STYLES: Record<string, { base: string; active: string }> = {
     active: "bg-[#73A5CA] text-white",
   },
   necessity: {
-    base: "bg-[#FFC81E]/10 text-[#FFC81E] dark:bg-[#FFC81E]/25 dark:text-emerald-300",
+    base: "bg-amber-50 text-amber-800 dark:bg-[#FFC81E]/20 dark:text-amber-200",
     active: "bg-[#FFC81E] text-white",
   },
   sowing: {
-    base: "bg-[#FEFDDF]/10 text-[#FEFDDF] dark:bg-[#FEFDDF]/25 dark:text-purple-300",
-    active: "bg-[#FEFDDF] text-white",
+    base: "bg-amber-50 text-amber-900 dark:bg-[#B89B4A]/15 dark:text-[#D4C675]",
+    active: "bg-[#B89B4A] text-white",
   },
   want: {
     base: "bg-[#E87F24]/10 text-[#E87F24] dark:bg-[#E87F24]/25 dark:text-orange-300",
@@ -217,6 +217,7 @@ export default function CashbookPage() {
                 amount: parsedAmount,
                 description: description.trim() || incomeCategory || "수입",
                 date,
+                income_category: incomeCategory,
               }
             : {
                 type: "expense",

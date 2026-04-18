@@ -68,9 +68,9 @@ export const demoBudgets: FinanceBudget[] = [
 ];
 
 export const demoTransactions: FinanceTransaction[] = [
-  { id: "ft1", user_id: USER_ID, type: "expense", amount: 185000, group_id: "necessity", item_id: "food", description: "식비", date: TODAY, wishlist_id: null, source: "manual" },
-  { id: "ft2", user_id: USER_ID, type: "expense", amount: 52000, group_id: "necessity", item_id: "transport", description: "교통비", date: TODAY, wishlist_id: null, source: "manual" },
-  { id: "ft3", user_id: USER_ID, type: "expense", amount: 23000, group_id: "necessity", item_id: "grocery", description: "생활용품", date: TODAY, wishlist_id: null, source: "manual" },
+  { id: "ft1", user_id: USER_ID, type: "expense", amount: 185000, group_id: "necessity", item_id: "food", description: "식비", date: TODAY, wishlist_id: null, income_category: null, source: "manual" },
+  { id: "ft2", user_id: USER_ID, type: "expense", amount: 52000, group_id: "necessity", item_id: "transport", description: "교통비", date: TODAY, wishlist_id: null, income_category: null, source: "manual" },
+  { id: "ft3", user_id: USER_ID, type: "expense", amount: 23000, group_id: "necessity", item_id: "grocery", description: "생활용품", date: TODAY, wishlist_id: null, income_category: null, source: "manual" },
 ];
 
 export const demoDebts: (FinanceDebt & { total_paid: number; percent: number; payments: FinanceDebtPayment[] })[] = [
@@ -103,18 +103,18 @@ export const demoMonthlySow = 400000;
 
 export const demoCashbookEntries: FinanceTransaction[] = [
   // Incomes
-  { id: "cb1", user_id: USER_ID, type: "income", amount: 2200000, group_id: null, item_id: null, description: "급여", date: `${MONTH}-25`, wishlist_id: null, source: "manual" },
-  { id: "cb2", user_id: USER_ID, type: "income", amount: 300000, group_id: null, item_id: null, description: "부수입", date: `${MONTH}-15`, wishlist_id: null, source: "manual" },
-  { id: "cb3", user_id: USER_ID, type: "income", amount: 50000, group_id: null, item_id: null, description: "용돈", date: `${MONTH}-08`, wishlist_id: null, source: "manual" },
+  { id: "cb1", user_id: USER_ID, type: "income", amount: 2200000, group_id: null, item_id: null, description: "급여", date: `${MONTH}-25`, wishlist_id: null, income_category: null, source: "manual" },
+  { id: "cb2", user_id: USER_ID, type: "income", amount: 300000, group_id: null, item_id: null, description: "부수입", date: `${MONTH}-15`, wishlist_id: null, income_category: null, source: "manual" },
+  { id: "cb3", user_id: USER_ID, type: "income", amount: 50000, group_id: null, item_id: null, description: "용돈", date: `${MONTH}-08`, wishlist_id: null, income_category: null, source: "manual" },
   // Expenses
-  { id: "cb4", user_id: USER_ID, type: "expense", amount: 15000, group_id: "necessity", item_id: "food", description: "점심 식사", date: TODAY, wishlist_id: null, source: "manual" },
-  { id: "cb13", user_id: USER_ID, type: "expense", amount: 8500, group_id: "necessity", item_id: "food", description: "저녁 외식", date: `${MONTH}-14`, wishlist_id: null, source: "manual" },
-  { id: "cb5", user_id: USER_ID, type: "expense", amount: 3200, group_id: "necessity", item_id: "transport", description: "버스 출근", date: TODAY, wishlist_id: null, source: "manual" },
-  { id: "cb6", user_id: USER_ID, type: "expense", amount: 65000, group_id: "obligation", item_id: "utility", description: "통신비", date: `${MONTH}-10`, wishlist_id: null, source: "manual" },
-  { id: "cb7", user_id: USER_ID, type: "expense", amount: 42000, group_id: "necessity", item_id: "grocery", description: "마트 장보기", date: `${MONTH}-12`, wishlist_id: null, source: "manual" },
-  { id: "cb8", user_id: USER_ID, type: "expense", amount: 550000, group_id: "obligation", item_id: "rent", description: "월세", date: `${MONTH}-01`, wishlist_id: null, source: "manual" },
-  { id: "cb9", user_id: USER_ID, type: "expense", amount: 89000, group_id: "obligation", item_id: "utility", description: "전기·수도", date: `${MONTH}-05`, wishlist_id: null, source: "manual" },
-  { id: "cb10", user_id: USER_ID, type: "expense", amount: 220000, group_id: "obligation", item_id: "tithe", description: "십일조", date: `${MONTH}-01`, wishlist_id: null, source: "manual" },
-  { id: "cb11", user_id: USER_ID, type: "expense", amount: 100000, group_id: "sowing", item_id: "heaven", description: "선교 헌금", date: `${MONTH}-07`, wishlist_id: null, source: "manual" },
-  { id: "cb12", user_id: USER_ID, type: "expense", amount: 300000, group_id: "obligation", item_id: "parents", description: "부모님 용돈", date: `${MONTH}-01`, wishlist_id: null, source: "manual" },
+  { id: "cb4", user_id: USER_ID, type: "expense", amount: 15000, group_id: "necessity", item_id: "food", description: "점심 식사", date: TODAY, wishlist_id: null, income_category: null, source: "manual" },
+  { id: "cb13", user_id: USER_ID, type: "expense", amount: 8500, group_id: "necessity", item_id: "food", description: "저녁 외식", date: `${MONTH}-14`, wishlist_id: null, income_category: null, source: "manual" },
+  { id: "cb5", user_id: USER_ID, type: "expense", amount: 3200, group_id: "necessity", item_id: "transport", description: "버스 출근", date: TODAY, wishlist_id: null, income_category: null, source: "manual" },
+  { id: "cb6", user_id: USER_ID, type: "expense", amount: 65000, group_id: "obligation", item_id: "utility", description: "통신비", date: `${MONTH}-10`, wishlist_id: null, income_category: null, source: "manual" },
+  { id: "cb7", user_id: USER_ID, type: "expense", amount: 42000, group_id: "necessity", item_id: "grocery", description: "마트 장보기", date: `${MONTH}-12`, wishlist_id: null, income_category: null, source: "manual" },
+  { id: "cb8", user_id: USER_ID, type: "expense", amount: 550000, group_id: "obligation", item_id: "rent", description: "월세", date: `${MONTH}-01`, wishlist_id: null, income_category: null, source: "manual" },
+  { id: "cb9", user_id: USER_ID, type: "expense", amount: 89000, group_id: "obligation", item_id: "utility", description: "전기·수도", date: `${MONTH}-05`, wishlist_id: null, income_category: null, source: "manual" },
+  { id: "cb10", user_id: USER_ID, type: "expense", amount: 220000, group_id: "obligation", item_id: "tithe", description: "십일조", date: `${MONTH}-01`, wishlist_id: null, income_category: null, source: "manual" },
+  { id: "cb11", user_id: USER_ID, type: "expense", amount: 100000, group_id: "sowing", item_id: "heaven", description: "선교 헌금", date: `${MONTH}-07`, wishlist_id: null, income_category: null, source: "manual" },
+  { id: "cb12", user_id: USER_ID, type: "expense", amount: 300000, group_id: "obligation", item_id: "parents", description: "부모님 용돈", date: `${MONTH}-01`, wishlist_id: null, income_category: null, source: "manual" },
 ];
