@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { BasicsTemplate, BasicsLog } from "@/types/database";
 import { demoTemplates, demoLogs } from "@/lib/demo-data";
@@ -17,7 +17,7 @@ interface BasicsStat {
 export function useBasicsStats() {
   const [stats, setStats] = useState<BasicsStat[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const loadStats = useCallback(async () => {
     try {
@@ -119,7 +119,7 @@ export function useBasicsStats() {
       setStats(demoResult);
     }
     setLoading(false);
-  }, []);
+  }, [supabase]);
 
   useEffect(() => { loadStats(); }, [loadStats]);
 
