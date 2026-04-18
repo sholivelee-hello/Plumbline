@@ -9,6 +9,7 @@ import { useWeight } from "@/lib/hooks/use-weight";
 import { WeightHero } from "@/components/manage/weight-hero";
 import { WeightInputSheet } from "@/components/manage/weight-input-sheet";
 import { WeightLogList } from "@/components/manage/weight-log-list";
+import { WeightChart } from "@/components/manage/weight-chart";
 import type { WeightEntry } from "@/types/database";
 
 export default function ManagePage() {
@@ -72,6 +73,7 @@ export default function ManagePage() {
         ) : (
           <>
             <WeightHero stats={stats} goal={goal} />
+            <WeightChart entries={entries} goal={goal} />
             <WeightLogList
               entries={entries}
               onTap={(e) => {
