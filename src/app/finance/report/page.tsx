@@ -218,7 +218,7 @@ export default function ReportPage() {
                   <span
                     className={`text-base font-bold tabular-nums ${
                       summary.balance >= 0
-                        ? "text-[#2563EB] dark:text-blue-300"
+                        ? "text-[#73A5CA] dark:text-blue-300"
                         : "text-red-500 dark:text-red-400"
                     }`}
                   >

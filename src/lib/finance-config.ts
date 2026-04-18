@@ -15,7 +15,7 @@ export interface FinanceGroup {
 
 export const DEFAULT_GROUPS: FinanceGroup[] = [
   {
-    id: 'obligation', title: '의무사항', color: '#2563EB',
+    id: 'obligation', title: '의무사항', color: '#73A5CA',
     percentMin: 35, percentMax: 40,
     items: [
       { id: 'tithe', title: '십일조' },
@@ -27,7 +27,7 @@ export const DEFAULT_GROUPS: FinanceGroup[] = [
     ],
   },
   {
-    id: 'necessity', title: '필요사항', color: '#059669',
+    id: 'necessity', title: '필요사항', color: '#FFC81E',
     percentMin: 50, percentMax: 55,
     items: [
       { id: 'food', title: '식비' },
@@ -40,12 +40,12 @@ export const DEFAULT_GROUPS: FinanceGroup[] = [
     ],
   },
   {
-    id: 'sowing', title: '하늘은행', color: '#7C3AED',
+    id: 'sowing', title: '하늘은행', color: '#FEFDDF',
     percentMin: 5, percentMax: 10,
     items: [{ id: 'heaven', title: '하늘은행' }],
   },
   {
-    id: 'want', title: '요망사항', color: '#EA580C',
+    id: 'want', title: '요망사항', color: '#E87F24',
     percentMin: 5, percentMax: 10,
     items: [{ id: 'want', title: '요망사항' }],
   },
@@ -100,10 +100,10 @@ export function parseGroupConfigs(raw: unknown): FinanceGroup[] {
 
 // Color mapping for Tailwind classes
 export const GROUP_COLORS: Record<string, { bg: string; text: string; darkBg: string; border: string }> = {
-  obligation: { bg: 'bg-[#2563EB]/10', text: 'text-[#2563EB]', darkBg: 'dark:bg-[#93B8E8]/10', border: 'border-[#2563EB]' },
-  necessity:  { bg: 'bg-[#059669]/10', text: 'text-[#059669]', darkBg: 'dark:bg-[#6EE7B7]/10', border: 'border-[#059669]' },
-  sowing:     { bg: 'bg-[#7C3AED]/10', text: 'text-[#7C3AED]', darkBg: 'dark:bg-[#C4B5FD]/10', border: 'border-[#7C3AED]' },
-  want:       { bg: 'bg-[#EA580C]/10', text: 'text-[#EA580C]', darkBg: 'dark:bg-[#FDBA74]/10', border: 'border-[#EA580C]' },
+  obligation: { bg: 'bg-[#73A5CA]/10', text: 'text-[#73A5CA]', darkBg: 'dark:bg-[#93B8E8]/10', border: 'border-[#73A5CA]' },
+  necessity:  { bg: 'bg-[#FFC81E]/10', text: 'text-[#FFC81E]', darkBg: 'dark:bg-[#6EE7B7]/10', border: 'border-[#FFC81E]' },
+  sowing:     { bg: 'bg-[#FEFDDF]/10', text: 'text-[#FEFDDF]', darkBg: 'dark:bg-[#C4B5FD]/10', border: 'border-[#FEFDDF]' },
+  want:       { bg: 'bg-[#E87F24]/10', text: 'text-[#E87F24]', darkBg: 'dark:bg-[#FDBA74]/10', border: 'border-[#E87F24]' },
 };
 
 export const ROLLOVER_START_MONTH = '2026-05';

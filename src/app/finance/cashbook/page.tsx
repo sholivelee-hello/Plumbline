@@ -32,20 +32,20 @@ import type { FinanceTransaction } from "@/types/database";
 
 const GROUP_CHIP_STYLES: Record<string, { base: string; active: string }> = {
   obligation: {
-    base: "bg-[#2563EB]/10 text-[#2563EB] dark:bg-[#2563EB]/25 dark:text-blue-300",
-    active: "bg-[#2563EB] text-white",
+    base: "bg-[#73A5CA]/10 text-[#73A5CA] dark:bg-[#73A5CA]/25 dark:text-blue-300",
+    active: "bg-[#73A5CA] text-white",
   },
   necessity: {
-    base: "bg-[#059669]/10 text-[#059669] dark:bg-[#059669]/25 dark:text-emerald-300",
-    active: "bg-[#059669] text-white",
+    base: "bg-[#FFC81E]/10 text-[#FFC81E] dark:bg-[#FFC81E]/25 dark:text-emerald-300",
+    active: "bg-[#FFC81E] text-white",
   },
   sowing: {
-    base: "bg-[#7C3AED]/10 text-[#7C3AED] dark:bg-[#7C3AED]/25 dark:text-purple-300",
-    active: "bg-[#7C3AED] text-white",
+    base: "bg-[#FEFDDF]/10 text-[#FEFDDF] dark:bg-[#FEFDDF]/25 dark:text-purple-300",
+    active: "bg-[#FEFDDF] text-white",
   },
   want: {
-    base: "bg-[#EA580C]/10 text-[#EA580C] dark:bg-[#EA580C]/25 dark:text-orange-300",
-    active: "bg-[#EA580C] text-white",
+    base: "bg-[#E87F24]/10 text-[#E87F24] dark:bg-[#E87F24]/25 dark:text-orange-300",
+    active: "bg-[#E87F24] text-white",
   },
 };
 
@@ -539,7 +539,7 @@ export default function CashbookPage() {
                           onClick={() => setSelectedWishId(w.id)}
                           className={`w-full text-left rounded-xl border px-3.5 py-2.5 transition-all active:scale-[0.98] ${
                             isSelected
-                              ? "border-[#EA580C] bg-[#EA580C]/5 dark:bg-[#EA580C]/15"
+                              ? "border-[#E87F24] bg-[#E87F24]/5 dark:bg-[#E87F24]/15"
                               : "border-gray-200 dark:border-[#2d3748] bg-white dark:bg-[#1a2030]"
                           }`}
                         >
@@ -553,7 +553,7 @@ export default function CashbookPage() {
                           </div>
                           <div className="mt-1.5 h-1.5 rounded-full bg-gray-100 dark:bg-[#262c38] overflow-hidden">
                             <div
-                              className="h-full rounded-full bg-[#EA580C] transition-all"
+                              className="h-full rounded-full bg-[#E87F24] transition-all"
                               style={{ width: `${pct}%` }}
                             />
                           </div>
@@ -565,19 +565,19 @@ export default function CashbookPage() {
                       <button
                         type="button"
                         onClick={() => setNewWishOpen(true)}
-                        className="w-full min-h-[44px] rounded-xl border border-dashed border-[#EA580C]/50 text-xs font-medium text-[#EA580C] hover:bg-[#EA580C]/5 transition-colors"
+                        className="w-full min-h-[44px] rounded-xl border border-dashed border-[#E87F24]/50 text-xs font-medium text-[#E87F24] hover:bg-[#E87F24]/5 transition-colors"
                       >
                         + 새 요망사항 만들기
                       </button>
                     ) : (
-                      <div className="rounded-xl border border-[#EA580C]/50 bg-[#EA580C]/5 dark:bg-[#EA580C]/10 p-3 space-y-2">
+                      <div className="rounded-xl border border-[#E87F24]/50 bg-[#E87F24]/5 dark:bg-[#E87F24]/10 p-3 space-y-2">
                         <input
                           type="text"
                           value={newWishTitle}
                           onChange={(e) => setNewWishTitle(e.target.value)}
                           placeholder="요망사항 제목"
                           autoFocus
-                          className="w-full min-h-[40px] px-3 py-2 rounded-lg border border-gray-200 dark:border-[#2d3748] bg-white dark:bg-[#1a2030] text-sm focus:outline-none focus:ring-2 focus:ring-[#EA580C]/40"
+                          className="w-full min-h-[40px] px-3 py-2 rounded-lg border border-gray-200 dark:border-[#2d3748] bg-white dark:bg-[#1a2030] text-sm focus:outline-none focus:ring-2 focus:ring-[#E87F24]/40"
                         />
                         <AmountInput value={newWishTarget} onChange={setNewWishTarget} placeholder="목표 금액" />
                         <div className="flex gap-2">
@@ -592,7 +592,7 @@ export default function CashbookPage() {
                             type="button"
                             onClick={handleCreateWish}
                             disabled={creatingWish || !newWishTitle.trim() || parseCurrencyInput(newWishTarget) <= 0}
-                            className="flex-1 min-h-[40px] py-2 rounded-lg text-xs font-semibold text-white bg-[#EA580C] disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="flex-1 min-h-[40px] py-2 rounded-lg text-xs font-semibold text-white bg-[#E87F24] disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             {creatingWish ? "생성 중..." : "생성"}
                           </button>
@@ -739,7 +739,7 @@ export default function CashbookPage() {
                             onClick={() => setEditWishId(w.id)}
                             className={`w-full text-left rounded-xl border px-3.5 py-2.5 transition-all active:scale-[0.98] ${
                               isSelected
-                                ? "border-[#EA580C] bg-[#EA580C]/5 dark:bg-[#EA580C]/15"
+                                ? "border-[#E87F24] bg-[#E87F24]/5 dark:bg-[#E87F24]/15"
                                 : "border-gray-200 dark:border-[#2d3748] bg-white dark:bg-[#1a2030]"
                             }`}
                           >
@@ -753,7 +753,7 @@ export default function CashbookPage() {
                             </div>
                             <div className="mt-1.5 h-1.5 rounded-full bg-gray-100 dark:bg-[#262c38] overflow-hidden">
                               <div
-                                className="h-full rounded-full bg-[#EA580C] transition-all"
+                                className="h-full rounded-full bg-[#E87F24] transition-all"
                                 style={{ width: `${pct}%` }}
                               />
                             </div>
@@ -954,13 +954,13 @@ function MonthlyTab({
 
         <FinanceCard>
           <div className="flex items-center gap-1 mb-1.5">
-            <Wallet size={12} className="text-[#2563EB] dark:text-blue-300 shrink-0" />
+            <Wallet size={12} className="text-[#73A5CA] dark:text-blue-300 shrink-0" />
             <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 truncate">잔액</span>
           </div>
           <p
             className={`text-sm font-bold tabular-nums ${
               balance >= 0
-                ? "text-[#2563EB] dark:text-blue-300"
+                ? "text-[#73A5CA] dark:text-blue-300"
                 : "text-red-500 dark:text-red-400"
             }`}
           >

@@ -24,7 +24,7 @@ import { useToast } from "@/components/ui/toast";
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const GROUP_ID = "necessity" as const;
-const GROUP_COLOR = "#059669";
+const GROUP_COLOR = "#FFC81E";
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 

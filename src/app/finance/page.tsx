@@ -37,20 +37,20 @@ import { AmountInput } from "@/components/finance/amount-input";
 
 const GROUP_CHIP_STYLES: Record<string, { base: string; active: string }> = {
   obligation: {
-    base: "bg-[#2563EB]/10 text-[#2563EB] dark:bg-[#2563EB]/25 dark:text-blue-300",
-    active: "bg-[#2563EB] text-white",
+    base: "bg-[#73A5CA]/10 text-[#73A5CA] dark:bg-[#73A5CA]/25 dark:text-blue-300",
+    active: "bg-[#73A5CA] text-white",
   },
   necessity: {
-    base: "bg-[#059669]/10 text-[#059669] dark:bg-[#059669]/25 dark:text-emerald-300",
-    active: "bg-[#059669] text-white",
+    base: "bg-[#FFC81E]/10 text-[#FFC81E] dark:bg-[#FFC81E]/25 dark:text-emerald-300",
+    active: "bg-[#FFC81E] text-white",
   },
   sowing: {
-    base: "bg-[#7C3AED]/10 text-[#7C3AED] dark:bg-[#7C3AED]/25 dark:text-purple-300",
-    active: "bg-[#7C3AED] text-white",
+    base: "bg-[#FEFDDF]/10 text-[#FEFDDF] dark:bg-[#FEFDDF]/25 dark:text-purple-300",
+    active: "bg-[#FEFDDF] text-white",
   },
   want: {
-    base: "bg-[#EA580C]/10 text-[#EA580C] dark:bg-[#EA580C]/25 dark:text-orange-300",
-    active: "bg-[#EA580C] text-white",
+    base: "bg-[#E87F24]/10 text-[#E87F24] dark:bg-[#E87F24]/25 dark:text-orange-300",
+    active: "bg-[#E87F24] text-white",
   },
 };
 
@@ -232,7 +232,7 @@ function FinancePageInner() {
 
               <FinanceCard>
                 <div className="flex items-center gap-1.5 mb-2">
-                  <Wallet size={14} className="text-[#2563EB] dark:text-blue-300 shrink-0" />
+                  <Wallet size={14} className="text-[#73A5CA] dark:text-blue-300 shrink-0" />
                   <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500">
                     이번달 잔액
                   </span>
@@ -240,7 +240,7 @@ function FinancePageInner() {
                 <p
                   className={`text-sm lg:text-base font-bold tabular-nums ${
                     summary.balance >= 0
-                      ? "text-[#2563EB] dark:text-blue-300"
+                      ? "text-[#73A5CA] dark:text-blue-300"
                       : "text-red-500 dark:text-red-400"
                   }`}
                 >
@@ -277,7 +277,7 @@ function FinancePageInner() {
                         누적 잔액
                       </span>
                     </div>
-                    <p className="text-lg font-bold text-[#7C3AED] dark:text-violet-400 tabular-nums">
+                    <p className="text-lg font-bold text-[#FEFDDF] dark:text-violet-400 tabular-nums">
                       {formatCurrency(heavenBankBalance)}
                       <span className="text-xs font-normal ml-1">원</span>
                     </p>

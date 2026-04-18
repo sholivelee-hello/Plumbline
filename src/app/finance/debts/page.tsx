@@ -251,7 +251,7 @@ export default function DebtsPage() {
             type="button"
             onClick={openAddDebtSheet}
             className="px-4 py-2 min-h-[40px] rounded-xl text-sm font-semibold text-white
-              bg-[#2563EB] hover:opacity-90 active:scale-95 transition-all"
+              bg-[#73A5CA] hover:opacity-90 active:scale-95 transition-all"
           >
             + 빚 추가
           </button>
@@ -261,7 +261,7 @@ export default function DebtsPage() {
       <div className="max-w-3xl mx-auto p-4 lg:p-8 space-y-5">
 
         {/* ── Summary Card ──────────────────────────────────────────────── */}
-        <FinanceCard groupColor="#2563EB">
+        <FinanceCard groupColor="#73A5CA">
           <div className="pl-2">
             <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
               부채 현황
@@ -314,7 +314,7 @@ export default function DebtsPage() {
               const isOverflowOpen = overflowOpen === debt.id;
 
               return (
-                <FinanceCard key={debt.id} groupColor="#2563EB">
+                <FinanceCard key={debt.id} groupColor="#73A5CA">
                   <div className="pl-2">
                     {/* Title row + overflow menu */}
                     <div className="flex items-start justify-between mb-1.5">
@@ -324,7 +324,7 @@ export default function DebtsPage() {
                         </h3>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 ml-2">
-                        <span className="text-xs font-semibold text-[#2563EB] dark:text-blue-300 tabular-nums">
+                        <span className="text-xs font-semibold text-[#73A5CA] dark:text-blue-300 tabular-nums">
                           {debt.percent}%
                         </span>
                         <div className="relative">
@@ -384,7 +384,7 @@ export default function DebtsPage() {
                       <FinanceProgressBar
                         value={debt.total_paid}
                         max={debt.total_amount}
-                        color="#2563EB"
+                        color="#73A5CA"
                         height="md"
                       />
                     </div>
@@ -424,7 +424,7 @@ export default function DebtsPage() {
                         type="button"
                         onClick={() => openPaymentSheet(debt)}
                         className="flex-1 min-h-[40px] py-2 rounded-xl text-xs font-semibold
-                          bg-[#2563EB] text-white
+                          bg-[#73A5CA] text-white
                           hover:opacity-90 active:scale-[0.98] transition-all"
                       >
                         상환 기록
@@ -573,7 +573,7 @@ export default function DebtsPage() {
               autoFocus
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#73A5CA]/30"
             />
           </div>
 
@@ -593,7 +593,7 @@ export default function DebtsPage() {
               placeholder="예: 주거, 학자금"
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#73A5CA]/30"
             />
             {/* Tag chip preview */}
             {parseTags(debtTagsInput).length > 0 && (
@@ -616,7 +616,7 @@ export default function DebtsPage() {
             onClick={handleAddDebt}
             disabled={debtSaving || !canSaveDebt}
             className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
-              bg-[#2563EB] hover:opacity-90
+              bg-[#73A5CA] hover:opacity-90
               disabled:opacity-40 disabled:cursor-not-allowed
               transition-opacity active:scale-[0.98]"
           >
@@ -642,7 +642,7 @@ export default function DebtsPage() {
               autoFocus
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#73A5CA]/30"
             />
           </div>
 
@@ -667,7 +667,7 @@ export default function DebtsPage() {
               placeholder="예: 주거, 학자금"
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#73A5CA]/30"
             />
             {parseTags(editTagsInput).length > 0 && (
               <div className="flex gap-1 flex-wrap mt-2">
@@ -689,7 +689,7 @@ export default function DebtsPage() {
             onClick={handleSaveEdit}
             disabled={editSaving || !canSaveEdit}
             className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
-              bg-[#2563EB] hover:opacity-90
+              bg-[#73A5CA] hover:opacity-90
               disabled:opacity-40 disabled:cursor-not-allowed
               transition-opacity active:scale-[0.98]"
           >
@@ -732,7 +732,7 @@ export default function DebtsPage() {
               onChange={(e) => setPaymentDate(e.target.value)}
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
+                focus:outline-none focus:ring-2 focus:ring-[#73A5CA]/30"
             />
           </div>
 
@@ -745,7 +745,7 @@ export default function DebtsPage() {
               placeholder="메모"
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#73A5CA]/30"
               onKeyDown={(e) => { if (e.key === "Enter") handleSavePayment(); }}
             />
           </div>
@@ -755,7 +755,7 @@ export default function DebtsPage() {
             onClick={handleSavePayment}
             disabled={paymentSaving || !canSavePayment}
             className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
-              bg-[#2563EB] hover:opacity-90
+              bg-[#73A5CA] hover:opacity-90
               disabled:opacity-40 disabled:cursor-not-allowed
               transition-opacity active:scale-[0.98]"
           >

@@ -170,7 +170,7 @@ export default function ObligationPage() {
         ) : (
           <>
             {/* ── Group Summary Card ──────────────────────────────────────── */}
-            <FinanceCard groupColor="#2563EB">
+            <FinanceCard groupColor="#73A5CA">
               <div className="pl-2">
                 <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
                   이번 달 의무사항
@@ -193,7 +193,7 @@ export default function ObligationPage() {
                     <p
                       className={`text-sm font-semibold tabular-nums ${
                         remaining >= 0
-                          ? "text-[#2563EB] dark:text-blue-300"
+                          ? "text-[#73A5CA] dark:text-blue-300"
                           : "text-red-500 dark:text-red-400"
                       }`}
                     >
@@ -201,7 +201,7 @@ export default function ObligationPage() {
                     </p>
                   </div>
                 </div>
-                <FinanceProgressBar value={totalActual} max={totalBudget} color="#2563EB" height="md" />
+                <FinanceProgressBar value={totalActual} max={totalBudget} color="#73A5CA" height="md" />
               </div>
             </FinanceCard>
 
@@ -256,7 +256,7 @@ export default function ObligationPage() {
                       <FinanceProgressBar
                         value={itemActual}
                         max={itemBudget > 0 ? itemBudget : itemActual || 1}
-                        color="#2563EB"
+                        color="#73A5CA"
                         height="sm"
                       />
                     </button>
@@ -290,8 +290,8 @@ export default function ObligationPage() {
                             type="button"
                             onClick={() => openExpenseSheet(item.id)}
                             className="w-full min-h-[40px] py-2 rounded-xl text-xs font-medium
-                              text-[#2563EB] dark:text-blue-300 bg-[#2563EB]/8 dark:bg-[#2563EB]/20
-                              hover:bg-[#2563EB]/12 dark:hover:bg-[#2563EB]/30
+                              text-[#73A5CA] dark:text-blue-300 bg-[#73A5CA]/8 dark:bg-[#73A5CA]/20
+                              hover:bg-[#73A5CA]/12 dark:hover:bg-[#73A5CA]/30
                               transition-colors active:scale-[0.98]"
                           >
                             + 지출 추가
@@ -330,8 +330,8 @@ export default function ObligationPage() {
                       type="button"
                       onClick={() => setExpenseItemId(item.id)}
                       className="px-3.5 py-2 min-h-[44px] rounded-full text-xs font-medium
-                        bg-[#2563EB]/10 text-[#2563EB] dark:bg-[#2563EB]/25 dark:text-blue-300
-                        hover:bg-[#2563EB]/20 active:scale-95 transition-all"
+                        bg-[#73A5CA]/10 text-[#73A5CA] dark:bg-[#73A5CA]/25 dark:text-blue-300
+                        hover:bg-[#73A5CA]/20 active:scale-95 transition-all"
                     >
                       {item.title}
                     </button>
@@ -376,7 +376,7 @@ export default function ObligationPage() {
             onClick={handleSaveExpense}
             disabled={expenseSaving || !canSaveExpense}
             className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
-              bg-[#2563EB] hover:opacity-90
+              bg-[#73A5CA] hover:opacity-90
               disabled:opacity-40 disabled:cursor-not-allowed
               transition-opacity active:scale-[0.98]"
           >

@@ -24,7 +24,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const WANT_COLOR = "#EA580C"; // sunset orange
+const WANT_COLOR = "#E87F24"; // sunset orange
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
 
@@ -344,7 +344,7 @@ export default function WantPage() {
                     <p
                       className={`text-sm font-semibold tabular-nums ${
                         remaining >= 0
-                          ? "text-[#EA580C] dark:text-orange-300"
+                          ? "text-[#E87F24] dark:text-orange-300"
                           : "text-red-500 dark:text-red-400"
                       }`}
                     >
@@ -365,8 +365,8 @@ export default function WantPage() {
                 <button
                   type="button"
                   onClick={openAddWishSheet}
-                  className="text-xs font-medium text-[#EA580C] dark:text-orange-300 px-3 py-1.5 rounded-full
-                    bg-[#EA580C]/8 dark:bg-[#EA580C]/20 hover:bg-[#EA580C]/12 dark:hover:bg-[#EA580C]/30
+                  className="text-xs font-medium text-[#E87F24] dark:text-orange-300 px-3 py-1.5 rounded-full
+                    bg-[#E87F24]/8 dark:bg-[#E87F24]/20 hover:bg-[#E87F24]/12 dark:hover:bg-[#E87F24]/30
                     transition-colors active:scale-95"
                 >
                   + 위시 추가
@@ -388,8 +388,8 @@ export default function WantPage() {
                     <button
                       type="button"
                       onClick={openAddWishSheet}
-                      className="text-xs font-medium text-[#EA580C] dark:text-orange-300 px-4 py-2 rounded-full
-                        bg-[#EA580C]/8 dark:bg-[#EA580C]/20 hover:bg-[#EA580C]/12 dark:hover:bg-[#EA580C]/30
+                      className="text-xs font-medium text-[#E87F24] dark:text-orange-300 px-4 py-2 rounded-full
+                        bg-[#E87F24]/8 dark:bg-[#E87F24]/20 hover:bg-[#E87F24]/12 dark:hover:bg-[#E87F24]/30
                         transition-colors active:scale-95"
                     >
                       첫 번째 위시 추가
@@ -482,7 +482,7 @@ export default function WantPage() {
                                       type="button"
                                       onClick={() => { setMenuWishId(null); openCompleteDialog(wish); }}
                                       className="w-full text-left px-4 py-2.5 text-xs font-medium
-                                        text-[#EA580C] dark:text-orange-300
+                                        text-[#E87F24] dark:text-orange-300
                                         hover:bg-gray-50 dark:hover:bg-[#262c38] transition-colors"
                                     >
                                       구매 완료
@@ -539,8 +539,8 @@ export default function WantPage() {
                           type="button"
                           onClick={() => openSaveSheet(wish)}
                           className="w-full min-h-[40px] py-2 rounded-xl text-xs font-medium
-                            text-[#EA580C] dark:text-orange-300 bg-[#EA580C]/8 dark:bg-[#EA580C]/20
-                            hover:bg-[#EA580C]/12 dark:hover:bg-[#EA580C]/30
+                            text-[#E87F24] dark:text-orange-300 bg-[#E87F24]/8 dark:bg-[#E87F24]/20
+                            hover:bg-[#E87F24]/12 dark:hover:bg-[#E87F24]/30
                             transition-colors active:scale-[0.98]"
                         >
                           + 저축하기
@@ -625,7 +625,7 @@ export default function WantPage() {
             onClick={handleAddWish}
             disabled={wishSaving || !canSaveWish}
             className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
-              bg-[#EA580C] hover:opacity-90
+              bg-[#E87F24] hover:opacity-90
               disabled:opacity-40 disabled:cursor-not-allowed
               transition-opacity active:scale-[0.98]"
           >
@@ -662,7 +662,7 @@ export default function WantPage() {
               onClick={handleSaveEditWish}
               disabled={editWishSaving || parsedEditWishAmount <= 0}
               className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
-                bg-[#EA580C] hover:opacity-90
+                bg-[#E87F24] hover:opacity-90
                 disabled:opacity-40 disabled:cursor-not-allowed
                 transition-opacity active:scale-[0.98]"
             >
@@ -682,7 +682,7 @@ export default function WantPage() {
           <div className="space-y-5">
             <div className="p-3 rounded-xl bg-gray-50 dark:bg-[#262c38] text-xs text-gray-500 dark:text-gray-400">
               남은 금액:{" "}
-              <span className="font-semibold text-[#EA580C] dark:text-orange-300 tabular-nums">
+              <span className="font-semibold text-[#E87F24] dark:text-orange-300 tabular-nums">
                 {formatCurrency(Math.max(saveWish.target_amount - saveWish.cumulative_saved, 0))}원
               </span>
             </div>
@@ -695,7 +695,7 @@ export default function WantPage() {
               onClick={handleSaveSaved}
               disabled={savingSave || !canSave}
               className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
-                bg-[#EA580C] hover:opacity-90
+                bg-[#E87F24] hover:opacity-90
                 disabled:opacity-40 disabled:cursor-not-allowed
                 transition-opacity active:scale-[0.98]"
             >
@@ -745,7 +745,7 @@ export default function WantPage() {
             onClick={handleSaveExpense}
             disabled={expenseSaving || !canSaveExpense}
             className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
-              bg-[#EA580C] hover:opacity-90
+              bg-[#E87F24] hover:opacity-90
               disabled:opacity-40 disabled:cursor-not-allowed
               transition-opacity active:scale-[0.98]"
           >
