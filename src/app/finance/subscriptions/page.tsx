@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronDown, ChevronUp, MoreHorizontal, Trash2, Pencil, DollarSign, X, RefreshCw } from "lucide-react";
 
@@ -322,8 +322,16 @@ export default function SubscriptionsPage() {
   }
 
   // ── Upcoming ──────────────────────────────────────────────────────────
+  // new Date()가 SSR과 CSR에서 다르게 평가되면 하이드레이션 불일치가 난다.
+  // mount 이후에만 계산해서 서버 렌더 시점에는 빈 배열을 사용.
 
-  const upcoming = computeUpcoming(activeSubscriptions);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  const upcoming = useMemo(
+    () => (mounted ? computeUpcoming(activeSubscriptions) : []),
+    [mounted, activeSubscriptions],
+  );
 
   // ── Render ─────────────────────────────────────────────────────────────
 
@@ -378,13 +386,15 @@ export default function SubscriptionsPage() {
                 <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-1.5">다음 결제 예정</p>
                 <div className="space-y-1">
                   {upcoming.map(({ sub, daysUntil }) => (
-                    <div key={sub.id} className="flex items-center justify-between text-xs">
+                    <div key={sub.id} className="flex items-center justify-between gap-2 text-xs">
                       <span className="text-gray-700 dark:text-gray-200 truncate flex-1">
                         {sub.title}
                       </span>
-                      <span className="text-gray-400 dark:text-gray-500 tabular-nums shrink-0 ml-2">
-                        매달 {sub.day_of_month}일
-                        {daysUntil === 0 ? " (오늘)" : ` (${daysUntil}일 후)`}
+                      <span className="text-gray-400 dark:text-gray-500 tabular-nums shrink-0">
+                        {daysUntil === 0 ? "오늘" : `${daysUntil}일 후`}
+                      </span>
+                      <span className="text-gray-900 dark:text-gray-100 font-semibold tabular-nums shrink-0">
+                        {formatCurrency(sub.amount)}원
                       </span>
                     </div>
                   ))}
@@ -438,11 +448,11 @@ export default function SubscriptionsPage() {
                         <button
                           type="button"
                           onClick={() => setOverflowOpen(isOverflowOpen ? null : sub.id)}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 dark:text-gray-500
+                          className="w-11 h-11 -my-2 -mr-2 flex items-center justify-center rounded-full text-gray-400 dark:text-gray-500
                             hover:bg-gray-100 dark:hover:bg-[#262c38] transition-colors"
                           aria-label="더보기"
                         >
-                          <MoreHorizontal size={16} />
+                          <MoreHorizontal size={18} />
                         </button>
                         {isOverflowOpen && (
                           <div className="absolute right-0 top-9 z-20 w-36 rounded-xl shadow-lg border border-gray-100 dark:border-[#2d3748]

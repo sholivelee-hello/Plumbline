@@ -17,6 +17,7 @@ import { BottomSheet } from "@/components/finance/bottom-sheet";
 import { AmountInput } from "@/components/finance/amount-input";
 import { GroupPageSkeleton } from "@/components/finance/finance-skeleton";
 import { useToast } from "@/components/ui/toast";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -280,6 +281,20 @@ export default function SowingPage() {
   const [reapAsIncome, setReapAsIncome] = useState(false);
   const [reapSaving, setReapSaving] = useState(false);
 
+  // ── Delete confirmation ───────────────────────────────────────────────────
+  const [deleteTarget, setDeleteTarget] = useState<HeavenBankEntry | null>(null);
+  const [deleteSaving, setDeleteSaving] = useState(false);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    setDeleteSaving(true);
+    const res = await deleteEntry(deleteTarget.id, deleteTarget);
+    setDeleteSaving(false);
+    if (!res.ok) toast(res.error ?? "삭제 실패", "error");
+    else toast("삭제됐습니다", "success");
+    setDeleteTarget(null);
+  }, [deleteTarget, deleteEntry, toast]);
+
   function openReapSheet() {
     setReapDesc("");
     setReapAmount("");
@@ -439,7 +454,7 @@ export default function SowingPage() {
                               <p
                                 className={`text-sm font-semibold tabular-nums ${
                                   entry.type === "sow"
-                                    ? "text-[#FEFDDF] dark:text-violet-400"
+                                    ? "text-[#B89B4A] dark:text-[#D4C675]"
                                     : "text-red-500 dark:text-red-400"
                                 }`}
                               >
@@ -454,17 +469,14 @@ export default function SowingPage() {
                             {/* Delete */}
                             <button
                               type="button"
-                              onClick={async (e) => {
+                              onClick={(e) => {
                                 e.stopPropagation();
-                                if (!confirm("이 항목을 삭제할까요?")) return;
-                                const res = await deleteEntry(entry.id, entry);
-                                if (!res.ok) toast(res.error ?? "삭제 실패", "error");
-                                else toast("삭제됐습니다", "success");
+                                setDeleteTarget(entry);
                               }}
-                              className="ml-2 shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 dark:text-gray-600 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                              className="ml-2 shrink-0 w-11 h-11 -my-2 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                               aria-label="삭제"
                             >
-                              <Trash2 size={13} />
+                              <Trash2 size={16} />
                             </button>
                           </div>
                         ))}
@@ -493,8 +505,8 @@ export default function SowingPage() {
                   onClick={() => { setSowTarget(preset); setSowCustomTarget(""); }}
                   className={`px-3.5 py-2 min-h-[44px] rounded-full text-xs font-medium transition-all active:scale-95 ${
                     sowTarget === preset
-                      ? "bg-[#FEFDDF] text-white"
-                      : "bg-[#FEFDDF]/10 text-[#FEFDDF] dark:bg-[#FEFDDF]/20 dark:text-violet-300 hover:bg-[#FEFDDF]/20"
+                      ? "bg-[#B89B4A] text-white"
+                      : "bg-amber-50 text-amber-900 dark:bg-[#B89B4A]/20 dark:text-[#D4C675] hover:bg-amber-100 dark:hover:bg-[#B89B4A]/30"
                   }`}
                 >
                   {preset}
@@ -505,7 +517,7 @@ export default function SowingPage() {
                 onClick={() => setSowTarget("__custom__")}
                 className={`px-3.5 py-2 min-h-[44px] rounded-full text-xs font-medium transition-all active:scale-95 ${
                   sowTarget === "__custom__"
-                    ? "bg-[#FEFDDF] text-white"
+                    ? "bg-[#B89B4A] text-white"
                     : "bg-gray-100 text-gray-600 dark:bg-[#262c38] dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#2d3748]"
                 }`}
               >
@@ -526,7 +538,7 @@ export default function SowingPage() {
                 autoFocus
                 className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                   bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                  placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FEFDDF]/40"
+                  placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#B89B4A]/40"
               />
             </div>
           )}
@@ -546,7 +558,7 @@ export default function SowingPage() {
               onChange={(e) => setSowDate(e.target.value)}
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                focus:outline-none focus:ring-2 focus:ring-[#FEFDDF]/40"
+                focus:outline-none focus:ring-2 focus:ring-[#B89B4A]/40"
             />
           </div>
 
@@ -560,7 +572,7 @@ export default function SowingPage() {
               placeholder="내역 설명"
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FEFDDF]/40"
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#B89B4A]/40"
               onKeyDown={(e) => { if (e.key === "Enter") handleSaveSow(); }}
             />
           </div>
@@ -570,9 +582,9 @@ export default function SowingPage() {
             onClick={handleSaveSow}
             disabled={sowSaving || !canSaveSow}
             className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
-              bg-[#FEFDDF] hover:opacity-90
+              bg-[#B89B4A] hover:bg-[#A5883E]
               disabled:opacity-40 disabled:cursor-not-allowed
-              transition-opacity active:scale-[0.98]"
+              transition-colors active:scale-[0.98]"
           >
             {sowSaving ? "저장 중..." : "심기"}
           </button>
@@ -585,16 +597,18 @@ export default function SowingPage() {
 
           {/* Description */}
           <div>
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">어떻게 채워주셨나요?</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+              어떻게 채워주셨나요? <span className="text-[#B89B4A]">*</span>
+            </p>
             <input
               type="text"
               value={reapDesc}
               onChange={(e) => setReapDesc(e.target.value)}
-              placeholder="예: 사업 계약, 예상치 못한 선물"
+              placeholder="예: 사업 계약, 예상치 못한 선물 (필수)"
               autoFocus
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#FEFDDF]/40"
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#B89B4A]/40"
             />
           </div>
 
@@ -613,7 +627,7 @@ export default function SowingPage() {
               onChange={(e) => setReapDate(e.target.value)}
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                focus:outline-none focus:ring-2 focus:ring-[#FEFDDF]/40"
+                focus:outline-none focus:ring-2 focus:ring-[#B89B4A]/40"
             />
           </div>
 
@@ -654,14 +668,31 @@ export default function SowingPage() {
             onClick={handleSaveReap}
             disabled={reapSaving || !canSaveReap}
             className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
-              bg-[#FEFDDF] hover:opacity-90
+              bg-[#B89B4A] hover:bg-[#A5883E]
               disabled:opacity-40 disabled:cursor-not-allowed
-              transition-opacity active:scale-[0.98]"
+              transition-colors active:scale-[0.98]"
           >
             {reapSaving ? "저장 중..." : "거두기"}
           </button>
         </div>
       </BottomSheet>
+
+      {/* ── Delete Confirmation ──────────────────────────────────────────────── */}
+      <ConfirmDialog
+        isOpen={deleteTarget !== null}
+        onClose={() => { if (!deleteSaving) setDeleteTarget(null); }}
+        onConfirm={handleConfirmDelete}
+        title="이 항목을 삭제할까요?"
+        description={
+          deleteTarget
+            ? `${deleteTarget.type === "sow" ? "심음" : "거둠"} · ${formatCurrency(deleteTarget.amount)}원`
+            : undefined
+        }
+        confirmLabel="삭제"
+        cancelLabel="취소"
+        variant="danger"
+        loading={deleteSaving}
+      />
     </div>
   );
 }
