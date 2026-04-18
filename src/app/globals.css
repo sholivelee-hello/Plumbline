@@ -102,6 +102,17 @@ body {
   }
 }
 
+/* Date/month inputs: force full-width on mobile (iOS -webkit-appearance fix) */
+input[type="date"],
+input[type="month"],
+input[type="datetime-local"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

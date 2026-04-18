@@ -144,7 +144,7 @@ export function BottomSheet({ isOpen, onClose, title, children }: BottomSheetPro
         </div>
 
         {/* Content */}
-        <div className="p-5 pb-[env(safe-area-inset-bottom,1rem)]">
+        <div className="p-5 pb-10">
           {children}
         </div>
       </div>
