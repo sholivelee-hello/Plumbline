@@ -10,6 +10,7 @@ import {
   parseGroupConfigs,
   type FinanceGroup,
 } from "@/lib/finance-config";
+import { bumpFinance } from "@/lib/finance-bus";
 
 export function useBudgetSettings() {
   const [settings, setSettings] = useState<FinanceBudgetSettings | null>(null);
@@ -120,6 +121,24 @@ export function useBudgetSettings() {
   const updateGroupConfigs = useCallback(
     async (configs: FinanceGroup[]): Promise<{ ok: boolean; error?: string }> => {
       const prev = settingsRef.current;
+
+      // Diff prev vs next to find (groupId, itemId) pairs that were removed.
+      // Deleted items must have their references pruned from dependent tables,
+      // otherwise the "deleted" items keep showing up in budget/cashbook views.
+      const prevGroups = parseGroupConfigs(prev?.group_configs);
+      const nextKeys = new Set<string>();
+      for (const g of configs) {
+        for (const it of g.items) nextKeys.add(`${g.id}::${it.id}`);
+      }
+      const removed: Array<{ groupId: string; itemId: string }> = [];
+      for (const g of prevGroups) {
+        for (const it of g.items) {
+          if (!nextKeys.has(`${g.id}::${it.id}`)) {
+            removed.push({ groupId: g.id, itemId: it.id });
+          }
+        }
+      }
+
       const next: FinanceBudgetSettings = {
         id: prev?.id ?? "local",
         user_id: FIXED_USER_ID,
@@ -147,6 +166,46 @@ export function useBudgetSettings() {
         setSettings(prev);
         return { ok: false, error: updateError.message };
       }
+
+      // Cascade-clean references to removed items. Keep the rows themselves
+      // (they still represent real money movement) but null out the item link
+      // so they no longer render under the deleted category. Budgets, however,
+      // are per-item allocations — delete those outright.
+      if (removed.length > 0) {
+        const cleanupErrors: string[] = [];
+        for (const { groupId, itemId } of removed) {
+          const [tx, rc, bg] = await Promise.all([
+            supabase
+              .from("finance_transactions")
+              .update({ item_id: null })
+              .eq("user_id", FIXED_USER_ID)
+              .eq("group_id", groupId)
+              .eq("item_id", itemId),
+            supabase
+              .from("finance_recurring")
+              .update({ item_id: null })
+              .eq("user_id", FIXED_USER_ID)
+              .eq("group_id", groupId)
+              .eq("item_id", itemId),
+            supabase
+              .from("finance_budgets")
+              .delete()
+              .eq("user_id", FIXED_USER_ID)
+              .eq("group_id", groupId)
+              .eq("item_id", itemId),
+          ]);
+          if (tx.error) cleanupErrors.push(tx.error.message);
+          if (rc.error) cleanupErrors.push(rc.error.message);
+          if (bg.error) cleanupErrors.push(bg.error.message);
+        }
+        bumpFinance("transactions");
+        bumpFinance("recurring");
+        bumpFinance("budget");
+        if (cleanupErrors.length > 0) {
+          return { ok: false, error: `삭제된 항목 참조 정리 실패: ${cleanupErrors.join("; ")}` };
+        }
+      }
+
       setRefreshTick((n) => n + 1);
       return { ok: true };
     },

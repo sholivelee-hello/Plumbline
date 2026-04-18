@@ -93,29 +93,9 @@ export function parseGroupConfigs(raw: unknown): FinanceGroup[] {
     )
   );
   if (!valid) return DEFAULT_GROUPS;
-  const stored = raw as FinanceGroup[];
-  // Merge missing items from DEFAULT_GROUPS so existing users get new items automatically.
-  // If nothing is missing, return the stored array as-is (preserves reference equality).
-  let needsMerge = false;
-  for (const defaultGroup of DEFAULT_GROUPS) {
-    const storedGroup = stored.find(g => g.id === defaultGroup.id);
-    if (!storedGroup) { needsMerge = true; break; }
-    if (defaultGroup.items.some(di => !storedGroup.items.some(si => si.id === di.id))) {
-      needsMerge = true;
-      break;
-    }
-  }
-  if (!needsMerge) return stored;
-  return DEFAULT_GROUPS.map(defaultGroup => {
-    const storedGroup = stored.find(g => g.id === defaultGroup.id);
-    if (!storedGroup) return defaultGroup;
-    const missingItems = defaultGroup.items.filter(
-      di => !storedGroup.items.some(si => si.id === di.id)
-    );
-    return missingItems.length === 0
-      ? storedGroup
-      : { ...storedGroup, items: [...storedGroup.items, ...missingItems] };
-  });
+  // Return stored value verbatim. Do NOT auto-merge DEFAULT_GROUPS items —
+  // that would resurrect items the user intentionally deleted.
+  return raw as FinanceGroup[];
 }
 
 // Color mapping for Tailwind classes

@@ -14,6 +14,7 @@ import {
   Settings,
   Banknote,
   Repeat,
+  RotateCw,
 } from "lucide-react";
 import { useFinanceHub } from "@/lib/hooks/use-finance-hub";
 import { useFinanceTransactions } from "@/lib/hooks/use-finance-transactions";
@@ -330,32 +331,33 @@ function FinancePageInner() {
             </div>
 
             {/* ── 5. Quick Shortcuts ──────────────────────────────────── */}
-            <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4">
+            <section className="grid grid-cols-4 gap-2.5 lg:gap-3">
               {(
                 [
-                  { href: "/finance/cashbook",       icon: BookOpen,     label: "출납부", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
-                  { href: "/finance/budget",         icon: ClipboardList, label: "예산",  color: "text-indigo-600 dark:text-indigo-400",  bg: "bg-indigo-50 dark:bg-indigo-900/20" },
-                  { href: "/finance/debts",          icon: Banknote,     label: "빚",     color: "text-slate-600 dark:text-slate-400",    bg: "bg-slate-100 dark:bg-slate-800/50" },
-                  { href: "/finance/installments",   icon: CreditCard,   label: "할부",   color: "text-blue-600 dark:text-blue-400",      bg: "bg-blue-50 dark:bg-blue-900/20" },
-                  { href: "/finance/subscriptions",  icon: Repeat,       label: "구독",   color: "text-purple-600 dark:text-purple-400",  bg: "bg-purple-50 dark:bg-purple-900/20" },
-                  { href: "/finance/report",         icon: BarChart2,    label: "리포트", color: "text-amber-600 dark:text-amber-400",    bg: "bg-amber-50 dark:bg-amber-900/20" },
-                  { href: "/finance/settings",       icon: Settings,     label: "설정",   color: "text-gray-600 dark:text-gray-400",      bg: "bg-gray-100 dark:bg-gray-800" },
+                  { href: "/finance/cashbook",       icon: BookOpen,      label: "출납부", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
+                  { href: "/finance/budget",         icon: ClipboardList, label: "예산",   color: "text-indigo-600 dark:text-indigo-400",   bg: "bg-indigo-50 dark:bg-indigo-900/20" },
+                  { href: "/finance/report",         icon: BarChart2,     label: "리포트", color: "text-amber-600 dark:text-amber-400",     bg: "bg-amber-50 dark:bg-amber-900/20" },
+                  { href: "/finance/recurring",      icon: RotateCw,      label: "반복",   color: "text-teal-600 dark:text-teal-400",       bg: "bg-teal-50 dark:bg-teal-900/20" },
+                  { href: "/finance/debts",          icon: Banknote,      label: "빚",     color: "text-slate-600 dark:text-slate-300",     bg: "bg-slate-100 dark:bg-slate-800/50" },
+                  { href: "/finance/installments",   icon: CreditCard,    label: "할부",   color: "text-blue-600 dark:text-blue-400",       bg: "bg-blue-50 dark:bg-blue-900/20" },
+                  { href: "/finance/subscriptions",  icon: Repeat,        label: "구독",   color: "text-purple-600 dark:text-purple-400",   bg: "bg-purple-50 dark:bg-purple-900/20" },
+                  { href: "/finance/settings",       icon: Settings,      label: "설정",   color: "text-gray-500 dark:text-gray-300",       bg: "bg-gray-100 dark:bg-gray-800" },
                 ] as const
               ).map(({ href, icon: Icon, label, color, bg }) => (
                 <Link
                   key={href}
                   href={href}
-                  className="shrink-0 flex flex-col items-center gap-1.5 px-3 py-3 rounded-2xl bg-white dark:bg-[#1a2030] border border-gray-100 dark:border-[#2d3748] shadow-sm hover:shadow-md transition-shadow active:scale-[0.96] min-w-[64px]"
+                  className="flex flex-col items-center justify-center gap-2 py-4 rounded-2xl bg-white dark:bg-[#1a2030] border border-gray-100 dark:border-[#2d3748] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all active:scale-[0.96]"
                 >
-                  <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${bg}`}>
-                    <Icon size={16} className={color} />
+                  <span className={`w-11 h-11 rounded-2xl flex items-center justify-center ${bg}`}>
+                    <Icon size={20} className={color} strokeWidth={2} />
                   </span>
-                  <span className="text-[11px] font-medium text-gray-600 dark:text-gray-400">
+                  <span className="text-[11px] font-medium text-gray-700 dark:text-gray-200">
                     {label}
                   </span>
                 </Link>
               ))}
-            </div>
+            </section>
 
             {/* ── 6. Today's Transactions ─────────────────────────────── */}
             <section className="space-y-2">
