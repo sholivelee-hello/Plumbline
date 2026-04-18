@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BookOpen, Wallet, Settings, Scale } from "lucide-react";
+import { Home, BookOpen, Wallet, Scale } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "홈", icon: Home },
@@ -45,19 +45,6 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="px-3 pb-6">
-        <Link
-          href="/settings"
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-            pathname === "/settings"
-              ? "bg-primary-50 dark:bg-[#2a2e45] text-primary-700 dark:text-primary-200"
-              : "text-gray-400 dark:text-gray-500 hover:bg-[var(--surface-muted)] hover:text-gray-600 dark:hover:text-gray-300"
-          }`}
-        >
-          <Settings size={20} strokeWidth={1.8} />
-          <span>설정</span>
-        </Link>
-      </div>
     </aside>
   );
 }

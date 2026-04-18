@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { Settings } from "lucide-react";
 import { BasicsSummary } from "@/components/dashboard/basics-summary";
 import { FinanceSummary } from "@/components/dashboard/finance-summary";
 import { DonutChart } from "@/components/ui/donut-chart";
@@ -37,13 +35,6 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <Link
-            href="/settings"
-            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors lg:hidden min-w-[44px] min-h-[44px] flex items-center justify-center"
-            aria-label="설정"
-          >
-            <Settings size={22} />
-          </Link>
         </div>
       </div>
 
