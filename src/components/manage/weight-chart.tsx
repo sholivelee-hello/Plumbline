@@ -29,7 +29,7 @@ interface Props {
 }
 
 export function WeightChart({ entries, goal }: Props) {
-  const [range, setRange] = useState<RangeKey>("3M");
+  const [range, setRange] = useState<RangeKey>("all");
 
   const data = useMemo(() => {
     const filtered = filterByRange(entries, range);
