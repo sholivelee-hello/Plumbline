@@ -61,6 +61,7 @@ CREATE INDEX idx_finance_transactions_wishlist_id
 - 컬럼 스키마 유지. **2026-05-01 기준 baseline**(그 이전까지 모은 초기값)으로 의미 재정의.
 - 2026-05 이후 추가 적립은 `finance_transactions`의 `wishlist_id` 링크 합산으로 계산 (derived).
 - `COMMENT ON COLUMN` 주석으로 의미 명시.
+- **기존 `updateSaved` 훅의 클램프(0~target) 제거**: 마이그레이션 전 `saved_amount`가 `target_amount`와 같은 완료 직전 위시는 baseline으로 그대로 동결. 이 경우 이후 모든 신규 기여는 "목표 초과" 경고 대상이 되는데, 이는 의도된 동작(사용자가 위시를 `is_completed=true`로 마감하면 picker에서 숨겨지므로 실질 영향 없음).
 
 ### 3-3. `finance_budgets` — 스키마 변경 없음
 
@@ -76,6 +77,7 @@ CREATE INDEX idx_finance_transactions_wishlist_id
 function getWishCumulativeSaved(wish, linkedTxs): number {
   const postBaselineSum = linkedTxs
     .filter(tx => tx.wishlist_id === wish.id)
+    .filter(tx => tx.type === 'expense')        // 수입 연결 방지 (안전장치)
     .filter(tx => tx.date >= '2026-05-01')
     .reduce((s, tx) => s + tx.amount, 0);
   return wish.saved_amount + postBaselineSum; // saved_amount = baseline
@@ -193,9 +195,9 @@ export async function addWishContribution(
 | `src/types/database.ts` | `FinanceTransaction`에 `wishlist_id: string \| null` 추가 |
 | `src/lib/finance-config.ts` | `ROLLOVER_START_MONTH`, `ROLLOVER_POLICY` 상수 |
 | `src/lib/finance-actions.ts` (신규) | `addWishContribution()` 공통 함수 |
-| `src/lib/hooks/use-finance-transactions.ts` | insert/update 시 `wishlist_id` 지원 |
+| `src/lib/hooks/use-finance-transactions.ts` | insert/update 시 `wishlist_id` 지원, SELECT 프로젝션에 `wishlist_id` 포함 |
 | `src/lib/hooks/use-wishlist.ts` | `updateSaved` 제거, derived `cumulative_saved` 반영 |
-| `src/lib/hooks/use-budget.ts` | `getGroupRollover`, `getEffectiveBudget` 유틸 노출 (또는 별도 `use-rollover.ts`) |
+| `src/lib/hooks/use-budget.ts` 또는 `src/lib/hooks/use-rollover.ts` (신규) | `getGroupRollover`, `getEffectiveBudget` 노출. 현재 `useBudget`은 단일 월 파라미터라 전월 fetch가 추가 필요 → 별도 훅 권장 (구현 플랜에서 최종 결정) |
 | `src/lib/hooks/use-finance-hub.ts` | `effectiveBudgets`, `rollovers` 추가 노출 |
 | `src/app/finance/cashbook/page.tsx` | 요망사항 선택 시 위시 picker 분기 |
 | `src/app/finance/want/page.tsx` | "+" 버튼 + bottom sheet, 이중 진입점 |
