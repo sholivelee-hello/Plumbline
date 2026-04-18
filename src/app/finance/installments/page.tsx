@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronDown, ChevronUp, Plus, Trash2, Pencil } from "lucide-react";
 
 import { useInstallments } from "@/lib/hooks/use-installments";
 import { useToast } from "@/components/ui/toast";
@@ -25,7 +25,7 @@ function computePayoffDate(startDate: string, totalMonths: number): string {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function InstallmentsPage() {
-  const { installments, loading, addInstallment, payMonth, unpayMonth, deleteInstallment } = useInstallments();
+  const { installments, loading, addInstallment, updateInstallment, payMonth, unpayMonth, deleteInstallment } = useInstallments();
   const { toast } = useToast();
 
   // ── Section state ────────────────────────────────────────────────────────
@@ -52,6 +52,16 @@ export default function InstallmentsPage() {
   const [unpayConfirmId, setUnpayConfirmId] = useState<string | null>(null);
   const [unpaying, setUnpaying] = useState(false);
 
+  // ── Edit sheet ───────────────────────────────────────────────────────────
+  const [editOpen, setEditOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editTotal, setEditTotal] = useState("");
+  const [editMonthly, setEditMonthly] = useState("");
+  const [editMonths, setEditMonths] = useState("");
+  const [editStart, setEditStart] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+
   // ── Derived lists ────────────────────────────────────────────────────────
   const active = installments.filter((i) => !i.is_completed);
   const completed = installments.filter((i) => i.is_completed);
@@ -71,6 +81,21 @@ export default function InstallmentsPage() {
     const t = parseCurrencyInput(addTotal);
     const m = Number(val);
     if (t > 0 && m > 0) setAddMonthly(String(Math.ceil(t / m)));
+  }
+
+  const parsedEditTotal = parseCurrencyInput(editTotal);
+  const parsedEditMonthly = parseCurrencyInput(editMonthly);
+  const parsedEditMonths = Number(editMonths);
+  const canEditSave = editTitle.trim().length > 0 && parsedEditTotal > 0 && parsedEditMonthly > 0 && parsedEditMonths > 0;
+
+  function openEdit(item: (typeof installments)[0]) {
+    setEditId(item.id);
+    setEditTitle(item.title);
+    setEditTotal(String(item.total_amount));
+    setEditMonthly(String(item.monthly_payment));
+    setEditMonths(String(item.total_months));
+    setEditStart(item.start_date);
+    setEditOpen(true);
   }
 
   const parsedTotal = parseCurrencyInput(addTotal);
@@ -105,6 +130,18 @@ export default function InstallmentsPage() {
     setAddMonths("");
     setAddStart(getCurrentMonth());
   }, [canSave, addTitle, parsedTotal, parsedMonthly, parsedMonths, addStart, addInstallment, toast]);
+
+  // ── Edit handler ─────────────────────────────────────────────────────────
+  const handleEdit = useCallback(async () => {
+    if (!editId || !canEditSave) return;
+    setEditSaving(true);
+    const result = await updateInstallment(editId, editTitle.trim(), parsedEditTotal, parsedEditMonthly, parsedEditMonths, editStart);
+    setEditSaving(false);
+    if (!result.ok) { toast(result.error ?? "수정에 실패했습니다", "error"); return; }
+    toast("수정되었습니다", "success");
+    setEditOpen(false);
+    setEditId(null);
+  }, [editId, canEditSave, editTitle, parsedEditTotal, parsedEditMonthly, parsedEditMonths, editStart, updateInstallment, toast]);
 
   // ── Pay handler ──────────────────────────────────────────────────────────
   const handlePay = useCallback(async () => {
@@ -228,14 +265,32 @@ export default function InstallmentsPage() {
                 {active.map((item) => (
                   <FinanceCard key={item.id} groupColor="#4F46E5">
                     <div className="pl-2 space-y-3">
-                      {/* Title + progress label */}
+                      {/* Title + actions */}
                       <div className="flex items-start justify-between">
-                        <p className="text-base font-bold text-gray-900 dark:text-gray-100 leading-snug">
+                        <p className="text-base font-bold text-gray-900 dark:text-gray-100 leading-snug flex-1 min-w-0 mr-2">
                           {item.title}
                         </p>
-                        <span className="shrink-0 ml-2 text-xs font-semibold tabular-nums text-indigo-600 dark:text-indigo-300">
-                          {item.percent}%
-                        </span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className="text-xs font-semibold tabular-nums text-indigo-600 dark:text-indigo-300 mr-1">
+                            {item.percent}%
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => openEdit(item)}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+                            aria-label="수정"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirmId(item.id)}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                            aria-label="삭제"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Progress bar */}
@@ -440,6 +495,67 @@ export default function InstallmentsPage() {
               transition-opacity active:scale-[0.98]"
           >
             {addSaving ? "저장 중..." : "추가"}
+          </button>
+        </div>
+      </BottomSheet>
+
+      {/* ── Edit BottomSheet ────────────────────────────────────────────────── */}
+      <BottomSheet isOpen={editOpen} onClose={() => setEditOpen(false)} title="할부 수정">
+        <div className="space-y-5">
+          <div>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">항목명</p>
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
+                bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+            />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">총 금액</p>
+            <AmountInput value={editTotal} onChange={setEditTotal} placeholder="총 할부 금액" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">총 회차</p>
+              <input
+                type="number"
+                value={editMonths}
+                onChange={(e) => setEditMonths(e.target.value)}
+                min="1"
+                className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
+                  bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
+                  placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+              />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">월 납부액</p>
+              <AmountInput value={editMonthly} onChange={setEditMonthly} placeholder="월 납부액" />
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">시작일</p>
+            <input
+              type="month"
+              value={editStart}
+              onChange={(e) => setEditStart(e.target.value)}
+              className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
+                bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
+                focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleEdit}
+            disabled={!canEditSave || editSaving}
+            className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
+              bg-indigo-600 dark:bg-indigo-500 hover:opacity-90
+              disabled:opacity-40 disabled:cursor-not-allowed
+              transition-opacity active:scale-[0.98]"
+          >
+            {editSaving ? "저장 중..." : "수정 완료"}
           </button>
         </div>
       </BottomSheet>

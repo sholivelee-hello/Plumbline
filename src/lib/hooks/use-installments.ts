@@ -264,5 +264,25 @@ export function useInstallments() {
     [supabase]
   );
 
-  return { installments, loading, addInstallment, payMonth, unpayMonth, deleteInstallment, refresh };
+  const updateInstallment = useCallback(
+    async (
+      id: string,
+      title: string,
+      totalAmount: number,
+      monthlyPayment: number,
+      totalMonths: number,
+      startDate: string
+    ): Promise<{ ok: boolean; error?: string }> => {
+      const { error } = await supabase
+        .from("finance_installments")
+        .update({ title, total_amount: totalAmount, monthly_payment: monthlyPayment, total_months: totalMonths, start_date: startDate })
+        .eq("id", id);
+      if (error) return { ok: false, error: error.message };
+      bumpFinance("installments");
+      return { ok: true };
+    },
+    [supabase]
+  );
+
+  return { installments, loading, addInstallment, updateInstallment, payMonth, unpayMonth, deleteInstallment, refresh };
 }
