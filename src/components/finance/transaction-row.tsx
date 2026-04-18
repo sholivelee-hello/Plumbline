@@ -13,13 +13,6 @@ interface TransactionRowProps {
   readOnly?: boolean;
 }
 
-const AUTO_SOURCES: Array<FinanceTransaction["source"]> = [
-  "installment",
-  "debt",
-  "heaven_bank",
-  "subscription",
-];
-
 const SOURCE_LABELS: Record<string, string> = {
   recurring: "반복",
   installment: "할부",

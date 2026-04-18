@@ -6,7 +6,7 @@ import { useWeeklyStats } from "@/lib/hooks/use-weekly-stats";
 import { AchievementCard } from "./achievement-card";
 import { CategoryLineChart } from "./category-line-chart";
 import { CheckTable } from "./check-table";
-import { getLogicalDate, getWeekStart, getWeekDates, toLocalDateString } from "@/lib/utils/date";
+import { getLogicalDate, toLocalDateString } from "@/lib/utils/date";
 
 interface WeeklyStatsProps {
   dayStartTime: string;
