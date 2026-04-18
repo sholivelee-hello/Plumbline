@@ -116,8 +116,8 @@ export const demoWeeklyTemplateBlocks: WeeklyTemplateBlock[] = [
 ];
 
 export const demoHeavenBank: HeavenBankEntry[] = [
-  { id: "hb1", user_id: USER_ID, date: TODAY, type: "sow", target: "교회 헌금", description: "주일 감사헌금", amount: 300000 },
-  { id: "hb2", user_id: USER_ID, date: daysFromToday(-7), type: "sow", target: "선교 후원", description: "월 정기 후원", amount: 100000 },
+  { id: "hb1", user_id: USER_ID, date: TODAY, type: "sow", target: "교회 헌금", description: "주일 감사헌금", amount: 300000, transaction_id: null },
+  { id: "hb2", user_id: USER_ID, date: daysFromToday(-7), type: "sow", target: "선교 후원", description: "월 정기 후원", amount: 100000, transaction_id: null },
 ];
 
 export const demoBudgets: FinanceBudget[] = [
@@ -138,9 +138,9 @@ export const demoDebts: (FinanceDebt & { total_paid: number; percent: number; pa
     tags: ["주거"],
     total_paid: 15000000, percent: 30,
     payments: [
-      { id: "dp1", user_id: USER_ID, debt_id: "fd1", amount: 5000000, date: "2025-01-15", memo: "1분기 상환" },
-      { id: "dp2", user_id: USER_ID, debt_id: "fd1", amount: 5000000, date: "2025-04-15", memo: "2분기 상환" },
-      { id: "dp3", user_id: USER_ID, debt_id: "fd1", amount: 5000000, date: "2025-07-15", memo: "3분기 상환" },
+      { id: "dp1", user_id: USER_ID, debt_id: "fd1", amount: 5000000, date: "2025-01-15", memo: "1분기 상환", transaction_id: null },
+      { id: "dp2", user_id: USER_ID, debt_id: "fd1", amount: 5000000, date: "2025-04-15", memo: "2분기 상환", transaction_id: null },
+      { id: "dp3", user_id: USER_ID, debt_id: "fd1", amount: 5000000, date: "2025-07-15", memo: "3분기 상환", transaction_id: null },
     ],
   },
 ];

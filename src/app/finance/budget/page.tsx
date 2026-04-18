@@ -44,11 +44,11 @@ interface GroupStyle {
 
 const GROUP_STYLES: Record<string, GroupStyle> = {
   obligation: {
-    color: "#1E3A5F",
-    headerBg: "bg-[#1E3A5F]/8 dark:bg-[#1E3A5F]/20",
-    headerText: "text-[#1E3A5F] dark:text-blue-300",
-    accentText: "text-[#1E3A5F] dark:text-blue-300",
-    badge: "bg-[#1E3A5F]/10 dark:bg-[#1E3A5F]/30 text-[#1E3A5F] dark:text-blue-300",
+    color: "#2563EB",
+    headerBg: "bg-[#2563EB]/8 dark:bg-[#2563EB]/20",
+    headerText: "text-[#2563EB] dark:text-blue-300",
+    accentText: "text-[#2563EB] dark:text-blue-300",
+    badge: "bg-[#2563EB]/10 dark:bg-[#2563EB]/30 text-[#2563EB] dark:text-blue-300",
     border: "border-gray-100 dark:border-[#2d3748]",
     warningBorder: "border-orange-300 dark:border-orange-600",
   },

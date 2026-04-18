@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useEffect, useState } from "react";
 import { useBudgetSettings } from "@/lib/hooks/use-budget-settings";
 import { useFinanceTransactions } from "@/lib/hooks/use-finance-transactions";
 import { useBudget } from "@/lib/hooks/use-budget";
+import { createClient } from "@/lib/supabase/client";
 import type { FinanceTransaction } from "@/types/database";
 
 export interface DonutDataItem {
@@ -25,6 +26,25 @@ export interface GroupCardItem {
 }
 
 export function useFinanceHub(month: string) {
+  const [heavenBankBalance, setHeavenBankBalance] = useState(0);
+  const [heavenBankMonthlySow, setHeavenBankMonthlySow] = useState(0);
+  const [heavenBankRefreshTick, setHeavenBankRefreshTick] = useState(0);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.from("heaven_bank").select("type,amount,date").then(({ data }: { data: Array<{ type: string; amount: number; date: string }> | null }) => {
+      if (!data) return;
+      const sow = data.filter((e) => e.type === "sow").reduce((s: number, e) => s + e.amount, 0);
+      const reap = data.filter((e) => e.type === "reap").reduce((s: number, e) => s + e.amount, 0);
+      setHeavenBankBalance(sow - reap);
+      const monthStr = month; // 현재 선택된 월
+      const monthlySow = data
+        .filter((e) => e.type === "sow" && e.date.startsWith(monthStr))
+        .reduce((s: number, e) => s + e.amount, 0);
+      setHeavenBankMonthlySow(monthlySow);
+    });
+  }, [heavenBankRefreshTick, month]);
+
   const {
     groups,
     loading: settingsLoading,
@@ -98,12 +118,15 @@ export function useFinanceHub(month: string) {
     refreshSettings();
     refreshTx();
     refreshBudget();
+    setHeavenBankRefreshTick((n) => n + 1);
   }, [refreshSettings, refreshTx, refreshBudget]);
 
   return {
     summary,
     donutData,
     groupCards,
+    heavenBankBalance,
+    heavenBankMonthlySow,
     todayTransactions: todayTransactions as FinanceTransaction[],
     loading,
     error,

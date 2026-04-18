@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { ChevronLeft, Trash2 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 import { FIXED_USER_ID } from "@/lib/constants";
-import { useFinanceTransactions } from "@/lib/hooks/use-finance-transactions";
+import { bumpFinance, useFinanceTick } from "@/lib/finance-bus";
 import { getCurrentMonth, formatCurrency, parseCurrencyInput } from "@/lib/finance-utils";
 import { SOWING_PRESETS } from "@/lib/finance-config";
 import type { HeavenBankEntry } from "@/types/database";
@@ -26,10 +26,13 @@ interface EntryWithBalance extends HeavenBankEntry {
 
 // ── Custom hook: fetch ALL heaven_bank entries (no month filter) ─────────────
 
+type InsertEntryInput = Omit<HeavenBankEntry, "id" | "user_id" | "transaction_id">;
+
 function useAllHeavenBank() {
   const [entries, setEntries] = useState<HeavenBankEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
+  const busTick = useFinanceTick("heaven_bank");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -38,7 +41,7 @@ function useAllHeavenBank() {
         .from("heaven_bank")
         .select("*")
         .order("date", { ascending: false })
-        .order("id", { ascending: false });
+        .order("created_at", { ascending: false });
       if (error) throw error;
       setEntries(data ?? []);
     } catch {
@@ -48,22 +51,89 @@ function useAllHeavenBank() {
     }
   }, [supabase]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, busTick]);
 
-  async function insertEntry(entry: Omit<HeavenBankEntry, "id" | "user_id">): Promise<{ ok: boolean; error?: string }> {
+  // Canonical flow: insert finance_transactions FIRST, then heaven_bank linked
+  // via transaction_id. On cashbook deletion DB CASCADE handles the heaven_bank row.
+  const insertEntry = useCallback(async (entry: InsertEntryInput): Promise<{ ok: boolean; error?: string }> => {
+    const txType = entry.type === "sow" ? "expense" : "income";
+    const targetLabel = entry.target ?? "하늘은행";
+    const descParts = [`하늘은행: ${targetLabel}`, entry.description?.trim()].filter(Boolean);
+    const txDescription = descParts.join(" - ");
+
+    const { data: txData, error: txError } = await supabase
+      .from("finance_transactions")
+      .insert({
+        user_id: FIXED_USER_ID,
+        type: txType,
+        amount: entry.amount,
+        description: txDescription,
+        date: entry.date,
+        group_id: entry.type === "sow" ? "sowing" : null,
+        item_id: entry.type === "sow" ? "heaven" : null,
+        source: "heaven_bank",
+      })
+      .select("id")
+      .single();
+
+    if (txError || !txData) {
+      return { ok: false, error: txError?.message ?? "거래 기록 실패" };
+    }
+
+    const { error: hbError } = await supabase
+      .from("heaven_bank")
+      .insert({
+        user_id: FIXED_USER_ID,
+        date: entry.date,
+        type: entry.type,
+        target: entry.target,
+        description: entry.description,
+        amount: entry.amount,
+        transaction_id: txData.id,
+      });
+
+    if (hbError) {
+      await supabase.from("finance_transactions").delete().eq("id", txData.id);
+      return { ok: false, error: hbError.message };
+    }
+
+    bumpFinance("heaven_bank");
+    bumpFinance("transactions");
+    return { ok: true };
+  }, [supabase]);
+
+  const deleteEntry = useCallback(async (id: string, entry?: HeavenBankEntry): Promise<{ ok: boolean; error?: string }> => {
     try {
-      const { error } = await supabase
-        .from("heaven_bank")
-        .insert({ user_id: FIXED_USER_ID, ...entry });
-      if (error) throw error;
-      await load();
+      if (entry?.transaction_id) {
+        const { error } = await supabase
+          .from("finance_transactions")
+          .delete()
+          .eq("id", entry.transaction_id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("heaven_bank").delete().eq("id", id);
+        if (error) throw error;
+        // Legacy rows without transaction_id — also clean up the matching tx.
+        if (entry) {
+          const txType = entry.type === "sow" ? "expense" : "income";
+          await supabase
+            .from("finance_transactions")
+            .delete()
+            .eq("date", entry.date)
+            .eq("amount", entry.amount)
+            .eq("type", txType)
+            .eq("source", "heaven_bank");
+        }
+      }
+      bumpFinance("heaven_bank");
+      bumpFinance("transactions");
       return { ok: true };
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : "알 수 없는 오류" };
     }
-  }
+  }, [supabase]);
 
-  return { entries, loading, insertEntry, refresh: load };
+  return { entries, loading, insertEntry, deleteEntry, refresh: load };
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -108,11 +178,16 @@ function groupByMonth(entriesWithBalance: EntryWithBalance[]): Array<{ month: st
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function SowingPage() {
+  const router = useRouter();
   const { toast } = useToast();
   const currentMonth = getCurrentMonth();
 
-  const { entries, loading, insertEntry } = useAllHeavenBank();
-  const { addTransaction } = useFinanceTransactions(currentMonth);
+  const { entries, loading, insertEntry, deleteEntry } = useAllHeavenBank();
+
+  const handleBack = useCallback(() => {
+    router.refresh();
+    router.push("/finance");
+  }, [router]);
 
   // ── Computed stats ───────────────────────────────────────────────────────
   const totalSow = entries.filter(e => e.type === "sow").reduce((s, e) => s + e.amount, 0);
@@ -161,31 +236,16 @@ export default function SowingPage() {
       amount: parsedSowAmount,
     });
 
+    setSowSaving(false);
+
     if (!hbResult.ok) {
       toast(hbResult.error ?? "심음 기록 실패", "error");
-      setSowSaving(false);
       return;
     }
 
-    const txResult = await addTransaction({
-      type: "expense",
-      amount: parsedSowAmount,
-      description: `하늘은행: ${resolvedSowTarget}${sowDesc.trim() ? " - " + sowDesc.trim() : ""}`,
-      date: sowDate,
-      group_id: "sowing",
-      item_id: "heaven",
-      source: "heaven_bank",
-    });
-
-    if (!txResult.ok) {
-      toast("가계부 연동 실패 (심음은 기록됨)", "info");
-    } else {
-      toast(`심음 ${formatCurrency(parsedSowAmount)}원 기록됨`, "success");
-    }
-
-    setSowSaving(false);
+    toast(`심음 ${formatCurrency(parsedSowAmount)}원 기록됨`, "success");
     setSowSheet(false);
-  }, [canSaveSow, parsedSowAmount, resolvedSowTarget, sowDate, sowDesc, insertEntry, addTransaction, toast]);
+  }, [canSaveSow, parsedSowAmount, resolvedSowTarget, sowDate, sowDesc, insertEntry, toast]);
 
   // ── Reap sheet ────────────────────────────────────────────────────────────
   const [reapSheet, setReapSheet] = useState(false);
@@ -216,31 +276,16 @@ export default function SowingPage() {
       amount: parsedReapAmount,
     });
 
+    setReapSaving(false);
+
     if (!hbResult.ok) {
       toast(hbResult.error ?? "거둠 기록 실패", "error");
-      setReapSaving(false);
       return;
     }
 
-    const txResult = await addTransaction({
-      type: "income",
-      amount: parsedReapAmount,
-      description: `하늘은행 거둠: ${reapDesc.trim()}`,
-      date: reapDate,
-      group_id: "sowing",
-      item_id: "heaven",
-      source: "heaven_bank",
-    });
-
-    if (!txResult.ok) {
-      toast("가계부 연동 실패 (거둠은 기록됨)", "info");
-    } else {
-      toast(`거둠 ${formatCurrency(parsedReapAmount)}원 기록됨`, "success");
-    }
-
-    setReapSaving(false);
+    toast(`거둠 ${formatCurrency(parsedReapAmount)}원 기록됨`, "success");
     setReapSheet(false);
-  }, [canSaveReap, parsedReapAmount, reapDesc, reapDate, insertEntry, addTransaction, toast]);
+  }, [canSaveReap, parsedReapAmount, reapDesc, reapDate, insertEntry, toast]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -250,13 +295,14 @@ export default function SowingPage() {
       {/* Header */}
       <div className="bg-white dark:bg-[#1a2030] border-b border-gray-100 dark:border-[#2d3748]">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
-          <Link
-            href="/finance"
+          <button
+            type="button"
+            onClick={handleBack}
             aria-label="뒤로가기"
             className="w-11 h-11 flex items-center justify-center rounded-xl text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-[#262c38] transition-colors"
           >
             <ChevronLeft size={20} />
-          </Link>
+          </button>
           <h1 className="flex-1 text-xl font-bold text-gray-900 dark:text-gray-100">하늘은행</h1>
         </div>
       </div>
@@ -371,6 +417,22 @@ export default function SowingPage() {
                                 잔액 {formatCurrency(entry.balance)}
                               </p>
                             </div>
+
+                            {/* Delete */}
+                            <button
+                              type="button"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (!confirm("이 항목을 삭제할까요?")) return;
+                                const res = await deleteEntry(entry.id, entry);
+                                if (!res.ok) toast(res.error ?? "삭제 실패", "error");
+                                else toast("삭제됐습니다", "success");
+                              }}
+                              className="ml-2 shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 dark:text-gray-600 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                              aria-label="삭제"
+                            >
+                              <Trash2 size={13} />
+                            </button>
                           </div>
                         ))}
                       </div>

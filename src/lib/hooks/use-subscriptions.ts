@@ -8,6 +8,7 @@ import type {
   FinanceSubscriptionAmountChange,
   FinanceSubscriptionCancellation,
 } from "@/types/database";
+import { bumpFinance, useFinanceTick } from "@/lib/finance-bus";
 
 export function useSubscriptions() {
   const [subscriptions, setSubscriptions] = useState<FinanceSubscription[]>([]);
@@ -15,7 +16,7 @@ export function useSubscriptions() {
   const [error, setError] = useState<string | null>(null);
   const supabase = useMemo(() => createClient(), []);
 
-  const [refreshTick, setRefreshTick] = useState(0);
+  const busTick = useFinanceTick("subscriptions");
 
   useEffect(() => {
     let cancelled = false;
@@ -47,10 +48,10 @@ export function useSubscriptions() {
     return () => {
       cancelled = true;
     };
-  }, [supabase, refreshTick]);
+  }, [supabase, busTick]);
 
   const refresh = useCallback(() => {
-    setRefreshTick((n) => n + 1);
+    bumpFinance("subscriptions");
   }, []);
 
   const activeSubscriptions = useMemo(
@@ -115,7 +116,7 @@ export function useSubscriptions() {
         return { ok: false, error: recurError.message };
       }
 
-      setRefreshTick((n) => n + 1);
+      bumpFinance("subscriptions");
       return { ok: true, id: inserted.id };
     },
     [supabase]
@@ -152,7 +153,7 @@ export function useSubscriptions() {
         if (recurError) return { ok: false, error: recurError.message };
       }
 
-      setRefreshTick((n) => n + 1);
+      bumpFinance("subscriptions");
       return { ok: true };
     },
     [supabase]
@@ -199,7 +200,7 @@ export function useSubscriptions() {
 
       if (recurError) return { ok: false, error: recurError.message };
 
-      setRefreshTick((n) => n + 1);
+      bumpFinance("subscriptions");
       return { ok: true };
     },
     [supabase, subscriptions]
@@ -237,7 +238,7 @@ export function useSubscriptions() {
 
       if (recurError) return { ok: false, error: recurError.message };
 
-      setRefreshTick((n) => n + 1);
+      bumpFinance("subscriptions");
       return { ok: true };
     },
     [supabase]
@@ -285,7 +286,7 @@ export function useSubscriptions() {
 
       if (recurError) return { ok: false, error: recurError.message };
 
-      setRefreshTick((n) => n + 1);
+      bumpFinance("subscriptions");
       return { ok: true };
     },
     [supabase]
@@ -302,7 +303,7 @@ export function useSubscriptions() {
 
       if (deleteError) return { ok: false, error: deleteError.message };
 
-      setRefreshTick((n) => n + 1);
+      bumpFinance("subscriptions");
       return { ok: true };
     },
     [supabase]

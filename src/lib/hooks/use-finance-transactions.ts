@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { FIXED_USER_ID } from "@/lib/constants";
 import type { FinanceTransaction } from "@/types/database";
 import { getMonthRange } from "@/lib/finance-utils";
+import { bumpFinance, useFinanceTick } from "@/lib/finance-bus";
 
 type AddTransactionData = {
   type: "income" | "expense";
@@ -23,8 +24,8 @@ export function useFinanceTransactions(month: string) {
   const supabase = useMemo(() => createClient(), []);
 
   // [HIGH] Race condition guard: useEffect owns the fetch with cancellation flag.
-  // refresh() triggers a re-fetch by bumping a counter so the same effect runs again.
-  const [refreshTick, setRefreshTick] = useState(0);
+  // refresh() bumps the shared finance bus so every related hook re-fetches.
+  const busTick = useFinanceTick("transactions");
 
   useEffect(() => {
     let cancelled = false;
@@ -58,10 +59,10 @@ export function useFinanceTransactions(month: string) {
     return () => {
       cancelled = true;
     };
-  }, [month, supabase, refreshTick]);
+  }, [month, supabase, busTick]);
 
   const refresh = useCallback(() => {
-    setRefreshTick((n) => n + 1);
+    bumpFinance("transactions");
   }, []);
 
   // Keep a ref to transactions for stable rollback captures inside callbacks
@@ -156,7 +157,22 @@ export function useFinanceTransactions(month: string) {
       setTransactions((ts) =>
         ts.map((t) => (t.id === tempId ? { ...t, id: inserted.id } : t))
       );
-      setRefreshTick((n) => n + 1);
+
+      // 심음 거래는 heaven_bank에도 자동 기록 (sowing 페이지 경유 제외)
+      // transaction_id FK로 연결하여 거래 삭제 시 CASCADE로 함께 제거되도록 함.
+      if (data.group_id === "sowing" && data.type === "expense" && data.source !== "heaven_bank") {
+        await supabase.from("heaven_bank").insert({
+          user_id: FIXED_USER_ID,
+          date: data.date,
+          type: "sow",
+          target: data.description ?? "심음",
+          description: null,
+          amount: data.amount,
+          transaction_id: inserted.id,
+        });
+      }
+
+      bumpFinance("transactions");
       return { ok: true, id: inserted.id };
     },
     [supabase]
@@ -168,6 +184,7 @@ export function useFinanceTransactions(month: string) {
       data: Partial<FinanceTransaction>
     ): Promise<{ ok: boolean; error?: string }> => {
       const prev = transactionsRef.current;
+      const tx = prev.find((t) => t.id === id);
       setTransactions((ts) =>
         ts.map((t) => (t.id === id ? { ...t, ...data } : t))
       );
@@ -182,7 +199,26 @@ export function useFinanceTransactions(month: string) {
         setTransactions(prev);
         return { ok: false, error: updateError.message };
       }
-      setRefreshTick((n) => n + 1);
+
+      // 연동 row의 amount/date도 함께 업데이트 (금액·날짜 일관성)
+      const updateFields: Record<string, unknown> = {};
+      if (data.amount !== undefined) updateFields.amount = data.amount;
+      if (data.date !== undefined) updateFields.date = data.date;
+
+      if (tx && Object.keys(updateFields).length > 0) {
+        if (tx.source === "debt") {
+          await supabase.from("finance_debt_payments").update(updateFields).eq("transaction_id", id);
+        } else if (tx.source === "installment") {
+          const instFields: Record<string, unknown> = {};
+          if (data.amount !== undefined) instFields.amount = data.amount;
+          if (data.date !== undefined) instFields.paid_at = data.date;
+          await supabase.from("finance_installment_payments").update(instFields).eq("transaction_id", id);
+        } else if (tx.source === "heaven_bank") {
+          await supabase.from("heaven_bank").update(updateFields).eq("transaction_id", id);
+        }
+      }
+
+      bumpFinance("transactions");
       return { ok: true };
     },
     [supabase]
@@ -191,7 +227,30 @@ export function useFinanceTransactions(month: string) {
   const deleteTransaction = useCallback(
     async (id: string): Promise<{ ok: boolean; error?: string }> => {
       const prev = transactionsRef.current;
+      const tx = prev.find((t) => t.id === id);
       setTransactions((ts) => ts.filter((t) => t.id !== id));
+
+      // If source is a domain-backed record that PREDATES the transaction_id FK
+      // backfill, the CASCADE may miss. Clean up legacy orphans explicitly.
+      if (tx?.source === "debt") {
+        await supabase
+          .from("finance_debt_payments")
+          .delete()
+          .is("transaction_id", null)
+          .eq("user_id", FIXED_USER_ID)
+          .eq("date", tx.date)
+          .eq("amount", tx.amount);
+      } else if (tx?.source === "heaven_bank") {
+        const hbType = tx.type === "expense" ? "sow" : "reap";
+        await supabase
+          .from("heaven_bank")
+          .delete()
+          .is("transaction_id", null)
+          .eq("user_id", FIXED_USER_ID)
+          .eq("date", tx.date)
+          .eq("amount", tx.amount)
+          .eq("type", hbType);
+      }
 
       const { error: deleteError } = await supabase
         .from("finance_transactions")
@@ -203,6 +262,9 @@ export function useFinanceTransactions(month: string) {
         setTransactions(prev);
         return { ok: false, error: deleteError.message };
       }
+
+      // After DB CASCADE removes linked children, let every hook invalidate.
+      bumpFinance("transactions");
       return { ok: true };
     },
     [supabase]

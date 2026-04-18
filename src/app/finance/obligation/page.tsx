@@ -2,12 +2,11 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import { ChevronLeft, Banknote } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 
 import { useBudgetSettings } from "@/lib/hooks/use-budget-settings";
 import { useFinanceTransactions } from "@/lib/hooks/use-finance-transactions";
 import { useBudget } from "@/lib/hooks/use-budget";
-import { useDebts } from "@/lib/hooks/use-debts";
 import { getCurrentMonth, formatCurrency, parseCurrencyInput } from "@/lib/finance-utils";
 import { getItemKey } from "@/lib/finance-config";
 import type { FinanceTransaction } from "@/types/database";
@@ -32,7 +31,6 @@ export default function ObligationPage() {
   const { transactions, byGroup, loading: txLoading, addTransaction, updateTransaction, deleteTransaction } =
     useFinanceTransactions(month);
   const { budgets, loading: budgetLoading } = useBudget(month);
-  const { debts, loading: debtsLoading } = useDebts();
 
   const loading = settingsLoading || txLoading || budgetLoading;
 
@@ -45,10 +43,6 @@ export default function ObligationPage() {
 
   const totalActual = byGroup["obligation"]?.total ?? 0;
   const remaining = totalBudget - totalActual;
-
-  // ── Debt summary (for compact card) ─────────────────────────────────────
-  const activeDebts = debtsLoading ? 0 : debts.filter((d) => !d.is_completed).length;
-  const monthlyDebtTotal = byGroup["obligation"]?.byItem?.["debt"] ?? 0;
 
   // ── Item expansion state ─────────────────────────────────────────────────
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
@@ -176,7 +170,7 @@ export default function ObligationPage() {
         ) : (
           <>
             {/* ── Group Summary Card ──────────────────────────────────────── */}
-            <FinanceCard groupColor="#1E3A5F">
+            <FinanceCard groupColor="#2563EB">
               <div className="pl-2">
                 <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
                   이번 달 의무사항
@@ -199,7 +193,7 @@ export default function ObligationPage() {
                     <p
                       className={`text-sm font-semibold tabular-nums ${
                         remaining >= 0
-                          ? "text-[#1E3A5F] dark:text-blue-300"
+                          ? "text-[#2563EB] dark:text-blue-300"
                           : "text-red-500 dark:text-red-400"
                       }`}
                     >
@@ -207,34 +201,9 @@ export default function ObligationPage() {
                     </p>
                   </div>
                 </div>
-                <FinanceProgressBar value={totalActual} max={totalBudget} color="#1E3A5F" height="md" />
+                <FinanceProgressBar value={totalActual} max={totalBudget} color="#2563EB" height="md" />
               </div>
             </FinanceCard>
-
-            {/* ── Debt Summary Card (compact) ──────────────────────────────── */}
-            <Link href="/finance/debts">
-              <FinanceCard groupColor="#374151" className="cursor-pointer hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-gray-100 dark:bg-[#262c38]">
-                      <Banknote size={15} className="text-gray-500 dark:text-gray-400" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">갚아야 할 빚</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 tabular-nums mt-0.5">
-                        활성 {activeDebts}건
-                        {monthlyDebtTotal > 0 && (
-                          <span> · 이번 달 상환 {formatCurrency(monthlyDebtTotal)}원</span>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-medium text-[#1E3A5F] dark:text-blue-300 shrink-0">
-                    빚 관리 →
-                  </span>
-                </div>
-              </FinanceCard>
-            </Link>
 
             {/* ── Items List ──────────────────────────────────────────────── */}
             <section className="space-y-3">
@@ -287,7 +256,7 @@ export default function ObligationPage() {
                       <FinanceProgressBar
                         value={itemActual}
                         max={itemBudget > 0 ? itemBudget : itemActual || 1}
-                        color="#1E3A5F"
+                        color="#2563EB"
                         height="sm"
                       />
                     </button>
@@ -307,7 +276,7 @@ export default function ObligationPage() {
                                 transaction={tx}
                                 groups={groups}
                                 onEdit={isDebtItem ? undefined : openEditSheet}
-                                onDelete={isDebtItem ? undefined : handleDeleteTx}
+                                onDelete={handleDeleteTx}
                               />
                             ))}
                           </div>
@@ -321,8 +290,8 @@ export default function ObligationPage() {
                             type="button"
                             onClick={() => openExpenseSheet(item.id)}
                             className="w-full min-h-[40px] py-2 rounded-xl text-xs font-medium
-                              text-[#1E3A5F] dark:text-blue-300 bg-[#1E3A5F]/8 dark:bg-[#1E3A5F]/20
-                              hover:bg-[#1E3A5F]/12 dark:hover:bg-[#1E3A5F]/30
+                              text-[#2563EB] dark:text-blue-300 bg-[#2563EB]/8 dark:bg-[#2563EB]/20
+                              hover:bg-[#2563EB]/12 dark:hover:bg-[#2563EB]/30
                               transition-colors active:scale-[0.98]"
                           >
                             + 지출 추가
@@ -361,8 +330,8 @@ export default function ObligationPage() {
                       type="button"
                       onClick={() => setExpenseItemId(item.id)}
                       className="px-3.5 py-2 min-h-[44px] rounded-full text-xs font-medium
-                        bg-[#1E3A5F]/10 text-[#1E3A5F] dark:bg-[#1E3A5F]/25 dark:text-blue-300
-                        hover:bg-[#1E3A5F]/20 active:scale-95 transition-all"
+                        bg-[#2563EB]/10 text-[#2563EB] dark:bg-[#2563EB]/25 dark:text-blue-300
+                        hover:bg-[#2563EB]/20 active:scale-95 transition-all"
                     >
                       {item.title}
                     </button>
@@ -407,7 +376,7 @@ export default function ObligationPage() {
             onClick={handleSaveExpense}
             disabled={expenseSaving || !canSaveExpense}
             className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
-              bg-[#1E3A5F] hover:opacity-90
+              bg-[#2563EB] hover:opacity-90
               disabled:opacity-40 disabled:cursor-not-allowed
               transition-opacity active:scale-[0.98]"
           >

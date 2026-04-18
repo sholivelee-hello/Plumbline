@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { FIXED_USER_ID } from "@/lib/constants";
 import type { FinanceRecurring } from "@/types/database";
 import { getLastDayOfMonth } from "@/lib/finance-utils";
+import { bumpFinance, useFinanceTick } from "@/lib/finance-bus";
 
 export function useRecurring() {
   const [recurring, setRecurring] = useState<FinanceRecurring[]>([]);
@@ -12,7 +13,7 @@ export function useRecurring() {
   const [error, setError] = useState<string | null>(null);
   const supabase = useMemo(() => createClient(), []);
 
-  const [refreshTick, setRefreshTick] = useState(0);
+  const busTick = useFinanceTick("recurring");
 
   const recurringRef = useRef(recurring);
   useEffect(() => {
@@ -48,10 +49,10 @@ export function useRecurring() {
     return () => {
       cancelled = true;
     };
-  }, [supabase, refreshTick]);
+  }, [supabase, busTick]);
 
   const refresh = useCallback(() => {
-    setRefreshTick((n) => n + 1);
+    bumpFinance("recurring");
   }, []);
 
   const addRecurring = useCallback(
@@ -67,7 +68,7 @@ export function useRecurring() {
         });
 
       if (insertError) return { ok: false, error: insertError.message };
-      setRefreshTick((n) => n + 1);
+      bumpFinance("recurring");
       return { ok: true };
     },
     [supabase]
@@ -91,7 +92,7 @@ export function useRecurring() {
         setRecurring(prev);
         return { ok: false, error: updateError.message };
       }
-      setRefreshTick((n) => n + 1);
+      bumpFinance("recurring");
       return { ok: true };
     },
     [supabase]
@@ -112,6 +113,8 @@ export function useRecurring() {
         setRecurring(prev);
         return { ok: false, error: deleteError.message };
       }
+      bumpFinance("recurring");
+      bumpFinance("transactions");
       return { ok: true };
     },
     [supabase]
@@ -206,6 +209,10 @@ export function useRecurring() {
         executed++;
       }
 
+      if (executed > 0) {
+        bumpFinance("transactions");
+        bumpFinance("recurring");
+      }
       return { executed, errors };
     },
     [supabase]

@@ -45,7 +45,8 @@ export interface MonthlyStats {
 
 export function useMonthlyStats(
   dayStartTime: string = "04:00",
-  includeInactive: boolean = false
+  includeInactive: boolean = false,
+  targetMonth?: string
 ): MonthlyStats {
   const [items, setItems] = useState<MonthlyItemStat[]>([]);
   const [month, setMonth] = useState(getCurrentMonth());
@@ -61,7 +62,7 @@ export function useMonthlyStats(
 
       // 1. Compute dates inside the callback to avoid unstable references
       const currentToday = getLogicalDate(dayStartTime);
-      const currentMonth = getCurrentMonth();
+      const currentMonth = targetMonth ?? getCurrentMonth();
       const [year, mon] = currentMonth.split("-").map(Number);
       const lastDay = new Date(year, mon, 0).getDate();
       const monthStart = `${currentMonth}-01`;
@@ -254,7 +255,7 @@ export function useMonthlyStats(
       setWeekComparisons([]);
     }
     setLoading(false);
-  }, [dayStartTime, includeInactive]);
+  }, [dayStartTime, includeInactive, targetMonth]);
 
   useEffect(() => {
     load();

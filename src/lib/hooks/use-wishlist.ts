@@ -27,7 +27,7 @@ export function useWishlist() {
     const run = async () => {
       try {
         const { data, error: fetchError } = await supabase
-          .from("finance_wishlists")
+          .from("finance_wishlist")
           .select("*")
           .eq("user_id", FIXED_USER_ID)
           .eq("is_completed", false)
@@ -87,7 +87,7 @@ export function useWishlist() {
       );
 
       const { data: inserted, error: insertError } = await supabase
-        .from("finance_wishlists")
+        .from("finance_wishlist")
         .insert({
           user_id: FIXED_USER_ID,
           title,
@@ -122,7 +122,7 @@ export function useWishlist() {
       setWishes((ws) => ws.map((w) => (w.id === id ? { ...w, ...data } : w)));
 
       const { error: updateError } = await supabase
-        .from("finance_wishlists")
+        .from("finance_wishlist")
         .update({ ...data, updated_at: new Date().toISOString() })
         .eq("id", id)
         .eq("user_id", FIXED_USER_ID);
@@ -153,7 +153,7 @@ export function useWishlist() {
       );
 
       const { error: updateError } = await supabase
-        .from("finance_wishlists")
+        .from("finance_wishlist")
         .update({ saved_amount: newSaved, updated_at: new Date().toISOString() })
         .eq("id", id)
         .eq("user_id", FIXED_USER_ID);
@@ -183,7 +183,7 @@ export function useWishlist() {
       // Bulk update each row
       const updates = orderedIds.map((id, index) =>
         supabase
-          .from("finance_wishlists")
+          .from("finance_wishlist")
           .update({ priority: index + 1, updated_at: new Date().toISOString() })
           .eq("id", id)
           .eq("user_id", FIXED_USER_ID)
@@ -207,7 +207,7 @@ export function useWishlist() {
       setWishes((ws) => ws.filter((w) => w.id !== id));
 
       const { error: updateError } = await supabase
-        .from("finance_wishlists")
+        .from("finance_wishlist")
         .update({
           is_completed: true,
           completed_at: new Date().toISOString(),
@@ -231,7 +231,7 @@ export function useWishlist() {
       setWishes((ws) => ws.filter((w) => w.id !== id));
 
       const { error: deleteError } = await supabase
-        .from("finance_wishlists")
+        .from("finance_wishlist")
         .delete()
         .eq("id", id)
         .eq("user_id", FIXED_USER_ID);

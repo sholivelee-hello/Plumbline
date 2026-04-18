@@ -30,8 +30,8 @@ import type { FinanceTransaction } from "@/types/database";
 
 const GROUP_CHIP_STYLES: Record<string, { base: string; active: string }> = {
   obligation: {
-    base: "bg-[#1E3A5F]/10 text-[#1E3A5F] dark:bg-[#1E3A5F]/25 dark:text-blue-300",
-    active: "bg-[#1E3A5F] text-white",
+    base: "bg-[#2563EB]/10 text-[#2563EB] dark:bg-[#2563EB]/25 dark:text-blue-300",
+    active: "bg-[#2563EB] text-white",
   },
   necessity: {
     base: "bg-[#059669]/10 text-[#059669] dark:bg-[#059669]/25 dark:text-emerald-300",
@@ -357,6 +357,8 @@ export default function CashbookPage() {
             expandedCell={expandedCell}
             expandedTxs={expandedTxs}
             onToggleCell={toggleCell}
+            onEditTx={openEdit}
+            onDeleteTx={(id, desc) => setDeleteTarget({ id, desc })}
           />
         )}
       </div>
@@ -657,24 +659,15 @@ function DailyTab({ transactions, groups, onEdit, onDelete }: DailyTabProps) {
             </div>
             {/* Transaction rows */}
             <div className="space-y-1.5">
-              {items.map((tx) => {
-                const isAutoSource =
-                  tx.source != null &&
-                  ["installment", "debt", "heaven_bank"].includes(tx.source);
-                return (
-                  <TransactionRow
-                    key={tx.id}
-                    transaction={tx}
-                    groups={groups}
-                    onEdit={isAutoSource ? undefined : onEdit}
-                    onDelete={
-                      isAutoSource
-                        ? undefined
-                        : (id) => onDelete(id, tx.description || "")
-                    }
-                  />
-                );
-              })}
+              {items.map((tx) => (
+                <TransactionRow
+                  key={tx.id}
+                  transaction={tx}
+                  groups={groups}
+                  onEdit={onEdit}
+                  onDelete={(id) => onDelete(id, tx.description || "")}
+                />
+              ))}
             </div>
           </section>
         );
@@ -712,6 +705,8 @@ interface MonthlyTabProps {
   expandedCell: { date: string; groupId: string } | null;
   expandedTxs: FinanceTransaction[];
   onToggleCell: (date: string, groupId: string) => void;
+  onEditTx: (tx: FinanceTransaction) => void;
+  onDeleteTx: (id: string, desc: string) => void;
 }
 
 function MonthlyTab({
@@ -730,6 +725,8 @@ function MonthlyTab({
   expandedCell,
   expandedTxs,
   onToggleCell,
+  onEditTx,
+  onDeleteTx,
 }: MonthlyTabProps) {
   return (
     <div className="space-y-5">
@@ -759,13 +756,13 @@ function MonthlyTab({
 
         <FinanceCard>
           <div className="flex items-center gap-1 mb-1.5">
-            <Wallet size={12} className="text-[#1E3A5F] dark:text-blue-300 shrink-0" />
+            <Wallet size={12} className="text-[#2563EB] dark:text-blue-300 shrink-0" />
             <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 truncate">잔액</span>
           </div>
           <p
             className={`text-sm font-bold tabular-nums ${
               balance >= 0
-                ? "text-[#1E3A5F] dark:text-blue-300"
+                ? "text-[#2563EB] dark:text-blue-300"
                 : "text-red-500 dark:text-red-400"
             }`}
           >
@@ -956,17 +953,13 @@ function MonthlyTab({
                           >
                             <div className="space-y-1">
                               {expandedTxs.map((tx) => (
-                                <div
+                                <TransactionRow
                                   key={tx.id}
-                                  className="flex items-center justify-between text-xs"
-                                >
-                                  <span className="text-gray-600 dark:text-gray-400 truncate">
-                                    {tx.description || "(메모 없음)"}
-                                  </span>
-                                  <span className="font-medium text-gray-900 dark:text-gray-100 tabular-nums ml-4 shrink-0">
-                                    {formatCurrency(tx.amount)}원
-                                  </span>
-                                </div>
+                                  transaction={tx}
+                                  groups={groups}
+                                  onEdit={onEditTx}
+                                  onDelete={(id) => onDeleteTx(id, tx.description || "")}
+                                />
                               ))}
                             </div>
                           </td>

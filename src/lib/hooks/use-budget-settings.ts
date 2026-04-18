@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { FIXED_USER_ID } from "@/lib/constants";
 import type { FinanceBudgetSettings } from "@/types/database";
 import {
@@ -11,70 +11,24 @@ import {
   type FinanceGroup,
 } from "@/lib/finance-config";
 
-// Local fallback when Supabase is not configured (UI testing mode)
-const LOCAL_KEY = "finance-budget-settings-local";
-function readLocalSettings(): FinanceBudgetSettings | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(LOCAL_KEY);
-    return raw ? (JSON.parse(raw) as FinanceBudgetSettings) : null;
-  } catch {
-    return null;
-  }
-}
-function writeLocalSettings(state: FinanceBudgetSettings) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(LOCAL_KEY, JSON.stringify(state));
-  } catch {
-    // ignore
-  }
-}
-
 export function useBudgetSettings() {
   const [settings, setSettings] = useState<FinanceBudgetSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // [MEDIUM] Create client once per mount, not on every render
   const supabase = useMemo(() => createClient(), []);
 
-  // [MEDIUM] Track latest settings in a ref so callbacks always capture current value
   const settingsRef = useRef(settings);
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
 
-  // refreshTick drives re-fetch without recreating load callback
   const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
-
-    // If Supabase is not configured, use localStorage-only mode (UI testing)
-    if (!isSupabaseConfigured()) {
-      const local = readLocalSettings();
-      if (local) {
-        setSettings(local);
-      } else {
-        const defaults: FinanceBudgetSettings = {
-          id: "local",
-          user_id: FIXED_USER_ID,
-          monthly_income: 0,
-          group_configs: DEFAULT_GROUPS as unknown as FinanceBudgetSettings["group_configs"],
-          income_categories: DEFAULT_INCOME_CATEGORIES,
-          updated_at: new Date().toISOString(),
-        };
-        setSettings(defaults);
-        writeLocalSettings(defaults);
-      }
-      setLoading(false);
-      return () => {
-        cancelled = true;
-      };
-    }
 
     const run = async () => {
       try {
@@ -88,7 +42,6 @@ export function useBudgetSettings() {
         if (fetchError) throw fetchError;
 
         if (!data) {
-          // Auto-initialize if no row exists
           const { data: inserted, error: insertError } = await supabase
             .from("finance_budget_settings")
             .upsert(
@@ -130,7 +83,6 @@ export function useBudgetSettings() {
 
   const updateIncome = useCallback(
     async (amount: number): Promise<{ ok: boolean; error?: string }> => {
-      // [MEDIUM] Read from ref to avoid stale closure capture
       const prev = settingsRef.current;
       const next: FinanceBudgetSettings = {
         id: prev?.id ?? "local",
@@ -141,11 +93,6 @@ export function useBudgetSettings() {
         updated_at: new Date().toISOString(),
       };
       setSettings(next);
-
-      if (!isSupabaseConfigured()) {
-        writeLocalSettings(next);
-        return { ok: true };
-      }
 
       const { error: updateError } = await supabase
         .from("finance_budget_settings")
@@ -183,11 +130,6 @@ export function useBudgetSettings() {
       };
       setSettings(next);
 
-      if (!isSupabaseConfigured()) {
-        writeLocalSettings(next);
-        return { ok: true };
-      }
-
       const { error: updateError } = await supabase
         .from("finance_budget_settings")
         .upsert(
@@ -223,11 +165,6 @@ export function useBudgetSettings() {
         updated_at: new Date().toISOString(),
       };
       setSettings(next);
-
-      if (!isSupabaseConfigured()) {
-        writeLocalSettings(next);
-        return { ok: true };
-      }
 
       const { error: updateError } = await supabase
         .from("finance_budget_settings")

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ChevronLeft, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 
 import { useInstallments } from "@/lib/hooks/use-installments";
-import { useFinanceTransactions } from "@/lib/hooks/use-finance-transactions";
 import { useToast } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FinanceCard } from "@/components/finance/finance-card";
@@ -26,8 +25,7 @@ function computePayoffDate(startDate: string, totalMonths: number): string {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function InstallmentsPage() {
-  const { installments, loading, addInstallment, payMonth, deleteInstallment } = useInstallments();
-  const { addTransaction } = useFinanceTransactions(getCurrentMonth());
+  const { installments, loading, addInstallment, payMonth, unpayMonth, deleteInstallment } = useInstallments();
   const { toast } = useToast();
 
   // ── Section state ────────────────────────────────────────────────────────
@@ -49,6 +47,10 @@ export default function InstallmentsPage() {
   // ── Delete confirm dialog ────────────────────────────────────────────────
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // ── Unpay confirm dialog ─────────────────────────────────────────────────
+  const [unpayConfirmId, setUnpayConfirmId] = useState<string | null>(null);
+  const [unpaying, setUnpaying] = useState(false);
 
   // ── Derived lists ────────────────────────────────────────────────────────
   const active = installments.filter((i) => !i.is_completed);
@@ -112,37 +114,21 @@ export default function InstallmentsPage() {
 
     setPaying(true);
     const payResult = await payMonth(payConfirmId);
-    if (!payResult.ok) {
-      toast(payResult.error ?? "납부 처리에 실패했습니다", "error");
-      setPaying(false);
-      setPayConfirmId(null);
-      return;
-    }
-
-    // Dual-write: record in cashbook
-    const nextPaid = item.paid_months + 1;
-    const txResult = await addTransaction({
-      type: "expense",
-      amount: item.monthly_payment,
-      description: `${item.title} 할부 ${nextPaid}/${item.total_months}회`,
-      date: new Date().toLocaleDateString("sv-SE"),
-      group_id: "obligation",
-      item_id: "installment",
-      source: "installment",
-    });
-    if (!txResult.ok) {
-      toast("가계부 연동 실패 (납부는 기록됨)", "error");
-    }
-
     setPaying(false);
     setPayConfirmId(null);
 
+    if (!payResult.ok) {
+      toast(payResult.error ?? "납부 처리에 실패했습니다", "error");
+      return;
+    }
+
+    const nextPaid = item.actual_paid_count + 1;
     if (payResult.isCompleted) {
       toast(`${item.title} 완납 축하합니다!`, "success");
     } else {
       toast(`${nextPaid}/${item.total_months}회 납부 완료`, "success");
     }
-  }, [payConfirmId, installments, payMonth, addTransaction, toast]);
+  }, [payConfirmId, installments, payMonth, toast]);
 
   // ── Delete handler ───────────────────────────────────────────────────────
   const handleDelete = useCallback(async () => {
@@ -157,6 +143,17 @@ export default function InstallmentsPage() {
       toast("삭제되었습니다", "success");
     }
   }, [deleteConfirmId, deleteInstallment, toast]);
+
+  // ── Unpay handler ────────────────────────────────────────────────────────
+  const handleUnpay = useCallback(async () => {
+    if (!unpayConfirmId) return;
+    setUnpaying(true);
+    const result = await unpayMonth(unpayConfirmId);
+    setUnpaying(false);
+    setUnpayConfirmId(null);
+    if (!result.ok) toast(result.error ?? "취소에 실패했습니다", "error");
+    else toast("최근 납부가 취소됐습니다", "success");
+  }, [unpayConfirmId, unpayMonth, toast]);
 
   // ── Pay confirm target info ──────────────────────────────────────────────
   const payTarget = payConfirmId ? installments.find((i) => i.id === payConfirmId) : null;
@@ -285,16 +282,33 @@ export default function InstallmentsPage() {
                         완납 예정: {computePayoffDate(item.start_date, item.total_months)}
                       </p>
 
-                      {/* Pay button */}
-                      <button
-                        type="button"
-                        onClick={() => setPayConfirmId(item.id)}
-                        className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
-                          bg-indigo-600 dark:bg-indigo-500 hover:opacity-90
-                          transition-opacity active:scale-[0.98]"
-                      >
-                        이번 달 납부하기
-                      </button>
+                      {/* Pay / Unpay buttons */}
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPayConfirmId(item.id)}
+                          className="flex-1 min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
+                            bg-indigo-600 dark:bg-indigo-500 hover:opacity-90
+                            transition-opacity active:scale-[0.98]"
+                        >
+                          이번 달 납부하기
+                        </button>
+                        {item.paid_months > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setUnpayConfirmId(item.id)}
+                            className="min-h-[48px] px-4 py-3 rounded-xl text-sm font-semibold
+                              text-gray-500 dark:text-gray-400
+                              bg-gray-100 dark:bg-[#262c38]
+                              hover:bg-red-50 dark:hover:bg-red-900/20
+                              hover:text-red-500 dark:hover:text-red-400
+                              transition-colors active:scale-[0.98]"
+                            aria-label="납부 취소"
+                          >
+                            납부 취소
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </FinanceCard>
                 ))}
@@ -454,6 +468,23 @@ export default function InstallmentsPage() {
         variant="danger"
         loading={deleting}
       />
+
+      {/* ── Unpay confirm dialog ─────────────────────────────────────────────── */}
+      {unpayConfirmId && (() => {
+        const t = installments.find((i) => i.id === unpayConfirmId);
+        return t ? (
+          <ConfirmDialog
+            isOpen
+            onClose={() => setUnpayConfirmId(null)}
+            onConfirm={handleUnpay}
+            title="납부 취소"
+            description={`${t.title} ${t.paid_months}/${t.total_months}회 납부를 취소할까요? 연동된 가계부 내역도 삭제됩니다.`}
+            confirmLabel="취소하기"
+            variant="danger"
+            loading={unpaying}
+          />
+        ) : null;
+      })()}
     </div>
   );
 }

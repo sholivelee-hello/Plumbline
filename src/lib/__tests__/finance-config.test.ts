@@ -37,7 +37,7 @@ describe('parseItemKey', () => {
 describe('getGroupById', () => {
   it('finds group', () => {
     const g = getGroupById(DEFAULT_GROUPS, 'sowing');
-    expect(g?.title).toBe('좋은 땅 (하늘은행)');
+    expect(g?.title).toBe('하늘은행');
   });
   it('returns undefined for unknown', () => {
     expect(getGroupById(DEFAULT_GROUPS, 'xxx')).toBeUndefined();

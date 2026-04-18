@@ -35,14 +35,7 @@ export function TransactionRow({
   onDelete,
   readOnly,
 }: TransactionRowProps) {
-  const isAutoSource =
-    transaction.source != null && AUTO_SOURCES.includes(transaction.source);
-  const effectiveReadOnly = readOnly ?? isAutoSource;
-
-  const group = transaction.group_id
-    ? groups.find((g) => g.id === transaction.group_id)
-    : null;
-  const dotColor = group?.color ?? "#9CA3AF";
+  const effectiveReadOnly = readOnly ?? false;
 
   const itemTitle =
     transaction.group_id && transaction.item_id
@@ -97,12 +90,6 @@ export function TransactionRow({
         .filter(Boolean)
         .join(" ")}
     >
-      {/* Color dot */}
-      <span
-        className="flex-shrink-0 h-2 w-2 rounded-full"
-        style={{ backgroundColor: dotColor }}
-      />
-
       {/* Middle: title + badge */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">

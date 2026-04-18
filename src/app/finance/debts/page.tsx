@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ChevronLeft, ChevronDown, ChevronUp, MoreHorizontal, Trash2, Pencil } from "lucide-react";
 
 import { useDebts } from "@/lib/hooks/use-debts";
-import { useFinanceTransactions } from "@/lib/hooks/use-finance-transactions";
 import { getCurrentMonth, formatCurrency, parseCurrencyInput } from "@/lib/finance-utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -47,8 +46,7 @@ export default function DebtsPage() {
   const { toast } = useToast();
   const thisMonth = getCurrentMonth();
 
-  const { debts, loading: debtsLoading, addDebt, updateDebt, addPayment } = useDebts();
-  const { addTransaction } = useFinanceTransactions(thisMonth);
+  const { debts, loading: debtsLoading, addDebt, updateDebt, deleteDebt, addPayment, deletePayment } = useDebts();
 
   // ── Computed summaries ───────────────────────────────────────────────────
   const activeDebts = (debts as DebtWithProgress[]).filter((d) => !d.is_completed);
@@ -144,6 +142,20 @@ export default function DebtsPage() {
     }
   }, [editDebt, canSaveEdit, editTitle, editTagsInput, updateDebt, toast]);
 
+  // ── Delete payment ────────────────────────────────────────────────────────
+  const [deletePaymentConfirm, setDeletePaymentConfirm] = useState<{ id: string; debtId: string } | null>(null);
+  const [deletingPayment, setDeletingPayment] = useState(false);
+
+  const handleDeletePayment = useCallback(async () => {
+    if (!deletePaymentConfirm) return;
+    setDeletingPayment(true);
+    const result = await deletePayment(deletePaymentConfirm.id, deletePaymentConfirm.debtId);
+    setDeletingPayment(false);
+    if (result.ok) toast("상환 내역이 삭제되었습니다", "success");
+    else toast(result.error ?? "삭제에 실패했습니다", "error");
+    setDeletePaymentConfirm(null);
+  }, [deletePaymentConfirm, deletePayment, toast]);
+
   // ── Delete debt ───────────────────────────────────────────────────────────
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DebtWithProgress | null>(null);
@@ -158,9 +170,7 @@ export default function DebtsPage() {
   const handleDeleteDebt = useCallback(async () => {
     if (!deleteTarget) return;
     setDeleteLoading(true);
-    // updateDebt to mark deleted — use is_completed as soft-delete signal
-    // since use-debts doesn't expose a deleteDebt, we soft-complete it
-    const result = await updateDebt(deleteTarget.id, { tags: ["__deleted__"] });
+    const result = await deleteDebt(deleteTarget.id);
     setDeleteLoading(false);
     if (result.ok) {
       toast("삭제되었습니다", "success");
@@ -169,19 +179,21 @@ export default function DebtsPage() {
     }
     setDeleteConfirm(false);
     setDeleteTarget(null);
-  }, [deleteTarget, updateDebt, toast]);
+  }, [deleteTarget, deleteDebt, toast]);
 
   // ── Payment sheet ─────────────────────────────────────────────────────────
   const [paymentSheet, setPaymentSheet] = useState(false);
   const [paymentDebt, setPaymentDebt] = useState<DebtWithProgress | null>(null);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMemo, setPaymentMemo] = useState("");
+  const [paymentDate, setPaymentDate] = useState(() => new Date().toLocaleDateString("sv-SE"));
   const [paymentSaving, setPaymentSaving] = useState(false);
 
   function openPaymentSheet(debt: DebtWithProgress) {
     setPaymentDebt(debt);
     setPaymentAmount("");
     setPaymentMemo("");
+    setPaymentDate(new Date().toLocaleDateString("sv-SE"));
     setPaymentSheet(true);
   }
 
@@ -192,32 +204,25 @@ export default function DebtsPage() {
     if (!paymentDebt || !canSavePayment) return;
     setPaymentSaving(true);
 
-    // 1. Record debt payment
-    const payResult = await addPayment(paymentDebt.id, parsedPaymentAmount, paymentMemo.trim());
-    if (!payResult.ok) {
-      toast(`상환 기록 실패: ${payResult.error ?? "알 수 없는 오류"}`, "error");
-      setPaymentSaving(false);
+    // addPayment now writes both finance_transactions and finance_debt_payments
+    // atomically, linked by transaction_id. No separate cashbook call needed.
+    const result = await addPayment(
+      paymentDebt.id,
+      parsedPaymentAmount,
+      paymentMemo.trim(),
+      paymentDate,
+      paymentDebt.title,
+    );
+
+    setPaymentSaving(false);
+    if (!result.ok) {
+      toast(`상환 기록 실패: ${result.error ?? "알 수 없는 오류"}`, "error");
       return;
     }
 
-    // 2. Dual-write into finance_transactions
-    const txResult = await addTransaction({
-      type: "expense",
-      amount: parsedPaymentAmount,
-      description: `${paymentDebt.title} 상환`,
-      date: new Date().toLocaleDateString("sv-SE"),
-      group_id: "obligation",
-      item_id: "debt",
-      source: "debt",
-    });
-    if (!txResult.ok) {
-      toast("가계부 연동 실패 (상환은 기록됨)", "info");
-    }
-
-    setPaymentSaving(false);
     toast(`상환 ${formatCurrency(parsedPaymentAmount)}원 기록됨`, "success");
     setPaymentSheet(false);
-  }, [paymentDebt, canSavePayment, parsedPaymentAmount, paymentMemo, addPayment, addTransaction, toast]);
+  }, [paymentDebt, canSavePayment, parsedPaymentAmount, paymentMemo, paymentDate, addPayment, toast]);
 
   // ── Tag chip preview ──────────────────────────────────────────────────────
   function parseTags(input: string): string[] {
@@ -246,7 +251,7 @@ export default function DebtsPage() {
             type="button"
             onClick={openAddDebtSheet}
             className="px-4 py-2 min-h-[40px] rounded-xl text-sm font-semibold text-white
-              bg-[#1E3A5F] hover:opacity-90 active:scale-95 transition-all"
+              bg-[#2563EB] hover:opacity-90 active:scale-95 transition-all"
           >
             + 빚 추가
           </button>
@@ -256,7 +261,7 @@ export default function DebtsPage() {
       <div className="max-w-3xl mx-auto p-4 lg:p-8 space-y-5">
 
         {/* ── Summary Card ──────────────────────────────────────────────── */}
-        <FinanceCard groupColor="#1E3A5F">
+        <FinanceCard groupColor="#2563EB">
           <div className="pl-2">
             <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
               부채 현황
@@ -309,7 +314,7 @@ export default function DebtsPage() {
               const isOverflowOpen = overflowOpen === debt.id;
 
               return (
-                <FinanceCard key={debt.id} groupColor="#1E3A5F">
+                <FinanceCard key={debt.id} groupColor="#2563EB">
                   <div className="pl-2">
                     {/* Title row + overflow menu */}
                     <div className="flex items-start justify-between mb-1.5">
@@ -319,7 +324,7 @@ export default function DebtsPage() {
                         </h3>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 ml-2">
-                        <span className="text-xs font-semibold text-[#1E3A5F] dark:text-blue-300 tabular-nums">
+                        <span className="text-xs font-semibold text-[#2563EB] dark:text-blue-300 tabular-nums">
                           {debt.percent}%
                         </span>
                         <div className="relative">
@@ -379,7 +384,7 @@ export default function DebtsPage() {
                       <FinanceProgressBar
                         value={debt.total_paid}
                         max={debt.total_amount}
-                        color="#1E3A5F"
+                        color="#2563EB"
                         height="md"
                       />
                     </div>
@@ -419,7 +424,7 @@ export default function DebtsPage() {
                         type="button"
                         onClick={() => openPaymentSheet(debt)}
                         className="flex-1 min-h-[40px] py-2 rounded-xl text-xs font-semibold
-                          bg-[#1E3A5F] text-white
+                          bg-[#2563EB] text-white
                           hover:opacity-90 active:scale-[0.98] transition-all"
                       >
                         상환 기록
@@ -448,17 +453,25 @@ export default function DebtsPage() {
                           debt.payments.map((p) => (
                             <div
                               key={p.id}
-                              className="flex items-center justify-between text-xs"
+                              className="flex items-center justify-between text-xs gap-2"
                             >
                               <span className="text-gray-500 dark:text-gray-400 tabular-nums shrink-0">
                                 {p.date}
                               </span>
-                              <span className="flex-1 mx-3 text-gray-600 dark:text-gray-300 truncate">
+                              <span className="flex-1 text-gray-600 dark:text-gray-300 truncate">
                                 {p.memo || "상환"}
                               </span>
                               <span className="font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums shrink-0">
                                 {formatCurrency(p.amount)}원
                               </span>
+                              <button
+                                type="button"
+                                onClick={() => setDeletePaymentConfirm({ id: p.id, debtId: debt.id })}
+                                className="p-1 rounded text-gray-300 dark:text-gray-600 hover:text-red-400 transition-colors shrink-0"
+                                aria-label="삭제"
+                              >
+                                <Trash2 size={12} />
+                              </button>
                             </div>
                           ))
                         )}
@@ -560,7 +573,7 @@ export default function DebtsPage() {
               autoFocus
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/30"
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
             />
           </div>
 
@@ -580,7 +593,7 @@ export default function DebtsPage() {
               placeholder="예: 주거, 학자금"
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/30"
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
             />
             {/* Tag chip preview */}
             {parseTags(debtTagsInput).length > 0 && (
@@ -603,7 +616,7 @@ export default function DebtsPage() {
             onClick={handleAddDebt}
             disabled={debtSaving || !canSaveDebt}
             className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
-              bg-[#1E3A5F] hover:opacity-90
+              bg-[#2563EB] hover:opacity-90
               disabled:opacity-40 disabled:cursor-not-allowed
               transition-opacity active:scale-[0.98]"
           >
@@ -629,7 +642,7 @@ export default function DebtsPage() {
               autoFocus
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/30"
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
             />
           </div>
 
@@ -654,7 +667,7 @@ export default function DebtsPage() {
               placeholder="예: 주거, 학자금"
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/30"
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
             />
             {parseTags(editTagsInput).length > 0 && (
               <div className="flex gap-1 flex-wrap mt-2">
@@ -676,7 +689,7 @@ export default function DebtsPage() {
             onClick={handleSaveEdit}
             disabled={editSaving || !canSaveEdit}
             className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
-              bg-[#1E3A5F] hover:opacity-90
+              bg-[#2563EB] hover:opacity-90
               disabled:opacity-40 disabled:cursor-not-allowed
               transition-opacity active:scale-[0.98]"
           >
@@ -712,6 +725,18 @@ export default function DebtsPage() {
           </div>
 
           <div>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">날짜</p>
+            <input
+              type="date"
+              value={paymentDate}
+              onChange={(e) => setPaymentDate(e.target.value)}
+              className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
+                bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
+                focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
+            />
+          </div>
+
+          <div>
             <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">메모 (선택)</p>
             <input
               type="text"
@@ -720,7 +745,7 @@ export default function DebtsPage() {
               placeholder="메모"
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/30"
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
               onKeyDown={(e) => { if (e.key === "Enter") handleSavePayment(); }}
             />
           </div>
@@ -730,7 +755,7 @@ export default function DebtsPage() {
             onClick={handleSavePayment}
             disabled={paymentSaving || !canSavePayment}
             className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
-              bg-[#1E3A5F] hover:opacity-90
+              bg-[#2563EB] hover:opacity-90
               disabled:opacity-40 disabled:cursor-not-allowed
               transition-opacity active:scale-[0.98]"
           >
@@ -738,6 +763,19 @@ export default function DebtsPage() {
           </button>
         </div>
       </BottomSheet>
+
+      {/* ── Delete Payment Confirm ───────────────────────────────────────────── */}
+      <ConfirmDialog
+        isOpen={deletePaymentConfirm !== null}
+        title="상환 내역 삭제"
+        description="이 상환 내역을 삭제하시겠어요? 되돌릴 수 없습니다."
+        confirmLabel="삭제"
+        cancelLabel="취소"
+        variant="danger"
+        loading={deletingPayment}
+        onConfirm={handleDeletePayment}
+        onClose={() => setDeletePaymentConfirm(null)}
+      />
 
       {/* ── Delete Confirm Dialog ────────────────────────────────────────────── */}
       <ConfirmDialog

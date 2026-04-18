@@ -90,6 +90,8 @@ export interface HeavenBankEntry {
   target: string | null;
   description: string | null;
   amount: number;
+  created_at?: string;
+  transaction_id: string | null;
 }
 
 export interface FinanceTransaction {
@@ -185,6 +187,7 @@ export interface FinanceDebtPayment {
   amount: number;
   date: string;
   memo: string | null;
+  transaction_id: string | null;
 }
 
 export interface FinanceInstallment {
@@ -194,9 +197,21 @@ export interface FinanceInstallment {
   total_amount: number;
   monthly_payment: number;
   total_months: number;
+  /** @deprecated 2026-04: superseded by COUNT(finance_installment_payments). Kept for legacy rows only. */
   paid_months: number;
   start_date: string;
   is_completed: boolean;
+  created_at: string;
+}
+
+export interface FinanceInstallmentPayment {
+  id: string;
+  user_id: string;
+  installment_id: string;
+  transaction_id: string | null;
+  month_number: number;
+  paid_at: string;
+  amount: number;
   created_at: string;
 }
 

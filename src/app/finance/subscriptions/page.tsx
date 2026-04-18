@@ -344,7 +344,7 @@ export default function SubscriptionsPage() {
             type="button"
             onClick={openAddSheet}
             className="px-4 py-2 min-h-[40px] rounded-xl text-sm font-semibold text-white
-              bg-[#1E3A5F] hover:opacity-90 active:scale-95 transition-all"
+              bg-[#2563EB] hover:opacity-90 active:scale-95 transition-all"
           >
             + 구독 추가
           </button>
@@ -354,7 +354,7 @@ export default function SubscriptionsPage() {
       <div className="max-w-3xl mx-auto p-4 lg:p-8 space-y-5">
 
         {/* ── Summary Card ─────────────────────────────────────────────── */}
-        <FinanceCard groupColor="#1E3A5F">
+        <FinanceCard groupColor="#2563EB">
           <div className="pl-2">
             <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
               구독 현황
@@ -368,7 +368,7 @@ export default function SubscriptionsPage() {
               </div>
               <div>
                 <p className="text-[10px] text-gray-400 dark:text-gray-500 mb-0.5">월 총액</p>
-                <p className="text-sm font-semibold text-[#1E3A5F] dark:text-blue-300 tabular-nums">
+                <p className="text-sm font-semibold text-[#2563EB] dark:text-blue-300 tabular-nums">
                   {formatCurrency(totalMonthlyAmount)}원
                 </p>
               </div>
@@ -419,7 +419,7 @@ export default function SubscriptionsPage() {
               const hist = histories[sub.id];
 
               return (
-                <FinanceCard key={sub.id} groupColor="#1E3A5F">
+                <FinanceCard key={sub.id} groupColor="#2563EB">
                   <div className="pl-2">
                     {/* Title row + overflow */}
                     <div className="flex items-start justify-between mb-1.5">
@@ -646,7 +646,7 @@ export default function SubscriptionsPage() {
               autoFocus
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/30"
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
             />
           </div>
 
@@ -666,7 +666,7 @@ export default function SubscriptionsPage() {
               placeholder="예: 신한카드 1234"
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/30"
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
             />
           </div>
 
@@ -682,7 +682,7 @@ export default function SubscriptionsPage() {
               onChange={(e) => setAddDay(e.target.value)}
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/30"
+                focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
             />
           </div>
 
@@ -694,7 +694,7 @@ export default function SubscriptionsPage() {
               onChange={(e) => setAddStartDate(e.target.value)}
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/30"
+                focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
             />
           </div>
 
@@ -703,7 +703,7 @@ export default function SubscriptionsPage() {
             onClick={handleAdd}
             disabled={addSaving || !canSaveAdd}
             className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
-              bg-[#1E3A5F] hover:opacity-90
+              bg-[#2563EB] hover:opacity-90
               disabled:opacity-40 disabled:cursor-not-allowed
               transition-opacity active:scale-[0.98]"
           >
@@ -725,7 +725,7 @@ export default function SubscriptionsPage() {
               autoFocus
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/30"
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
             />
           </div>
 
@@ -740,7 +740,7 @@ export default function SubscriptionsPage() {
               placeholder="예: 신한카드 1234"
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/30"
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
             />
           </div>
 
@@ -756,7 +756,7 @@ export default function SubscriptionsPage() {
               onChange={(e) => setEditDay(e.target.value)}
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/30"
+                focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
             />
           </div>
 
@@ -771,7 +771,7 @@ export default function SubscriptionsPage() {
             onClick={handleSaveEdit}
             disabled={editSaving || !canSaveEdit}
             className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
-              bg-[#1E3A5F] hover:opacity-90
+              bg-[#2563EB] hover:opacity-90
               disabled:opacity-40 disabled:cursor-not-allowed
               transition-opacity active:scale-[0.98]"
           >
@@ -805,7 +805,7 @@ export default function SubscriptionsPage() {
               onChange={(e) => setAmountEffDate(e.target.value)}
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/30"
+                focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
             />
           </div>
 
@@ -820,7 +820,7 @@ export default function SubscriptionsPage() {
               placeholder="예: 인상, 할인 적용"
               className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/30"
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30"
             />
           </div>
 
@@ -834,7 +834,7 @@ export default function SubscriptionsPage() {
             onClick={handleSaveAmount}
             disabled={amountSaving || !canSaveAmount}
             className="w-full min-h-[48px] py-3 rounded-xl text-sm font-semibold text-white
-              bg-[#1E3A5F] hover:opacity-90
+              bg-[#2563EB] hover:opacity-90
               disabled:opacity-40 disabled:cursor-not-allowed
               transition-opacity active:scale-[0.98]"
           >
@@ -863,7 +863,7 @@ export default function SubscriptionsPage() {
               rows={3}
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-[#2d3748]
                 bg-white dark:bg-[#1a2030] text-sm text-gray-900 dark:text-gray-100
-                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/30
+                placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30
                 resize-none"
             />
           </div>

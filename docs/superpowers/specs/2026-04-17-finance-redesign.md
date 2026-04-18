@@ -31,7 +31,7 @@ See migrations 00011 and 00012 for schema changes. No existing spec section is i
 /finance                    허브 대시보드
 ├── /finance/obligation     의무사항 그룹
 ├── /finance/necessity      필요사항 그룹
-├── /finance/sowing         좋은 땅 / 하늘은행
+├── /finance/sowing         하늘은행
 ├── /finance/want           요망사항 / 위시리스트
 ├── /finance/cashbook       출납부 (일일 + 월별)
 ├── /finance/budget         예산 관리
@@ -141,7 +141,7 @@ See migrations 00011 and 00012 for schema changes. No existing spec section is i
 
 **입력**: 항목 카드 내 "+" 또는 FAB
 
-### 3-3. 좋은 땅 / 하늘은행 (`/finance/sowing`)
+### 3-3. 하늘은행 (`/finance/sowing`)
 
 **은행 앱 통장 스타일 (깔끔, 메타포 없이):**
 

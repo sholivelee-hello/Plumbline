@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef, useMemo, Suspense } from "react";
+import { useState, useCallback, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -19,13 +19,9 @@ import { useFinanceHub } from "@/lib/hooks/use-finance-hub";
 import { useFinanceTransactions } from "@/lib/hooks/use-finance-transactions";
 import { useBudgetSettings } from "@/lib/hooks/use-budget-settings";
 import { useRecurring } from "@/lib/hooks/use-recurring";
-import { useOnboarding } from "@/lib/hooks/use-onboarding";
 import { getCurrentMonth, formatCurrency, parseCurrencyInput } from "@/lib/finance-utils";
 import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/components/ui/toast";
-import { createClient } from "@/lib/supabase/client";
-import { FIXED_USER_ID } from "@/lib/constants";
-
 import { FinanceCard } from "@/components/finance/finance-card";
 import { FinanceDonutChart } from "@/components/finance/finance-donut-chart";
 import { FinanceProgressBar } from "@/components/finance/progress-bar";
@@ -40,8 +36,8 @@ import { AmountInput } from "@/components/finance/amount-input";
 
 const GROUP_CHIP_STYLES: Record<string, { base: string; active: string }> = {
   obligation: {
-    base: "bg-[#1E3A5F]/10 text-[#1E3A5F] dark:bg-[#1E3A5F]/25 dark:text-blue-300",
-    active: "bg-[#1E3A5F] text-white",
+    base: "bg-[#2563EB]/10 text-[#2563EB] dark:bg-[#2563EB]/25 dark:text-blue-300",
+    active: "bg-[#2563EB] text-white",
   },
   necessity: {
     base: "bg-[#059669]/10 text-[#059669] dark:bg-[#059669]/25 dark:text-emerald-300",
@@ -57,88 +53,6 @@ const GROUP_CHIP_STYLES: Record<string, { base: string; active: string }> = {
   },
 };
 
-// ── localStorage Migration hook ───────────────────────────────────────────────
-
-function useLocalStorageMigration(toast: (msg: string, type: "success" | "error" | "info") => void) {
-  const [migrationOffered, setMigrationOffered] = useState(false);
-  const supabase = useMemo(() => createClient(), []);
-
-  useEffect(() => {
-    const dismissed = localStorage.getItem("faith-budget-migration-dismissed");
-    if (dismissed === "true") return;
-
-    let found = false;
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key?.startsWith("faith-budget-") && key !== "faith-budget-migration-dismissed") {
-        found = true;
-        break;
-      }
-    }
-    if (found) setMigrationOffered(true);
-  }, []);
-
-  const migrateNow = useCallback(async () => {
-    const rowsToInsert: Array<{
-      user_id: string;
-      month: string;
-      group_id: string;
-      item_id: string;
-      amount: number;
-    }> = [];
-    const keysToRemove: string[] = [];
-
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key?.startsWith("faith-budget-") || key === "faith-budget-migration-dismissed") continue;
-      const month = key.replace("faith-budget-", "");
-      const raw = localStorage.getItem(key);
-      if (!raw) continue;
-      try {
-        const parsed: Record<string, unknown> = JSON.parse(raw);
-        for (const [itemKey, amount] of Object.entries(parsed)) {
-          const idx = itemKey.indexOf("_");
-          if (idx === -1) continue;
-          rowsToInsert.push({
-            user_id: FIXED_USER_ID,
-            month,
-            group_id: itemKey.slice(0, idx),
-            item_id: itemKey.slice(idx + 1),
-            amount: Number(amount),
-          });
-        }
-        keysToRemove.push(key);
-      } catch {
-        // skip malformed entries
-      }
-    }
-
-    if (rowsToInsert.length === 0) {
-      keysToRemove.forEach((k) => localStorage.removeItem(k));
-      setMigrationOffered(false);
-      toast("가져올 예산 데이터가 없습니다", "info");
-      return;
-    }
-
-    const { error } = await supabase.from("finance_budgets").insert(rowsToInsert);
-    if (error) {
-      toast("마이그레이션 실패: " + error.message, "error");
-      return;
-    }
-
-    keysToRemove.forEach((k) => localStorage.removeItem(k));
-    setMigrationOffered(false);
-    toast(`예산 데이터 ${rowsToInsert.length}건을 클라우드에 저장했습니다`, "success");
-  }, [supabase, toast]);
-
-  const dismiss = useCallback(() => {
-    localStorage.setItem("faith-budget-migration-dismissed", "true");
-    setMigrationOffered(false);
-  }, []);
-
-  return { migrationOffered, migrateNow, dismiss };
-}
-
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 function FinancePageInner() {
@@ -147,23 +61,12 @@ function FinancePageInner() {
   const [month, setMonth] = useState(getCurrentMonth());
   const { toast } = useToast();
 
-  const { isOnboarded, loading: onboardingLoading } = useOnboarding();
-  const { migrationOffered, migrateNow, dismiss: dismissMigration } = useLocalStorageMigration(toast);
-
-  const { summary, donutData, groupCards, todayTransactions, loading, refresh } =
+  const { summary, donutData, groupCards, heavenBankBalance, heavenBankMonthlySow, todayTransactions, loading, refresh } =
     useFinanceHub(month);
   const { addTransaction } = useFinanceTransactions(month);
   const { groups, incomeCategories } = useBudgetSettings();
   const { executeForMonth } = useRecurring();
 
-  // ── Onboarding redirect disabled for UI testing mode ────────────────────
-  // Re-enable when Supabase is properly configured:
-  // useEffect(() => {
-  //   if (onboardingLoading) return;
-  //   if (!isOnboarded) {
-  //     router.replace("/finance/onboarding");
-  //   }
-  // }, [onboardingLoading, isOnboarded, router]);
 
   // ── Auto-execute recurring transactions once per month ───────────────────
   const lastExecutedMonth = useRef<string | null>(null);
@@ -287,29 +190,6 @@ function FinancePageInner() {
 
       <div className="max-w-3xl mx-auto p-4 lg:p-8 space-y-5">
 
-        {/* ── Migration Banner ─────────────────────────────────────────────── */}
-        {migrationOffered && (
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-4">
-            <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-              기존 예산 데이터가 발견되었습니다. 클라우드에 저장할까요?
-            </p>
-            <div className="flex gap-2 mt-3">
-              <button
-                onClick={migrateNow}
-                className="px-4 py-2 min-h-[40px] rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 active:scale-95 transition-all"
-              >
-                가져오기
-              </button>
-              <button
-                onClick={dismissMigration}
-                className="px-4 py-2 min-h-[40px] rounded-lg text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 active:scale-95 transition-all"
-              >
-                나중에
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* ── 1. Month Picker ──────────────────────────────────────────────── */}
         <MonthPicker
           month={month}
@@ -351,7 +231,7 @@ function FinancePageInner() {
 
               <FinanceCard>
                 <div className="flex items-center gap-1.5 mb-2">
-                  <Wallet size={14} className="text-[#1E3A5F] dark:text-blue-300 shrink-0" />
+                  <Wallet size={14} className="text-[#2563EB] dark:text-blue-300 shrink-0" />
                   <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500">
                     이번달 잔액
                   </span>
@@ -359,7 +239,7 @@ function FinancePageInner() {
                 <p
                   className={`text-sm lg:text-base font-bold tabular-nums ${
                     summary.balance >= 0
-                      ? "text-[#1E3A5F] dark:text-blue-300"
+                      ? "text-[#2563EB] dark:text-blue-300"
                       : "text-red-500 dark:text-red-400"
                   }`}
                 >
@@ -379,48 +259,74 @@ function FinancePageInner() {
 
             {/* ── 4. Group Cards ──────────────────────────────────────── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {groupCards.map((card) => (
-                <FinanceCard
-                  key={card.groupId}
-                  groupColor={card.color}
-                  onClick={() => router.push(`/finance/${card.groupId}`)}
-                  className="pl-5"
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
-                      {card.title}
-                    </span>
-                    <span className="shrink-0 text-[10px] text-gray-400 dark:text-gray-500 ml-2">
-                      {card.percentGuide}
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-gray-500 dark:text-gray-400 tabular-nums mb-2">
-                    {formatCurrency(card.actual)}{" "}
-                    <span className="text-gray-300 dark:text-gray-600">/</span>{" "}
-                    {formatCurrency(card.budget)} 원
-                  </p>
-
-                  <FinanceProgressBar
-                    value={card.actual}
-                    max={card.budget}
-                    color={card.color}
-                    height="sm"
-                  />
-
-                  <p
-                    className={`text-[11px] font-medium tabular-nums mt-1 ${
-                      card.percent > 100
-                        ? "text-red-500"
-                        : card.percent >= 80
-                        ? "text-amber-500"
-                        : "text-gray-400"
-                    }`}
+              {groupCards.map((card) =>
+                card.groupId === "sowing" ? (
+                  // 하늘은행 카드: 누적 잔액 표시
+                  <FinanceCard
+                    key={card.groupId}
+                    groupColor={card.color}
+                    onClick={() => router.push("/finance/sowing")}
+                    className="pl-5"
                   >
-                    ({card.percent}%)
-                  </p>
-                </FinanceCard>
-              ))}
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                        {card.title}
+                      </span>
+                      <span className="shrink-0 text-[10px] text-gray-400 dark:text-gray-500 ml-2">
+                        누적 잔액
+                      </span>
+                    </div>
+                    <p className="text-lg font-bold text-[#7C3AED] dark:text-violet-400 tabular-nums">
+                      {formatCurrency(heavenBankBalance)}
+                      <span className="text-xs font-normal ml-1">원</span>
+                    </p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums mt-1">
+                      이번 달 심음 {formatCurrency(heavenBankMonthlySow)}원
+                    </p>
+                  </FinanceCard>
+                ) : (
+                  <FinanceCard
+                    key={card.groupId}
+                    groupColor={card.color}
+                    onClick={() => router.push(`/finance/${card.groupId}`)}
+                    className="pl-5"
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                        {card.title}
+                      </span>
+                      <span className="shrink-0 text-[10px] text-gray-400 dark:text-gray-500 ml-2">
+                        {card.percentGuide}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-gray-500 dark:text-gray-400 tabular-nums mb-2">
+                      {formatCurrency(card.actual)}{" "}
+                      <span className="text-gray-300 dark:text-gray-600">/</span>{" "}
+                      {formatCurrency(card.budget)} 원
+                    </p>
+
+                    <FinanceProgressBar
+                      value={card.actual}
+                      max={card.budget}
+                      color={card.color}
+                      height="sm"
+                    />
+
+                    <p
+                      className={`text-[11px] font-medium tabular-nums mt-1 ${
+                        card.percent > 100
+                          ? "text-red-500"
+                          : card.percent >= 80
+                          ? "text-amber-500"
+                          : "text-gray-400"
+                      }`}
+                    >
+                      ({card.percent}%)
+                    </p>
+                  </FinanceCard>
+                )
+              )}
             </div>
 
             {/* ── 5. Quick Shortcuts ──────────────────────────────────── */}
