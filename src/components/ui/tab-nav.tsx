@@ -27,7 +27,7 @@ export function TabNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex flex-col items-center py-2.5 px-4 min-h-[44px] text-xs transition-colors ${
+              className={`flex flex-col items-center py-3.5 px-4 min-h-[44px] text-sm transition-colors ${
                 isActive
                   ? "text-primary-600 dark:text-primary-300"
                   : "text-gray-400 dark:text-gray-500"

@@ -73,7 +73,7 @@ export function BottomSheet({ isOpen, onClose, title, children }: BottomSheetPro
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-40 bg-black transition-opacity duration-300 ${
+        className={`fixed inset-0 z-[55] bg-black transition-opacity duration-300 ${
           isOpen ? "opacity-40 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         onClick={onClose}
@@ -86,7 +86,7 @@ export function BottomSheet({ isOpen, onClose, title, children }: BottomSheetPro
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-[#1a2030]
+        className={`fixed bottom-0 left-0 right-0 z-[60] bg-white dark:bg-[#1a2030]
           rounded-t-3xl shadow-2xl max-h-[85vh] overflow-y-auto
           transform transition-transform duration-300 ease-out
           ${isOpen ? "translate-y-0" : "translate-y-full pointer-events-none"}`}
