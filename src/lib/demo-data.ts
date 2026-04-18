@@ -48,11 +48,11 @@ export const demoTemplates: BasicsTemplate[] = [
 ];
 
 export const demoLogs: BasicsLog[] = [
-  { id: "bl1", user_id: USER_ID, template_id: "bt1", date: TODAY, completed: true, value: null, completed_at: "" },
-  { id: "bl2", user_id: USER_ID, template_id: "bt2", date: TODAY, completed: true, value: 25, completed_at: "" },
+  { id: "bl1", user_id: USER_ID, template_id: "bt1", date: TODAY, completed: false, value: null, completed_at: null },
+  { id: "bl2", user_id: USER_ID, template_id: "bt2", date: TODAY, completed: false, value: null, completed_at: null },
   { id: "bl3", user_id: USER_ID, template_id: "bt3", date: TODAY, completed: false, value: null, completed_at: null },
-  { id: "bl4", user_id: USER_ID, template_id: "bt4", date: TODAY, completed: true, value: 45, completed_at: "" },
-  { id: "bl5", user_id: USER_ID, template_id: "bt5", date: TODAY, completed: false, value: 5, completed_at: null },
+  { id: "bl4", user_id: USER_ID, template_id: "bt4", date: TODAY, completed: false, value: null, completed_at: null },
+  { id: "bl5", user_id: USER_ID, template_id: "bt5", date: TODAY, completed: false, value: null, completed_at: null },
   { id: "bl6", user_id: USER_ID, template_id: "bt6", date: TODAY, completed: false, value: null, completed_at: null },
 ];
 

@@ -28,6 +28,7 @@ export function useBasics(dayStartTime: string = "04:00") {
     const { data } = await supabase
       .from("basics_logs")
       .select("*")
+      .eq("user_id", FIXED_USER_ID)
       .eq("date", today);
     if (data) setLogs(data);
   }, [supabase, today]);
@@ -52,6 +53,8 @@ export function useBasics(dayStartTime: string = "04:00") {
           user_id: t.user_id,
           template_id: t.id,
           date: today,
+          completed: false,
+          completed_at: null,
         }))
       );
     }
