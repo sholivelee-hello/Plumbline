@@ -126,6 +126,7 @@ export function useFinanceTransactions(month: string) {
         date: data.date,
         group_id: data.group_id ?? null,
         item_id: data.item_id ?? null,
+        wishlist_id: null,
         source: data.source ?? "manual",
       };
 

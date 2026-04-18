@@ -103,6 +103,7 @@ export interface FinanceTransaction {
   date: string;
   group_id: string | null;
   item_id: string | null;
+  wishlist_id: string | null;
   source: 'manual' | 'recurring' | 'installment' | 'debt' | 'heaven_bank' | 'subscription';
 }
 
