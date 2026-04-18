@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { Check, AlertTriangle } from "lucide-react";
 import { useBudget } from "@/lib/hooks/use-budget";
 import { useBudgetSettings } from "@/lib/hooks/use-budget-settings";
+import { useRollover } from "@/lib/hooks/use-rollover";
 import {
   getCurrentMonth,
   formatCurrency,
@@ -110,7 +111,11 @@ export default function BudgetPage() {
     updateIncome,
   } = useBudgetSettings();
 
+  const { rollovers } = useRollover(month);
+
   const loading = budgetLoading || settingsLoading;
+
+  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
 
   // ── Setup flow ───────────────────────────────────────────────────────────────
   const [setupFlow, setSetupFlow] = useState<SetupFlow>("normal");
@@ -324,12 +329,16 @@ export default function BudgetPage() {
                 (s, item) => s + (budgets[getItemKey(group.id, item.id)] ?? 0),
                 0
               );
+              const rollover = rollovers[group.id] ?? 0;
+              const effectiveBudget = groupTotal + rollover;
               const income = monthlyIncome || 0;
               const percent = income > 0 ? (groupTotal / income) * 100 : 0;
               const inRange =
                 percent >= group.percentMin && percent <= group.percentMax;
               const showWarning =
                 !inRange && groupTotal > 0 && income > 0;
+              const isExpanded = expandedGroupId === group.id;
+              const isWant = group.id === "want";
 
               return (
                 <section
@@ -340,8 +349,16 @@ export default function BudgetPage() {
                   }`}
                 >
                   {/* Group header */}
-                  <div className={`px-4 py-3 ${style.headerBg} flex items-center justify-between`}>
-                    <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedGroupId((prev) => (prev === group.id ? null : group.id))
+                    }
+                    aria-expanded={isExpanded}
+                    className={`w-full px-4 py-3 ${style.headerBg} flex items-center justify-between text-left
+                      hover:opacity-90 transition-opacity active:scale-[0.995]`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
                       <span
                         className="w-2.5 h-2.5 rounded-full shrink-0"
                         style={{ backgroundColor: style.color }}
@@ -349,18 +366,58 @@ export default function BudgetPage() {
                       <span className={`text-sm font-bold ${style.headerText}`}>
                         {group.title}
                       </span>
-                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${style.badge}`}>
+                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${style.badge} shrink-0`}>
                         가이드: {group.percentMin}~{group.percentMax}%
                       </span>
+                      {rollover > 0 && !isWant && (
+                        <span
+                          className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${style.badge} shrink-0 tabular-nums`}
+                          aria-label="지난달 이월"
+                        >
+                          +{formatCurrency(rollover)}원 이월
+                        </span>
+                      )}
                     </div>
-                    <div className="text-right">
+                    <div className="text-right shrink-0 ml-2">
                       {income > 0 && (
                         <span className={`text-xs font-semibold tabular-nums ${style.accentText}`}>
                           {Math.round(percent)}% ({formatCurrency(groupTotal)}원)
                         </span>
                       )}
                     </div>
-                  </div>
+                  </button>
+
+                  {/* Expandable drilldown */}
+                  {isExpanded && (
+                    <div className="px-4 py-3 bg-gray-50/50 dark:bg-[#131720] border-t border-gray-100 dark:border-[#2d3748] space-y-1.5 text-xs">
+                      {isWant && rollover === 0 ? (
+                        <div className="text-gray-500 dark:text-gray-400 py-1">
+                          위시별 누적으로 추적 중
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-500 dark:text-gray-400">기본 배분</span>
+                            <span className="font-medium text-gray-700 dark:text-gray-300 tabular-nums">
+                              {formatCurrency(groupTotal)}원
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-500 dark:text-gray-400">지난달 이월</span>
+                            <span className={`font-medium tabular-nums ${rollover > 0 ? style.accentText : "text-gray-400 dark:text-gray-500"}`}>
+                              {rollover > 0 ? `+${formatCurrency(rollover)}` : formatCurrency(0)}원
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between pt-1 border-t border-gray-200/60 dark:border-[#2d3748]">
+                            <span className={`font-semibold ${style.headerText}`}>이번 달 여유</span>
+                            <span className={`font-bold tabular-nums ${style.accentText}`}>
+                              {formatCurrency(effectiveBudget)}원
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
 
                   {/* Out-of-range warning */}
                   {showWarning && (
