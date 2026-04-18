@@ -266,3 +266,20 @@ export interface FinanceSubscriptionCancellation {
   rejoined_at: string | null;
   created_at: string;
 }
+
+// ── Weight tracker ──────────────────────────────────────────
+export interface WeightEntry {
+  id: string;
+  user_id: string;
+  weighed_on: string;    // YYYY-MM-DD
+  weight_kg: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WeightGoal {
+  user_id: string;
+  target_kg: number;
+  deadline: string;      // YYYY-MM-DD
+  updated_at: string;
+}
