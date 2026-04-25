@@ -15,8 +15,13 @@ export function TabNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-[var(--surface)] border-t border-[var(--border)] px-2 pb-safe z-50 lg:hidden transition-colors">
-      <div className="flex justify-around max-w-lg mx-auto">
+    <nav
+      className="fixed bottom-0 left-0 right-0 bg-[var(--surface)] border-t border-[var(--border)] px-2 z-50 lg:hidden transition-colors"
+      style={{
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
+      }}
+    >
+      <div className="flex justify-around max-w-lg mx-auto items-start">
         {tabs.map((tab) => {
           const isActive =
             tab.href === "/"
@@ -27,7 +32,7 @@ export function TabNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex flex-col items-center py-3.5 px-4 min-h-[44px] text-sm transition-colors ${
+              className={`flex flex-col items-center pt-3 pb-1.5 px-4 min-h-[44px] text-sm transition-colors ${
                 isActive
                   ? "text-primary-600 dark:text-primary-300"
                   : "text-gray-400 dark:text-gray-500"
