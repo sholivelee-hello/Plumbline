@@ -9,7 +9,6 @@ export interface UserSettings {
   day_start_time: string;
   day_end_time: string;
   timezone: string;
-  salary_day?: number | null;
 }
 
 export interface BasicsTemplate {

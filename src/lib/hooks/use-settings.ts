@@ -10,7 +10,6 @@ const DEFAULT_SETTINGS: Omit<UserSettings, "id" | "user_id"> = {
   day_start_time: "04:00",
   day_end_time: "00:00",
   timezone: "Asia/Seoul",
-  salary_day: 25,
 };
 
 export function useSettings() {
