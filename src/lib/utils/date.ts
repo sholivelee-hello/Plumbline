@@ -9,21 +9,10 @@ export function toLocalDateString(date: Date): string {
 }
 
 /**
- * Get the "logical date" based on day_start_time.
- * If current time is before day_start_time, the logical date is yesterday.
- * Example: at 02:00 with day_start=04:00, logical date is previous day.
+ * Today's calendar date (local timezone). Rolls over at midnight 00:00.
  */
-export function getLogicalDate(dayStartTime: string = "04:00"): string {
-  const now = new Date();
-  const [startHour, startMin] = dayStartTime.split(":").map(Number);
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  const startMinutes = startHour * 60 + startMin;
-
-  if (currentMinutes < startMinutes) {
-    now.setDate(now.getDate() - 1);
-  }
-
-  return toLocalDateString(now);
+export function getLogicalDate(): string {
+  return toLocalDateString(new Date());
 }
 
 /**

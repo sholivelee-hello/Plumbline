@@ -6,8 +6,6 @@ export type TransactionType = "income" | "expense";
 export interface UserSettings {
   id: string;
   user_id: string;
-  day_start_time: string;
-  day_end_time: string;
   timezone: string;
 }
 

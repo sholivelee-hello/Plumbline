@@ -7,12 +7,8 @@ import { ProgressBar } from "@/components/ui/progress-bar";
 import { calcPercent } from "@/lib/utils/format";
 import { SkeletonCard } from "@/components/ui/skeleton";
 
-interface BasicsSummaryProps {
-  dayStartTime?: string;
-}
-
-export function BasicsSummary({ dayStartTime }: BasicsSummaryProps) {
-  const { templates, logs, loading } = useBasics(dayStartTime);
+export function BasicsSummary() {
+  const { templates, logs, loading } = useBasics();
 
   const completedCount = logs.filter((l) => l.completed).length;
   const totalCount = templates.length;

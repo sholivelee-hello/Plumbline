@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Settings as SettingsIcon } from "lucide-react";
 import { useBasics } from "@/lib/hooks/use-basics";
-import { useSettings } from "@/lib/hooks/use-settings";
 import { BasicsList } from "@/components/basics/basics-list";
 import { BasicsStats } from "@/components/basics/basics-stats";
 import { StatsView } from "@/components/basics/stats-view";
@@ -15,9 +14,8 @@ import { formatDateKR } from "@/lib/utils/date";
 
 export default function BasicsPage() {
   const [tab, setTab] = useState<"check" | "stats">("check");
-  const { settings } = useSettings();
   const { templates, logs, loading, today, toggleCheck, updateValue } =
-    useBasics(settings?.day_start_time);
+    useBasics();
   const { toast } = useToast();
 
   const [celebrateTick, setCelebrateTick] = useState(0);
@@ -105,7 +103,7 @@ export default function BasicsPage() {
           </div>
         </>
       ) : (
-        <StatsView dayStartTime={settings?.day_start_time || "04:00"} />
+        <StatsView />
       )}
 
       <CelebrateOverlay trigger={celebrateTick} />

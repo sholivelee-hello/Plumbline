@@ -7,12 +7,28 @@ import { getLogicalDate } from "@/lib/utils/date";
 import type { BasicsTemplate, BasicsLog } from "@/types/database";
 import { demoTemplates, demoLogs } from "@/lib/demo-data";
 
-export function useBasics(dayStartTime: string = "04:00") {
+export function useBasics() {
   const [templates, setTemplates] = useState<BasicsTemplate[]>([]);
   const [logs, setLogs] = useState<BasicsLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [today, setToday] = useState<string>(() => getLogicalDate());
   const supabase = useMemo(() => createClient(), []);
-  const today = getLogicalDate(dayStartTime);
+
+  // 자정 넘어가거나 앱이 백그라운드에서 다시 열리면 today 갱신
+  useEffect(() => {
+    function refreshToday() {
+      setToday((prev) => {
+        const next = getLogicalDate();
+        return prev === next ? prev : next;
+      });
+    }
+    document.addEventListener("visibilitychange", refreshToday);
+    const id = setInterval(refreshToday, 60_000);
+    return () => {
+      document.removeEventListener("visibilitychange", refreshToday);
+      clearInterval(id);
+    };
+  }, []);
 
   const loadTemplates = useCallback(async () => {
     const { data } = await supabase

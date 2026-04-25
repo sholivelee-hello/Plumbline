@@ -24,7 +24,9 @@ export function Fab({ onClick, icon, label = "추가" }: FabProps) {
         "transition-transform active:scale-95",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2",
       ].join(" ")}
-      style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
+      style={{
+        marginBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
+      }}
     >
       {icon ?? <Plus size={24} strokeWidth={2.5} />}
     </button>

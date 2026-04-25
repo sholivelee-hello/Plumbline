@@ -23,7 +23,6 @@ export interface WeeklyStats {
 }
 
 export function useWeeklyStats(
-  dayStartTime: string = "04:00",
   includeInactive: boolean = false,
   referenceDate?: string
 ): WeeklyStats {
@@ -35,7 +34,7 @@ export function useWeeklyStats(
     try {
       const supabase = createClient();
 
-      const today = referenceDate ?? getLogicalDate(dayStartTime);
+      const today = referenceDate ?? getLogicalDate();
       const weekStart = getWeekStart(today);
       const dates = getWeekDates(today);
 
@@ -111,7 +110,7 @@ export function useWeeklyStats(
       setItems(result);
     } catch {
       // Fallback to demo data on error
-      const today = getLogicalDate(dayStartTime);
+      const today = getLogicalDate();
       const dates = getWeekDates(today);
 
       const result: WeeklyItemStat[] = demoTemplates.map((template: BasicsTemplate) => {
@@ -130,7 +129,7 @@ export function useWeeklyStats(
       setItems(result);
     }
     setLoading(false);
-  }, [dayStartTime, includeInactive, referenceDate]);
+  }, [includeInactive, referenceDate]);
 
   useEffect(() => {
     load();

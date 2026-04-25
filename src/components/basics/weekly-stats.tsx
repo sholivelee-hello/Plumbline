@@ -9,7 +9,6 @@ import { CheckTable } from "./check-table";
 import { getLogicalDate, toLocalDateString } from "@/lib/utils/date";
 
 interface WeeklyStatsProps {
-  dayStartTime: string;
   showInactive: boolean;
 }
 
@@ -31,16 +30,16 @@ function formatWeekRange(dates: string[]): string {
   return `${fm}/${fd} – ${lm}/${ld}`;
 }
 
-export function WeeklyStatsView({ dayStartTime, showInactive }: WeeklyStatsProps) {
+export function WeeklyStatsView({ showInactive }: WeeklyStatsProps) {
   const [weekOffset, setWeekOffset] = useState(0);
 
-  const todayBase = getLogicalDate(dayStartTime);
+  const todayBase = getLogicalDate();
   const referenceDate = addDays(todayBase, weekOffset * 7);
 
   const { weekDates, overallRate, spiritualRate, physicalRate, items, loading } =
-    useWeeklyStats(dayStartTime, showInactive, referenceDate);
+    useWeeklyStats(showInactive, referenceDate);
 
-  const today = getLogicalDate(dayStartTime);
+  const today = getLogicalDate();
   const isCurrentWeek = weekOffset === 0;
   const weekLabel = weekDates.length > 0 ? formatWeekRange(weekDates) : "";
 

@@ -5,18 +5,16 @@ import { FinanceSummary } from "@/components/dashboard/finance-summary";
 import { DonutChart } from "@/components/ui/donut-chart";
 import { Card } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { useSettings } from "@/lib/hooks/use-settings";
 import { useBasics } from "@/lib/hooks/use-basics";
 import { getLogicalDate, formatDateKR } from "@/lib/utils/date";
 import { getGreeting } from "@/lib/utils/greeting";
 import { calcPercent } from "@/lib/utils/format";
 
 export default function DashboardPage() {
-  const { settings } = useSettings();
-  const today = getLogicalDate(settings?.day_start_time);
+  const today = getLogicalDate();
   const greeting = getGreeting();
 
-  const { templates, logs, loading } = useBasics(settings?.day_start_time);
+  const { templates, logs, loading } = useBasics();
   const completedCount = logs.filter((l) => l.completed).length;
   const totalCount = templates.length;
   const percent = calcPercent(completedCount, totalCount);
@@ -61,7 +59,7 @@ export default function DashboardPage() {
         </div>
       </Card>
 
-      <BasicsSummary dayStartTime={settings?.day_start_time} />
+      <BasicsSummary />
       <FinanceSummary />
     </div>
   );

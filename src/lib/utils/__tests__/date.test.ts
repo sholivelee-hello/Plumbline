@@ -3,24 +3,24 @@ import { describe, it, expect, vi } from "vitest";
 import { getLogicalDate, getWeekStart, getWeekDates } from "../date";
 
 describe("getLogicalDate", () => {
-  it("returns today when after day start", () => {
+  it("returns today's calendar date in the morning", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-04-12T10:00:00"));
-    expect(getLogicalDate("04:00")).toBe("2026-04-12");
+    expect(getLogicalDate()).toBe("2026-04-12");
     vi.useRealTimers();
   });
 
-  it("returns yesterday when before day start", () => {
+  it("returns today's calendar date past midnight", () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-04-12T03:00:00"));
-    expect(getLogicalDate("04:00")).toBe("2026-04-11");
+    vi.setSystemTime(new Date("2026-04-12T02:00:00"));
+    expect(getLogicalDate()).toBe("2026-04-12");
     vi.useRealTimers();
   });
 
-  it("returns today at exactly day start", () => {
+  it("rolls over exactly at midnight", () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-04-12T04:00:00"));
-    expect(getLogicalDate("04:00")).toBe("2026-04-12");
+    vi.setSystemTime(new Date("2026-04-12T00:00:00"));
+    expect(getLogicalDate()).toBe("2026-04-12");
     vi.useRealTimers();
   });
 });

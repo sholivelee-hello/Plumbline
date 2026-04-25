@@ -32,8 +32,6 @@ function daysFromToday(n: number): string {
 export const demoSettings: UserSettings = {
   id: "s1",
   user_id: USER_ID,
-  day_start_time: "04:00",
-  day_end_time: "00:00",
   timezone: "Asia/Seoul",
 };
 

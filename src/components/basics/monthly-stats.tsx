@@ -10,18 +10,17 @@ import { DailyTable } from "./daily-table";
 import { getCurrentMonth, prevMonth, nextMonth, formatMonthKR } from "@/lib/utils/date";
 
 interface MonthlyStatsProps {
-  dayStartTime: string;
   showInactive: boolean;
 }
 
-export function MonthlyStatsView({ dayStartTime, showInactive }: MonthlyStatsProps) {
+export function MonthlyStatsView({ showInactive }: MonthlyStatsProps) {
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth);
 
   const currentMonth = getCurrentMonth();
   const isCurrentMonth = selectedMonth === currentMonth;
 
   const { month, monthDates, today, overallRate, spiritualRate, physicalRate, dailyRates, weekComparisons, items, loading } =
-    useMonthlyStats(dayStartTime, showInactive, selectedMonth);
+    useMonthlyStats(showInactive, selectedMonth);
 
   if (loading) {
     return (

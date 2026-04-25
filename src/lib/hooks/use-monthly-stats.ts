@@ -44,14 +44,13 @@ export interface MonthlyStats {
 }
 
 export function useMonthlyStats(
-  dayStartTime: string = "04:00",
   includeInactive: boolean = false,
   targetMonth?: string
 ): MonthlyStats {
   const [items, setItems] = useState<MonthlyItemStat[]>([]);
   const [month, setMonth] = useState(getCurrentMonth());
   const [monthDates, setMonthDates] = useState<string[]>([]);
-  const [today, setToday] = useState(getLogicalDate(dayStartTime));
+  const [today, setToday] = useState(getLogicalDate());
   const [dailyRates, setDailyRates] = useState<DailyRate[]>([]);
   const [weekComparisons, setWeekComparisons] = useState<WeekComparison[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,7 +60,7 @@ export function useMonthlyStats(
       const supabase = createClient();
 
       // 1. Compute dates inside the callback to avoid unstable references
-      const currentToday = getLogicalDate(dayStartTime);
+      const currentToday = getLogicalDate();
       const currentMonth = targetMonth ?? getCurrentMonth();
       const [year, mon] = currentMonth.split("-").map(Number);
       const lastDay = new Date(year, mon, 0).getDate();
@@ -225,7 +224,7 @@ export function useMonthlyStats(
       setWeekComparisons(computedWeekComparisons);
     } catch {
       // Demo fallback on error
-      const currentToday = getLogicalDate(dayStartTime);
+      const currentToday = getLogicalDate();
       const currentMonth = getCurrentMonth();
       const [year, mon] = currentMonth.split("-").map(Number);
       const lastDay = new Date(year, mon, 0).getDate();
@@ -255,7 +254,7 @@ export function useMonthlyStats(
       setWeekComparisons([]);
     }
     setLoading(false);
-  }, [dayStartTime, includeInactive, targetMonth]);
+  }, [includeInactive, targetMonth]);
 
   useEffect(() => {
     load();

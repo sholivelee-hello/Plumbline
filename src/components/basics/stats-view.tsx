@@ -4,11 +4,7 @@ import { useState } from "react";
 import { WeeklyStatsView } from "./weekly-stats";
 import { MonthlyStatsView } from "./monthly-stats";
 
-interface StatsViewProps {
-  dayStartTime: string;
-}
-
-export function StatsView({ dayStartTime }: StatsViewProps) {
+export function StatsView() {
   const [period, setPeriod] = useState<"weekly" | "monthly">("weekly");
   const [showInactive, setShowInactive] = useState(false);
 
@@ -38,9 +34,9 @@ export function StatsView({ dayStartTime }: StatsViewProps) {
       </div>
 
       {period === "weekly" ? (
-        <WeeklyStatsView dayStartTime={dayStartTime} showInactive={showInactive} />
+        <WeeklyStatsView showInactive={showInactive} />
       ) : (
-        <MonthlyStatsView dayStartTime={dayStartTime} showInactive={showInactive} />
+        <MonthlyStatsView showInactive={showInactive} />
       )}
 
       <button
