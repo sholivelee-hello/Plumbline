@@ -17,6 +17,7 @@ export interface BasicsTemplate {
   type: BasicType;
   unit: string | null;
   target_value: number | null;
+  step_value: number | null;
   sort_order: number;
   is_active: boolean;
   deactivated_at: string | null;

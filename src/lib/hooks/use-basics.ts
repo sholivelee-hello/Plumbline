@@ -127,6 +127,22 @@ export function useBasics() {
     await loadLogs();
   }
 
+  async function updateTemplate(
+    templateId: string,
+    updates: Partial<
+      Pick<
+        BasicsTemplate,
+        "category" | "title" | "type" | "unit" | "target_value" | "step_value"
+      >
+    >,
+  ) {
+    await supabase
+      .from("basics_templates")
+      .update(updates)
+      .eq("id", templateId);
+    await loadTemplates();
+  }
+
   async function deactivateTemplate(templateId: string) {
     await supabase
       .from("basics_templates")
@@ -143,6 +159,7 @@ export function useBasics() {
     toggleCheck,
     updateValue,
     addTemplate,
+    updateTemplate,
     deactivateTemplate,
   };
 }

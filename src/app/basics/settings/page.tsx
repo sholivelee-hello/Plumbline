@@ -6,13 +6,49 @@ import { Card } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import { TemplateForm } from "@/components/basics/template-form";
 import { PageHeader } from "@/components/ui/page-header";
+import type { BasicsTemplate } from "@/types/database";
 
 export default function BasicsSettingsPage() {
-  const { templates, addTemplate, deactivateTemplate } = useBasics();
+  const { templates, addTemplate, updateTemplate, deactivateTemplate } = useBasics();
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<BasicsTemplate | null>(null);
 
   const spiritual = templates.filter((t) => t.category === "spiritual");
   const physical = templates.filter((t) => t.category === "physical");
+
+  function renderRow(t: BasicsTemplate) {
+    return (
+      <div key={t.id} className="flex items-center justify-between gap-2 py-2">
+        <button
+          onClick={() => setEditing(t)}
+          className="flex-1 text-left text-gray-900 dark:text-gray-100 hover:text-primary-600 dark:hover:text-primary-300 transition-colors"
+        >
+          {t.title}
+        </button>
+        <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500">
+          {t.type === "number" && (
+            <span className="tabular-nums">
+              {t.target_value}
+              {t.unit}
+              {t.step_value != null && ` · ±${t.step_value}`}
+            </span>
+          )}
+          <button
+            onClick={() => setEditing(t)}
+            className="text-primary-500 hover:text-primary-600 px-2 py-1.5 rounded-lg"
+          >
+            수정
+          </button>
+          <button
+            onClick={() => deactivateTemplate(t.id)}
+            className="text-obligation-300 dark:text-obligation-400 hover:text-obligation-500 dark:hover:text-obligation-300 px-2 py-1.5 rounded-lg"
+          >
+            삭제
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pb-8">
@@ -21,38 +57,12 @@ export default function BasicsSettingsPage() {
 
       <Card>
         <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-3">📖 영적</h3>
-        {spiritual.map((t) => (
-          <div key={t.id} className="flex items-center justify-between py-2">
-            <span className="text-gray-900 dark:text-gray-100">{t.title}</span>
-            <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500">
-              {t.type === "number" && <span>{t.target_value}{t.unit}</span>}
-              <button
-                onClick={() => deactivateTemplate(t.id)}
-                className="text-obligation-300 dark:text-obligation-400 hover:text-obligation-500 dark:hover:text-obligation-300 px-3 py-1.5 rounded-lg"
-              >
-                삭제
-              </button>
-            </div>
-          </div>
-        ))}
+        {spiritual.map(renderRow)}
       </Card>
 
       <Card>
         <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-3">💪 신체적</h3>
-        {physical.map((t) => (
-          <div key={t.id} className="flex items-center justify-between py-2">
-            <span className="text-gray-900 dark:text-gray-100">{t.title}</span>
-            <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500">
-              {t.type === "number" && <span>{t.target_value}{t.unit}</span>}
-              <button
-                onClick={() => deactivateTemplate(t.id)}
-                className="text-obligation-300 dark:text-obligation-400 hover:text-obligation-500 dark:hover:text-obligation-300 px-3 py-1.5 rounded-lg"
-              >
-                삭제
-              </button>
-            </div>
-          </div>
-        ))}
+        {physical.map(renderRow)}
       </Card>
 
       <button
@@ -64,12 +74,34 @@ export default function BasicsSettingsPage() {
 
       <Modal isOpen={showForm} onClose={() => setShowForm(false)} title="새 베이직 항목">
         <TemplateForm
+          submitLabel="추가"
           onSave={(data) => {
             addTemplate(data);
             setShowForm(false);
           }}
           onCancel={() => setShowForm(false)}
         />
+      </Modal>
+
+      <Modal isOpen={editing !== null} onClose={() => setEditing(null)} title="베이직 항목 수정">
+        {editing && (
+          <TemplateForm
+            initialValues={{
+              category: editing.category,
+              title: editing.title,
+              type: editing.type,
+              unit: editing.unit,
+              target_value: editing.target_value,
+              step_value: editing.step_value,
+            }}
+            submitLabel="저장"
+            onSave={(data) => {
+              updateTemplate(editing.id, data);
+              setEditing(null);
+            }}
+            onCancel={() => setEditing(null)}
+          />
+        )}
       </Modal>
       </div>
     </div>

@@ -36,12 +36,12 @@ export const demoSettings: UserSettings = {
 };
 
 export const demoTemplates: BasicsTemplate[] = [
-  { id: "bt1", user_id: USER_ID, category: "spiritual", title: "QT", type: "check", unit: null, target_value: null, sort_order: 0, is_active: true, deactivated_at: null, created_at: THIRTY_DAYS_AGO },
-  { id: "bt2", user_id: USER_ID, category: "spiritual", title: "기도", type: "number", unit: "분", target_value: 30, sort_order: 1, is_active: true, deactivated_at: null, created_at: THIRTY_DAYS_AGO },
-  { id: "bt3", user_id: USER_ID, category: "spiritual", title: "말씀 읽기", type: "check", unit: null, target_value: null, sort_order: 2, is_active: true, deactivated_at: null, created_at: THIRTY_DAYS_AGO },
-  { id: "bt4", user_id: USER_ID, category: "physical", title: "운동", type: "number", unit: "분", target_value: 40, sort_order: 3, is_active: true, deactivated_at: null, created_at: THIRTY_DAYS_AGO },
-  { id: "bt5", user_id: USER_ID, category: "physical", title: "물 마시기", type: "number", unit: "잔", target_value: 8, sort_order: 4, is_active: true, deactivated_at: null, created_at: THIRTY_DAYS_AGO },
-  { id: "bt6", user_id: USER_ID, category: "physical", title: "스트레칭", type: "check", unit: null, target_value: null, sort_order: 5, is_active: true, deactivated_at: null, created_at: THIRTY_DAYS_AGO },
+  { id: "bt1", user_id: USER_ID, category: "spiritual", title: "QT", type: "check", unit: null, target_value: null, step_value: null, sort_order: 0, is_active: true, deactivated_at: null, created_at: THIRTY_DAYS_AGO },
+  { id: "bt2", user_id: USER_ID, category: "spiritual", title: "기도", type: "number", unit: "분", target_value: 30, step_value: 10, sort_order: 1, is_active: true, deactivated_at: null, created_at: THIRTY_DAYS_AGO },
+  { id: "bt3", user_id: USER_ID, category: "spiritual", title: "말씀 읽기", type: "check", unit: null, target_value: null, step_value: null, sort_order: 2, is_active: true, deactivated_at: null, created_at: THIRTY_DAYS_AGO },
+  { id: "bt4", user_id: USER_ID, category: "physical", title: "운동", type: "number", unit: "분", target_value: 40, step_value: 10, sort_order: 3, is_active: true, deactivated_at: null, created_at: THIRTY_DAYS_AGO },
+  { id: "bt5", user_id: USER_ID, category: "physical", title: "물 마시기", type: "number", unit: "잔", target_value: 8, step_value: 1, sort_order: 4, is_active: true, deactivated_at: null, created_at: THIRTY_DAYS_AGO },
+  { id: "bt6", user_id: USER_ID, category: "physical", title: "스트레칭", type: "check", unit: null, target_value: null, step_value: null, sort_order: 5, is_active: true, deactivated_at: null, created_at: THIRTY_DAYS_AGO },
 ];
 
 export const demoLogs: BasicsLog[] = [
