@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Settings as SettingsIcon } from "lucide-react";
 import { useBasics } from "@/lib/hooks/use-basics";
-import { useBasicsStats } from "@/lib/hooks/use-basics-stats";
 import { useSettings } from "@/lib/hooks/use-settings";
 import { BasicsList } from "@/components/basics/basics-list";
 import { BasicsStats } from "@/components/basics/basics-stats";
@@ -12,7 +11,6 @@ import { StatsView } from "@/components/basics/stats-view";
 import { CelebrateOverlay } from "@/components/ui/celebrate-overlay";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { useToast, vibrate } from "@/components/ui/toast";
-import { getStreakMilestone } from "@/lib/utils/streak";
 import { formatDateKR } from "@/lib/utils/date";
 
 export default function BasicsPage() {
@@ -20,7 +18,6 @@ export default function BasicsPage() {
   const { settings } = useSettings();
   const { templates, logs, loading, today, toggleCheck, updateValue } =
     useBasics(settings?.day_start_time);
-  const { stats } = useBasicsStats();
   const { toast } = useToast();
 
   const [celebrateTick, setCelebrateTick] = useState(0);
@@ -30,10 +27,6 @@ export default function BasicsPage() {
   const completedCount = logs.filter((l) => l.completed).length;
   const totalCount = templates.length;
   const allDone = totalCount > 0 && completedCount === totalCount;
-
-  // 최고 스트릭
-  const topStreak = stats.reduce((max, s) => Math.max(max, s.streak), 0);
-  const milestone = getStreakMilestone(topStreak);
 
   useEffect(() => {
     if (!didInit.current) {
@@ -72,17 +65,9 @@ export default function BasicsPage() {
           <SettingsIcon size={20} />
         </Link>
       </div>
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-400 dark:text-gray-500">
-          {formatDateKR(today)}
-        </p>
-        {milestone && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-heaven-50 dark:bg-heaven-700/20 px-2.5 py-1 text-xs font-semibold text-heaven-700 dark:text-heaven-300">
-            <span aria-hidden>{milestone.emoji}</span>
-            {milestone.label}
-          </span>
-        )}
-      </div>
+      <p className="text-sm text-gray-400 dark:text-gray-500">
+        {formatDateKR(today)}
+      </p>
 
       <div className="flex gap-2">
         <button

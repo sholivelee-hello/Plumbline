@@ -49,20 +49,6 @@ export function BasicsStats() {
           </div>
         </div>
       </Card>
-
-      <Card>
-        <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-3">연속 달성 (스트릭)</h3>
-        <div className="space-y-2">
-          {stats.map((s) => (
-            <div key={s.templateId} className="flex items-center justify-between py-1">
-              <span className="text-gray-700 dark:text-gray-200 text-sm">{s.title}</span>
-              <span className={`text-sm font-semibold ${s.streak > 0 ? "text-primary-500" : "text-gray-300 dark:text-gray-600"}`}>
-                {s.streak > 0 ? `${s.streak}일 연속` : "-"}
-              </span>
-            </div>
-          ))}
-        </div>
-      </Card>
     </div>
   );
 }
