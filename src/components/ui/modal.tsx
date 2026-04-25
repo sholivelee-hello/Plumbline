@@ -18,6 +18,8 @@ export function Modal({ isOpen, onClose, title, children, role: roleProp = "dial
   const autoId = useId();
   const [isVisible, setIsVisible] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+  const [vpHeight, setVpHeight] = useState<number | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,6 +37,29 @@ export function Modal({ isOpen, onClose, title, children, role: roleProp = "dial
       return () => clearTimeout(timer);
     }
     return () => { document.body.style.overflow = ""; };
+  }, [isOpen]);
+
+  // 키보드가 올라오면 모달이 가려지지 않도록 visualViewport로 오프셋 계산
+  useEffect(() => {
+    if (!isOpen) {
+      setKeyboardOffset(0);
+      setVpHeight(null);
+      return;
+    }
+    const vv = window.visualViewport;
+    if (!vv) return;
+    function onViewportChange() {
+      const offset = window.innerHeight - vv!.height - vv!.offsetTop;
+      setKeyboardOffset(Math.max(0, offset));
+      setVpHeight(vv!.height);
+    }
+    onViewportChange();
+    vv.addEventListener("resize", onViewportChange);
+    vv.addEventListener("scroll", onViewportChange);
+    return () => {
+      vv.removeEventListener("resize", onViewportChange);
+      vv.removeEventListener("scroll", onViewportChange);
+    };
   }, [isOpen]);
 
   // Focus first focusable element when modal opens
@@ -79,7 +104,13 @@ export function Modal({ isOpen, onClose, title, children, role: roleProp = "dial
   if (!isMounted) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
+    <div
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center"
+      style={{
+        paddingBottom: keyboardOffset,
+        transition: "padding-bottom 0.25s ease-out",
+      }}
+    >
       <div
         className="absolute inset-0 bg-black transition-opacity duration-200 ease-in-out"
         style={{ opacity: isVisible ? 0.4 : 0 }}
@@ -91,8 +122,11 @@ export function Modal({ isOpen, onClose, title, children, role: roleProp = "dial
         aria-modal="true"
         aria-labelledby={title ? `${autoId}-title` : undefined}
         aria-describedby={ariaDescribedBy}
-        className="relative bg-[var(--surface)] rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] overflow-y-auto p-6 transition-transform duration-300 ease-out text-gray-900 dark:text-gray-100"
-        style={{ transform: isVisible ? "translateY(0)" : "translateY(100%)" }}
+        className="relative bg-[var(--surface)] rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md overflow-y-auto p-6 transition-transform duration-300 ease-out text-gray-900 dark:text-gray-100"
+        style={{
+          transform: isVisible ? "translateY(0)" : "translateY(100%)",
+          maxHeight: vpHeight ? vpHeight * 0.92 : "85vh",
+        }}
       >
         {title && (
           <h3 id={`${autoId}-title`} className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{title}</h3>
