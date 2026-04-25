@@ -49,9 +49,37 @@ export function BasicsItem({ template, log, onToggle, onUpdateValue }: BasicsIte
     }
   }
 
+  // 시간 단위 항목은 편집할 때만 분 단위로 변환해서 다루기 쉽게 함
+  const isHourUnit = template.unit === "시간";
+  const isMinUnit = template.unit === "분";
+  const targetInMinutes = template.target_value
+    ? isHourUnit
+      ? template.target_value * 60
+      : template.target_value
+    : 0;
+  const editStep =
+    isHourUnit || isMinUnit
+      ? targetInMinutes >= 300
+        ? 60
+        : 10
+      : template.target_value && template.target_value >= 30
+        ? 5
+        : 1;
+  const editValue = isHourUnit
+    ? Math.round(((log.value ?? 0) * 60) / editStep) * editStep
+    : (log.value ?? 0);
+  const editTarget =
+    isHourUnit && template.target_value
+      ? template.target_value * 60
+      : template.target_value;
+  const editUnit = isHourUnit ? "분" : (template.unit ?? "");
+
   function handleValueSave(v: number) {
-    const completed = template.target_value ? v >= template.target_value : v > 0;
-    onUpdateValue(log!.id, v, template.target_value);
+    const finalValue = isHourUnit ? Math.round((v / 60) * 100) / 100 : v;
+    const completed = template.target_value
+      ? finalValue >= template.target_value
+      : finalValue > 0;
+    onUpdateValue(log!.id, finalValue, template.target_value);
     setShowInput(false);
     if (completed && !log!.completed) {
       vibrate(18);
@@ -133,12 +161,12 @@ export function BasicsItem({ template, log, onToggle, onUpdateValue }: BasicsIte
 
       <Modal isOpen={showInput} onClose={() => setShowInput(false)} title={template.title}>
         <NumberInput
-          value={log.value}
-          unit={template.unit ?? ""}
-          target={template.target_value}
+          value={editValue}
+          unit={editUnit}
+          target={editTarget}
           onSave={handleValueSave}
           onClose={() => setShowInput(false)}
-          step={template.target_value && template.target_value >= 30 ? 5 : 1}
+          step={editStep}
         />
       </Modal>
     </>
