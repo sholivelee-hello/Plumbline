@@ -1,6 +1,6 @@
 "use client";
 
-import { BasicsSummary } from "@/components/dashboard/basics-summary";
+import { CategoryBalanceTrend } from "@/components/dashboard/category-balance-trend";
 import { FinanceSummary } from "@/components/dashboard/finance-summary";
 import { DonutChart } from "@/components/ui/donut-chart";
 import { Card } from "@/components/ui/card";
@@ -59,7 +59,7 @@ export default function DashboardPage() {
         </div>
       </Card>
 
-      <BasicsSummary />
+      <CategoryBalanceTrend />
       <FinanceSummary />
     </div>
   );
