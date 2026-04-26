@@ -4,7 +4,9 @@ import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { BasicsTemplate, BasicsLog } from "@/types/database";
 import { getLogicalDate, toLocalDateString } from "@/lib/utils/date";
-import { getDailyAchievementRate } from "@/lib/utils/stats";
+import { getDailyAchievementRate, isNumericAchieved } from "@/lib/utils/stats";
+import { fetchDailyVirtualResults } from "@/lib/bible/virtual-items";
+import { FIXED_USER_ID } from "@/lib/constants";
 
 export interface CategoryTrendPoint {
   date: string;
@@ -88,6 +90,13 @@ export function useBasicsCategoryTrend(days = 30): CategoryTrend {
         (t) => t.category === "physical",
       );
 
+      const virtual = await fetchDailyVirtualResults(
+        supabase,
+        FIXED_USER_ID,
+        dates,
+        currentToday,
+      );
+
       const computed: CategoryTrendPoint[] = dates.map((date) => {
         if (date > currentToday) {
           return { date, spiritualRate: null, physicalRate: null };
@@ -99,12 +108,37 @@ export function useBasicsCategoryTrend(days = 30): CategoryTrend {
           isTemplateActiveOn(t, date),
         );
         const logsOnDate = logsArray.filter((l) => l.date === date);
+
+        // base spiritual achievement count
+        let spiritualActive = activeSpiritual.length;
+        let spiritualAchieved = 0;
+        for (const t of activeSpiritual) {
+          const log = logsOnDate.find((l) => l.template_id === t.id);
+          if (!log) continue;
+          if (t.type === "check") {
+            if (log.completed) spiritualAchieved++;
+          } else {
+            if (isNumericAchieved(log.value, t.target_value))
+              spiritualAchieved++;
+          }
+        }
+        if (virtual.readingApplicable.has(date)) {
+          spiritualActive++;
+          if (virtual.readingDone.has(date)) spiritualAchieved++;
+        }
+        if (virtual.meditationApplicable.has(date)) {
+          spiritualActive++;
+          if (virtual.meditationDone.has(date)) spiritualAchieved++;
+        }
+
+        const spiritualRate =
+          spiritualActive === 0
+            ? null
+            : Math.min(100, (spiritualAchieved / spiritualActive) * 100);
+
         return {
           date,
-          spiritualRate:
-            activeSpiritual.length === 0
-              ? null
-              : getDailyAchievementRate(activeSpiritual, logsOnDate),
+          spiritualRate,
           physicalRate:
             activePhysical.length === 0
               ? null
@@ -114,7 +148,11 @@ export function useBasicsCategoryTrend(days = 30): CategoryTrend {
 
       setToday(currentToday);
       setPoints(computed);
-      setHasSpiritual(spiritualTemplates.some((t) => t.is_active));
+      setHasSpiritual(
+        spiritualTemplates.some((t) => t.is_active) ||
+          virtual.hasReadingStart ||
+          virtual.hasMeditationStart,
+      );
       setHasPhysical(physicalTemplates.some((t) => t.is_active));
     } catch {
       const currentToday = getLogicalDate();
