@@ -7,7 +7,6 @@ import { useBasics } from "@/lib/hooks/use-basics";
 import { useMeditation } from "@/lib/hooks/use-meditation";
 import { useBibleReading } from "@/lib/hooks/use-bible-reading";
 import { BasicsList } from "@/components/basics/basics-list";
-import { BasicsStats } from "@/components/basics/basics-stats";
 import { StatsView } from "@/components/basics/stats-view";
 import { CelebrateOverlay } from "@/components/ui/celebrate-overlay";
 import { SkeletonCard } from "@/components/ui/skeleton";
@@ -114,9 +113,6 @@ export default function BasicsPage() {
             onToggle={toggleCheck}
             onUpdateValue={updateValue}
           />
-          <div className="mt-4">
-            <BasicsStats />
-          </div>
         </>
       ) : (
         <StatsView />
