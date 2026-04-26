@@ -6,6 +6,8 @@ import type { BasicsTemplate, BasicsLog } from "@/types/database";
 import { getLogicalDate, getWeekStart, getWeekDates } from "@/lib/utils/date";
 import { getActiveDays, isNumericAchieved, calcAchievementRate } from "@/lib/utils/stats";
 import { demoTemplates, demoLogs } from "@/lib/demo-data";
+import { fetchVirtualBasicsItems } from "@/lib/bible/virtual-items";
+import { FIXED_USER_ID } from "@/lib/constants";
 
 export interface WeeklyItemStat {
   template: BasicsTemplate;
@@ -106,8 +108,17 @@ export function useWeeklyStats(
         return { template, dailyLogs, achievementRate };
       });
 
+      const virtualItems = await fetchVirtualBasicsItems({
+        supabase,
+        userId: FIXED_USER_ID,
+        startDate: weekStart,
+        endDate: dates[6],
+        dates,
+        today,
+      });
+
       setWeekDates(dates);
-      setItems(result);
+      setItems([...result, ...virtualItems]);
     } catch {
       // Fallback to demo data on error
       const today = getLogicalDate();

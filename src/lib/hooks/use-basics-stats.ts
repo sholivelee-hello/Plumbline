@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { BasicsTemplate, BasicsLog } from "@/types/database";
 import { demoTemplates, demoLogs } from "@/lib/demo-data";
+import { fetchDailyVirtualResults } from "@/lib/bible/virtual-items";
+import { FIXED_USER_ID } from "@/lib/constants";
 
 interface BasicsStat {
   templateId: string;
@@ -85,7 +87,67 @@ export function useBasicsStats() {
         },
       );
 
-      setStats(result);
+      // Append virtual reading/meditation items if applicable
+      const allDates: string[] = [];
+      const startDate = new Date(fetchStartStr);
+      const endDate = new Date(todayStr);
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        allDates.push(d.toISOString().split("T")[0]);
+      }
+      const virtual = await fetchDailyVirtualResults(
+        supabase,
+        FIXED_USER_ID,
+        allDates,
+        todayStr,
+      );
+
+      const virtualEntries: BasicsStat[] = [];
+      const buildVirtual = (
+        id: string,
+        title: string,
+        applicable: Set<string>,
+        done: Set<string>,
+      ): BasicsStat => {
+        const weekApplicable = [...applicable].filter((d) => d >= weekStartStr);
+        const monthApplicable = [...applicable].filter((d) => d >= monthStartStr);
+        const weekDone = weekApplicable.filter((d) => done.has(d)).length;
+        const monthDone = monthApplicable.filter((d) => done.has(d)).length;
+        return {
+          templateId: id,
+          title,
+          category: "spiritual",
+          weeklyRate:
+            weekApplicable.length === 0
+              ? 0
+              : Math.round((weekDone / weekApplicable.length) * 100),
+          monthlyRate:
+            monthApplicable.length === 0
+              ? 0
+              : Math.round((monthDone / monthApplicable.length) * 100),
+        };
+      };
+      if (virtual.hasReadingStart) {
+        virtualEntries.push(
+          buildVirtual(
+            "__virtual_bible_reading__",
+            "📖 통독",
+            virtual.readingApplicable,
+            virtual.readingDone,
+          ),
+        );
+      }
+      if (virtual.hasMeditationStart) {
+        virtualEntries.push(
+          buildVirtual(
+            "__virtual_meditation__",
+            "✨ 묵상",
+            virtual.meditationApplicable,
+            virtual.meditationDone,
+          ),
+        );
+      }
+
+      setStats([...result, ...virtualEntries]);
     } catch {
       const demoResult = demoTemplates.map((t: BasicsTemplate) => {
         const tLogs = demoLogs.filter((l: BasicsLog) => l.template_id === t.id);

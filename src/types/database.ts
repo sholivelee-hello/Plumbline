@@ -7,6 +7,36 @@ export interface UserSettings {
   id: string;
   user_id: string;
   timezone: string;
+  bible_reading_start_date?: string | null;
+  meditation_start_date?: string | null;
+}
+
+export interface BibleReadingLog {
+  id: string;
+  user_id: string;
+  date: string;
+  total_chapters: number;
+  checked_chapters: number;
+  completed_at: string | null;
+  created_at?: string;
+}
+
+export interface BibleReadingChapterCheck {
+  id: string;
+  user_id: string;
+  date: string;
+  ord: number;
+  label: string;
+  checked_at: string;
+}
+
+export interface MeditationLog {
+  id: string;
+  user_id: string;
+  date: string;
+  psalm_number: number;
+  completed: boolean;
+  completed_at: string | null;
 }
 
 export interface BasicsTemplate {

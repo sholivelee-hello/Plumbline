@@ -12,6 +12,11 @@ import {
   getMonthWeeks,
 } from "@/lib/utils/stats";
 import { demoTemplates, demoLogs } from "@/lib/demo-data";
+import {
+  fetchVirtualBasicsItems,
+  fetchDailyVirtualResults,
+} from "@/lib/bible/virtual-items";
+import { FIXED_USER_ID } from "@/lib/constants";
 
 export interface MonthlyItemStat {
   template: BasicsTemplate;
@@ -145,7 +150,13 @@ export function useMonthlyStats(
         return { template, dailyLogs, achievementRate };
       });
 
-      // 5. Daily rates (heatmap)
+      // 5. Daily rates (heatmap) — virtual reading/meditation 합산
+      const dailyVirtual = await fetchDailyVirtualResults(
+        supabase,
+        FIXED_USER_ID,
+        dates,
+        currentToday,
+      );
       const computedDailyRates: DailyRate[] = [];
       for (const date of dates) {
         if (date > currentToday) break;
@@ -160,7 +171,22 @@ export function useMonthlyStats(
         });
 
         const logsOnDate = logsArray.filter((l) => l.date === date);
-        const rate = getDailyAchievementRate(activeTemplatesOnDate, logsOnDate);
+        const tplRate = getDailyAchievementRate(activeTemplatesOnDate, logsOnDate);
+
+        // Combine with virtual items: weighted by item count
+        let totalActive = activeTemplatesOnDate.length;
+        let totalAchieved =
+          (tplRate / 100) * activeTemplatesOnDate.length;
+        if (dailyVirtual.readingApplicable.has(date)) {
+          totalActive++;
+          if (dailyVirtual.readingDone.has(date)) totalAchieved++;
+        }
+        if (dailyVirtual.meditationApplicable.has(date)) {
+          totalActive++;
+          if (dailyVirtual.meditationDone.has(date)) totalAchieved++;
+        }
+        const rate =
+          totalActive === 0 ? 0 : Math.round((totalAchieved / totalActive) * 100);
         computedDailyRates.push({ date, rate });
       }
 
@@ -219,7 +245,16 @@ export function useMonthlyStats(
         };
       });
 
-      setItems(result);
+      const virtualItems = await fetchVirtualBasicsItems({
+        supabase,
+        userId: FIXED_USER_ID,
+        startDate: monthStart,
+        endDate: monthEnd,
+        dates,
+        today: currentToday,
+      });
+
+      setItems([...result, ...virtualItems]);
       setDailyRates(computedDailyRates);
       setWeekComparisons(computedWeekComparisons);
     } catch {

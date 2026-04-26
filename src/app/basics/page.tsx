@@ -7,6 +7,8 @@ import { useBasics } from "@/lib/hooks/use-basics";
 import { BasicsList } from "@/components/basics/basics-list";
 import { BasicsStats } from "@/components/basics/basics-stats";
 import { StatsView } from "@/components/basics/stats-view";
+import { MeditationCard } from "@/components/basics/meditation-card";
+import { BibleReadingCard } from "@/components/basics/bible-reading-card";
 import { CelebrateOverlay } from "@/components/ui/celebrate-overlay";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { useToast, vibrate } from "@/components/ui/toast";
@@ -92,6 +94,8 @@ export default function BasicsPage() {
 
       {tab === "check" ? (
         <>
+          <MeditationCard />
+          <BibleReadingCard />
           <BasicsList
             templates={templates}
             logs={logs}

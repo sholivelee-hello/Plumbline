@@ -2,19 +2,73 @@
 
 import { useState } from "react";
 import { useBasics } from "@/lib/hooks/use-basics";
+import { useSettings } from "@/lib/hooks/use-settings";
 import { Card } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import { TemplateForm } from "@/components/basics/template-form";
 import { PageHeader } from "@/components/ui/page-header";
+import { getLogicalDate, formatDateKR } from "@/lib/utils/date";
 import type { BasicsTemplate } from "@/types/database";
 
 export default function BasicsSettingsPage() {
   const { templates, addTemplate, updateTemplate, deactivateTemplate } = useBasics();
+  const { settings, update: updateSettings } = useSettings();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<BasicsTemplate | null>(null);
 
   const spiritual = templates.filter((t) => t.category === "spiritual");
   const physical = templates.filter((t) => t.category === "physical");
+
+  function renderStartDateRow({
+    label,
+    value,
+    onChange,
+  }: {
+    label: string;
+    value: string | null;
+    onChange: (v: string | null) => void;
+  }) {
+    return (
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm text-gray-700 dark:text-gray-200">
+            {label}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onChange(getLogicalDate())}
+              className="text-xs text-primary-500 hover:text-primary-600 px-2 py-1.5 rounded-md min-h-[28px]"
+            >
+              오늘
+            </button>
+            {value && (
+              <button
+                type="button"
+                onClick={() => onChange(null)}
+                className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 px-2 py-1.5 rounded-md min-h-[28px]"
+              >
+                비우기
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <input
+            type="date"
+            value={value ?? ""}
+            onChange={(e) => onChange(e.target.value || null)}
+            className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-[#2a2e45] bg-white dark:bg-[#1f242e] text-gray-900 dark:text-gray-100 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-primary-300 min-h-[44px]"
+          />
+          {value && (
+            <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums whitespace-nowrap">
+              {formatDateKR(value)}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   function renderRow(t: BasicsTemplate) {
     return (
@@ -54,6 +108,27 @@ export default function BasicsSettingsPage() {
     <div className="min-h-screen pb-8">
       <PageHeader title="베이직 설정" backHref="/basics" />
       <div className="max-w-4xl mx-auto p-4 space-y-4">
+
+      <Card>
+        <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-1">
+          📖 통독 / ✨ 묵상
+        </h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+          시작일 기준으로 매일 오늘의 본문이 자동 계산돼요. 통독은 100일, 묵상은 150편 사이클이 끝나면 다시 1일차로 돌아가요.
+        </p>
+        <div className="space-y-5">
+          {renderStartDateRow({
+            label: "통독 1일차 시작일",
+            value: settings?.bible_reading_start_date ?? null,
+            onChange: (v) => updateSettings({ bible_reading_start_date: v }),
+          })}
+          {renderStartDateRow({
+            label: "묵상 1일차 시작일",
+            value: settings?.meditation_start_date ?? null,
+            onChange: (v) => updateSettings({ meditation_start_date: v }),
+          })}
+        </div>
+      </Card>
 
       <Card>
         <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-3">📖 영적</h3>
