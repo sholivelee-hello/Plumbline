@@ -14,8 +14,9 @@ describe("getActiveDays", () => {
     expect(days).toBe(6);
   });
   it("handles deactivated items", () => {
+    // 4/3 created, 4/7 deactivated → active days are 4/3 ~ 4/6 (deactivate일 자체는 비활성)
     const days = getActiveDays("2026-04-03", "2026-04-07T12:00:00Z", "2026-04-01", "2026-04-10");
-    expect(days).toBe(5);
+    expect(days).toBe(4);
   });
   it("returns 0 when item not yet created in range", () => {
     const days = getActiveDays("2026-04-15", null, "2026-04-01", "2026-04-10");

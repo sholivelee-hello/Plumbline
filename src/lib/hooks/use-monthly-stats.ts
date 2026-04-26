@@ -10,6 +10,7 @@ import {
   calcAchievementRate,
   getDailyAchievementRate,
   getMonthWeeks,
+  isTemplateActiveOnDate,
 } from "@/lib/utils/stats";
 import { demoTemplates, demoLogs } from "@/lib/demo-data";
 import {
@@ -162,13 +163,9 @@ export function useMonthlyStats(
         if (date > currentToday) break;
 
         // Filter templates active on this date
-        const activeTemplatesOnDate = templates.filter((t: BasicsTemplate) => {
-          const created = t.created_at.slice(0, 10);
-          const deactivated = t.deactivated_at ? t.deactivated_at.slice(0, 10) : null;
-          if (created > date) return false;
-          if (deactivated && deactivated < date) return false;
-          return true;
-        });
+        const activeTemplatesOnDate = templates.filter((t: BasicsTemplate) =>
+          isTemplateActiveOnDate(t, date),
+        );
 
         const logsOnDate = logsArray.filter((l) => l.date === date);
         const tplRate = getDailyAchievementRate(activeTemplatesOnDate, logsOnDate);

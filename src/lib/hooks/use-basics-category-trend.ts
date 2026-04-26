@@ -4,7 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { BasicsTemplate, BasicsLog } from "@/types/database";
 import { getLogicalDate, toLocalDateString } from "@/lib/utils/date";
-import { getDailyAchievementRate, isNumericAchieved } from "@/lib/utils/stats";
+import {
+  getDailyAchievementRate,
+  isNumericAchieved,
+  isTemplateActiveOnDate,
+} from "@/lib/utils/stats";
 import { fetchDailyVirtualResults } from "@/lib/bible/virtual-items";
 import { FIXED_USER_ID } from "@/lib/constants";
 
@@ -26,14 +30,6 @@ function addDays(dateStr: string, days: number): string {
   const d = new Date(dateStr + "T00:00:00");
   d.setDate(d.getDate() + days);
   return toLocalDateString(d);
-}
-
-function isTemplateActiveOn(t: BasicsTemplate, date: string): boolean {
-  const created = t.created_at.slice(0, 10);
-  const deactivated = t.deactivated_at ? t.deactivated_at.slice(0, 10) : null;
-  if (created > date) return false;
-  if (deactivated && deactivated < date) return false;
-  return true;
 }
 
 export function useBasicsCategoryTrend(days = 30): CategoryTrend {
@@ -102,10 +98,10 @@ export function useBasicsCategoryTrend(days = 30): CategoryTrend {
           return { date, spiritualRate: null, physicalRate: null };
         }
         const activeSpiritual = spiritualTemplates.filter((t) =>
-          isTemplateActiveOn(t, date),
+          isTemplateActiveOnDate(t, date),
         );
         const activePhysical = physicalTemplates.filter((t) =>
-          isTemplateActiveOn(t, date),
+          isTemplateActiveOnDate(t, date),
         );
         const logsOnDate = logsArray.filter((l) => l.date === date);
 
