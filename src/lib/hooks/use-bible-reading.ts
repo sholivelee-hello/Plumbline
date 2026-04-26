@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { FIXED_USER_ID } from "@/lib/constants";
 import { getLogicalDate } from "@/lib/utils/date";
 import { getReadingPosition } from "@/lib/bible/cycle";
-import { expandDay } from "@/lib/bible/reading-plan";
+import { expandDay, BOOK_FULL_NAME, BOOK_TOTAL_CHAPTERS } from "@/lib/bible/reading-plan";
 import { useSettings } from "./use-settings";
 import type { BibleReadingChapterCheck, BibleReadingLog } from "@/types/database";
 
@@ -39,8 +39,15 @@ export function useBibleReading() {
 
   const chapters = useMemo(() => {
     if (!position || position.isFuture) return [];
-    return expandDay(position.day);
-  }, [position]);
+    const base = expandDay(position.day);
+    // 잠언: 오늘 날짜(일)에 해당하는 장. 31장 초과는 31장에 클램프.
+    const dayOfMonth = parseInt(today.slice(8, 10), 10);
+    const proverbs = Math.min(BOOK_TOTAL_CHAPTERS["잠"], Math.max(1, dayOfMonth));
+    return [
+      ...base,
+      { ord: base.length, label: `${BOOK_FULL_NAME["잠"]} ${proverbs}` },
+    ];
+  }, [position, today]);
 
   const loadChecks = useCallback(async () => {
     if (!position || position.isFuture) {
