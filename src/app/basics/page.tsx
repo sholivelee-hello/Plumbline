@@ -109,6 +109,8 @@ export default function BasicsPage() {
           <BasicsList
             templates={templates}
             logs={logs}
+            meditation={meditation}
+            reading={reading}
             onToggle={toggleCheck}
             onUpdateValue={updateValue}
           />

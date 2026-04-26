@@ -97,6 +97,7 @@ export function useMeditation() {
   return {
     loading: loading || settingsLoading,
     hasStartDate: !!startDate,
+    startDate,
     isFuture: position?.isFuture ?? false,
     psalm: position?.psalm ?? null,
     cycle: position?.cycle ?? null,
@@ -105,3 +106,5 @@ export function useMeditation() {
     today,
   };
 }
+
+export type UseMeditationReturn = ReturnType<typeof useMeditation>;

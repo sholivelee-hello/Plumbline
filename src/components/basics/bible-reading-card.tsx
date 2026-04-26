@@ -3,8 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { useBibleReading } from "@/lib/hooks/use-bible-reading";
-import { useSettings } from "@/lib/hooks/use-settings";
+import type { UseBibleReadingReturn } from "@/lib/hooks/use-bible-reading";
 import { Card } from "@/components/ui/card";
 import { Toggle } from "@/components/ui/toggle";
 import { ProgressBar } from "@/components/ui/progress-bar";
@@ -12,6 +11,7 @@ import { vibrate, useToast } from "@/components/ui/toast";
 import { formatDateKR } from "@/lib/utils/date";
 
 interface BibleReadingCardProps {
+  reading: UseBibleReadingReturn;
   embedded?: boolean;
 }
 
@@ -19,7 +19,7 @@ function Wrapper({ embedded, children }: { embedded?: boolean; children: React.R
   return embedded ? <div className="space-y-2">{children}</div> : <Card>{children}</Card>;
 }
 
-export function BibleReadingCard({ embedded = false }: BibleReadingCardProps = {}) {
+export function BibleReadingCard({ reading, embedded = false }: BibleReadingCardProps) {
   const {
     loading,
     hasStartDate,
@@ -32,11 +32,10 @@ export function BibleReadingCard({ embedded = false }: BibleReadingCardProps = {
     checkedCount,
     percent,
     toggleChapter,
-  } = useBibleReading();
-  const { settings } = useSettings();
+    startDate,
+  } = reading;
   const [userToggled, setUserToggled] = useState(false);
   const [collapsedOverride, setCollapsedOverride] = useState(false);
-  const startDate = settings?.bible_reading_start_date ?? null;
   const allDone = total > 0 && checkedCount === total;
   const defaultCollapsed = total > 8 && allDone;
   const collapsed = userToggled ? collapsedOverride : defaultCollapsed;

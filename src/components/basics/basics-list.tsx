@@ -6,8 +6,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { BasicsItem } from "./basics-item";
 import { MeditationCard } from "./meditation-card";
 import { BibleReadingCard } from "./bible-reading-card";
-import { useMeditation } from "@/lib/hooks/use-meditation";
-import { useBibleReading } from "@/lib/hooks/use-bible-reading";
+import type { UseMeditationReturn } from "@/lib/hooks/use-meditation";
+import type { UseBibleReadingReturn } from "@/lib/hooks/use-bible-reading";
 import { calcPercent } from "@/lib/utils/format";
 import { BookOpen } from "lucide-react";
 import type { BasicsTemplate, BasicsLog } from "@/types/database";
@@ -15,6 +15,8 @@ import type { BasicsTemplate, BasicsLog } from "@/types/database";
 interface BasicsListProps {
   templates: BasicsTemplate[];
   logs: BasicsLog[];
+  meditation: UseMeditationReturn;
+  reading: UseBibleReadingReturn;
   onToggle: (logId: string, completed: boolean) => void;
   onUpdateValue: (logId: string, value: number, target: number | null) => void;
 }
@@ -22,12 +24,11 @@ interface BasicsListProps {
 export function BasicsList({
   templates,
   logs,
+  meditation,
+  reading,
   onToggle,
   onUpdateValue,
 }: BasicsListProps) {
-  const meditation = useMeditation();
-  const reading = useBibleReading();
-
   const meditationActive = meditation.hasStartDate && !meditation.isFuture;
   const readingActive = reading.hasStartDate && !reading.isFuture;
   const meditationDone = meditationActive && meditation.completed;
@@ -101,12 +102,12 @@ export function BasicsList({
           <div className="space-y-3">
             {(meditation.hasStartDate || !showSpiritualEmpty) && (
               <div className="rounded-xl bg-gray-50/60 dark:bg-[#1a1f29]/60 p-3 border border-gray-100 dark:border-[#262c38]">
-                <MeditationCard embedded />
+                <MeditationCard meditation={meditation} embedded />
               </div>
             )}
             {(reading.hasStartDate || !showSpiritualEmpty) && (
               <div className="rounded-xl bg-gray-50/60 dark:bg-[#1a1f29]/60 p-3 border border-gray-100 dark:border-[#262c38]">
-                <BibleReadingCard embedded />
+                <BibleReadingCard reading={reading} embedded />
               </div>
             )}
             {spiritual.length > 0 && (

@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMeditation } from "@/lib/hooks/use-meditation";
-import { useSettings } from "@/lib/hooks/use-settings";
+import type { UseMeditationReturn } from "@/lib/hooks/use-meditation";
 import { Card } from "@/components/ui/card";
 import { Toggle } from "@/components/ui/toggle";
 import { useToast, vibrate } from "@/components/ui/toast";
 import { formatDateKR } from "@/lib/utils/date";
 
 interface MeditationCardProps {
+  meditation: UseMeditationReturn;
   embedded?: boolean;
 }
 
@@ -29,12 +29,10 @@ const ENCOURAGE = [
   "오늘도 잘 머물렀어요",
 ];
 
-export function MeditationCard({ embedded = false }: MeditationCardProps = {}) {
-  const { loading, hasStartDate, isFuture, psalm, cycle, completed, toggle } =
-    useMeditation();
-  const { settings } = useSettings();
+export function MeditationCard({ meditation, embedded = false }: MeditationCardProps) {
+  const { loading, hasStartDate, isFuture, psalm, cycle, completed, toggle, startDate } =
+    meditation;
   const { toast } = useToast();
-  const startDate = settings?.meditation_start_date ?? null;
 
   if (loading) {
     return (

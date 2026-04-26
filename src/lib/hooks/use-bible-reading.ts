@@ -204,6 +204,7 @@ export function useBibleReading() {
   return {
     loading: loading || settingsLoading,
     hasStartDate: !!startDate,
+    startDate,
     isFuture: position?.isFuture ?? false,
     day: position?.day ?? null,
     cycle: position?.cycle ?? null,
@@ -216,3 +217,5 @@ export function useBibleReading() {
     today,
   };
 }
+
+export type UseBibleReadingReturn = ReturnType<typeof useBibleReading>;
