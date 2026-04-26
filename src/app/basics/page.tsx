@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Settings as SettingsIcon } from "lucide-react";
 import { useBasics } from "@/lib/hooks/use-basics";
+import { useMeditation } from "@/lib/hooks/use-meditation";
+import { useBibleReading } from "@/lib/hooks/use-bible-reading";
 import { BasicsList } from "@/components/basics/basics-list";
 import { BasicsStats } from "@/components/basics/basics-stats";
 import { StatsView } from "@/components/basics/stats-view";
-import { MeditationCard } from "@/components/basics/meditation-card";
-import { BibleReadingCard } from "@/components/basics/bible-reading-card";
 import { CelebrateOverlay } from "@/components/ui/celebrate-overlay";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { useToast, vibrate } from "@/components/ui/toast";
@@ -20,12 +20,24 @@ export default function BasicsPage() {
     useBasics();
   const { toast } = useToast();
 
+  const meditation = useMeditation();
+  const reading = useBibleReading();
+
   const [celebrateTick, setCelebrateTick] = useState(0);
   const prevAllDone = useRef(false);
   const didInit = useRef(false);
 
-  const completedCount = logs.filter((l) => l.completed).length;
-  const totalCount = templates.length;
+  const meditationActive = meditation.hasStartDate && !meditation.isFuture;
+  const readingActive = reading.hasStartDate && !reading.isFuture;
+  const meditationDone = meditationActive && meditation.completed;
+  const readingDone =
+    readingActive && reading.total > 0 && reading.checkedCount === reading.total;
+
+  const baseCompleted = logs.filter((l) => l.completed).length;
+  const extraTotal = (meditationActive ? 1 : 0) + (readingActive ? 1 : 0);
+  const extraDone = (meditationDone ? 1 : 0) + (readingDone ? 1 : 0);
+  const completedCount = baseCompleted + extraDone;
+  const totalCount = templates.length + extraTotal;
   const allDone = totalCount > 0 && completedCount === totalCount;
 
   useEffect(() => {
@@ -94,8 +106,6 @@ export default function BasicsPage() {
 
       {tab === "check" ? (
         <>
-          <MeditationCard />
-          <BibleReadingCard />
           <BasicsList
             templates={templates}
             logs={logs}

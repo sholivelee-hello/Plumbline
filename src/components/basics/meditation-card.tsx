@@ -8,6 +8,14 @@ import { Toggle } from "@/components/ui/toggle";
 import { useToast, vibrate } from "@/components/ui/toast";
 import { formatDateKR } from "@/lib/utils/date";
 
+interface MeditationCardProps {
+  embedded?: boolean;
+}
+
+function Wrapper({ embedded, children }: { embedded?: boolean; children: React.ReactNode }) {
+  return embedded ? <div className="space-y-2">{children}</div> : <Card>{children}</Card>;
+}
+
 const ENCOURAGE = [
   "오늘의 묵상 완료",
   "한 절씩 채워가요",
@@ -21,7 +29,7 @@ const ENCOURAGE = [
   "오늘도 잘 머물렀어요",
 ];
 
-export function MeditationCard() {
+export function MeditationCard({ embedded = false }: MeditationCardProps = {}) {
   const { loading, hasStartDate, isFuture, psalm, cycle, completed, toggle } =
     useMeditation();
   const { settings } = useSettings();
@@ -30,20 +38,22 @@ export function MeditationCard() {
 
   if (loading) {
     return (
-      <Card>
+      <Wrapper embedded={embedded}>
         <div className="h-16 animate-pulse bg-gray-100 dark:bg-[#1f242e] rounded-lg" />
-      </Card>
+      </Wrapper>
     );
   }
 
   if (!hasStartDate) {
     return (
-      <Card>
+      <Wrapper embedded={embedded}>
         <div className="flex items-start gap-3">
           <div className="flex-1">
-            <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-1">
-              ✨ 묵상
-            </h3>
+            {!embedded && (
+              <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-1">
+                ✨ 묵상
+              </h3>
+            )}
             <p className="text-sm text-gray-400 dark:text-gray-500 mb-3">
               시편 150편을 매일 1편씩 묵상해요. 시작일을 정하면 오늘의 본문이 표시돼요.
             </p>
@@ -55,16 +65,18 @@ export function MeditationCard() {
             </Link>
           </div>
         </div>
-      </Card>
+      </Wrapper>
     );
   }
 
   if (isFuture) {
     return (
-      <Card>
-        <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-1">
-          ✨ 묵상
-        </h3>
+      <Wrapper embedded={embedded}>
+        {!embedded && (
+          <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-1">
+            ✨ 묵상
+          </h3>
+        )}
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
           {startDate ? formatDateKR(startDate) : "시작일"}부터 시작돼요.
         </p>
@@ -74,7 +86,7 @@ export function MeditationCard() {
         >
           시작일 수정 →
         </Link>
-      </Card>
+      </Wrapper>
     );
   }
 
@@ -88,17 +100,19 @@ export function MeditationCard() {
   }
 
   return (
-    <Card>
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="font-semibold text-gray-700 dark:text-gray-200">
-          ✨ 묵상
-        </h3>
-        {cycle && cycle > 1 && (
-          <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">
-            {cycle}회독
-          </span>
-        )}
-      </div>
+    <Wrapper embedded={embedded}>
+      {!embedded && (
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-semibold text-gray-700 dark:text-gray-200">
+            ✨ 묵상
+          </h3>
+          {cycle && cycle > 1 && (
+            <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">
+              {cycle}회독
+            </span>
+          )}
+        </div>
+      )}
       <div
         onClick={handleToggle}
         role="button"
@@ -124,8 +138,13 @@ export function MeditationCard() {
           ariaLabel={`시편 ${psalm}편 묵상 완료`}
         />
         <div className="flex-1 min-w-0">
-          <div className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-0.5">
-            오늘의 본문
+          <div className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-0.5 flex items-center gap-1.5">
+            <span>✨ 묵상 · 오늘의 본문</span>
+            {cycle && cycle > 1 && (
+              <span className="px-1 py-px rounded bg-gray-100 dark:bg-[#262c38] text-[10px] text-gray-500 dark:text-gray-400 normal-case tracking-normal">
+                {cycle}회독
+              </span>
+            )}
           </div>
           <div
             className={`font-medium ${
@@ -138,6 +157,6 @@ export function MeditationCard() {
           </div>
         </div>
       </div>
-    </Card>
+    </Wrapper>
   );
 }

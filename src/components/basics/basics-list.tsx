@@ -1,7 +1,13 @@
+"use client";
+
 import { Card } from "@/components/ui/card";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { BasicsItem } from "./basics-item";
+import { MeditationCard } from "./meditation-card";
+import { BibleReadingCard } from "./bible-reading-card";
+import { useMeditation } from "@/lib/hooks/use-meditation";
+import { useBibleReading } from "@/lib/hooks/use-bible-reading";
 import { calcPercent } from "@/lib/utils/format";
 import { BookOpen } from "lucide-react";
 import type { BasicsTemplate, BasicsLog } from "@/types/database";
@@ -19,11 +25,33 @@ export function BasicsList({
   onToggle,
   onUpdateValue,
 }: BasicsListProps) {
+  const meditation = useMeditation();
+  const reading = useBibleReading();
+
+  const meditationActive = meditation.hasStartDate && !meditation.isFuture;
+  const readingActive = reading.hasStartDate && !reading.isFuture;
+  const meditationDone = meditationActive && meditation.completed;
+  const readingDone =
+    readingActive && reading.total > 0 && reading.checkedCount === reading.total;
+
   const spiritual = templates.filter((t) => t.category === "spiritual");
   const physical = templates.filter((t) => t.category === "physical");
-  const completedCount = logs.filter((l) => l.completed).length;
-  const totalCount = templates.length;
+  const baseCompleted = logs.filter((l) => l.completed).length;
+  const spiritualBaseDone = spiritual.filter(
+    (t) => logs.find((l) => l.template_id === t.id)?.completed,
+  ).length;
+
+  const extraSpiritualTotal =
+    (meditationActive ? 1 : 0) + (readingActive ? 1 : 0);
+  const extraSpiritualDone =
+    (meditationDone ? 1 : 0) + (readingDone ? 1 : 0);
+
+  const completedCount = baseCompleted + extraSpiritualDone;
+  const totalCount = templates.length + extraSpiritualTotal;
   const percent = calcPercent(completedCount, totalCount);
+
+  const spiritualTotal = spiritual.length + extraSpiritualTotal;
+  const spiritualDone = spiritualBaseDone + extraSpiritualDone;
 
   function getLog(templateId: string) {
     return logs.find((l) => l.template_id === templateId);
@@ -38,6 +66,12 @@ export function BasicsList({
       />
     );
   }
+
+  const showSpiritualSection = spiritual.length > 0 || extraSpiritualTotal > 0;
+  const showSpiritualEmpty =
+    spiritual.length === 0 &&
+    !meditation.hasStartDate &&
+    !reading.hasStartDate;
 
   return (
     <div className="space-y-4">
@@ -56,25 +90,38 @@ export function BasicsList({
         </p>
       </Card>
 
-      {spiritual.length > 0 && (
+      {showSpiritualSection && (
         <Card>
           <h3 className="text-gray-700 dark:text-gray-200 font-semibold mb-3">
             📖 영적 베이직
             <span className="text-gray-400 dark:text-gray-500 font-normal text-sm ml-2 tabular-nums">
-              {spiritual.filter((t) => getLog(t.id)?.completed).length}/
-              {spiritual.length}
+              {spiritualDone}/{spiritualTotal}
             </span>
           </h3>
-          <div className="space-y-2">
-            {spiritual.map((t) => (
-              <BasicsItem
-                key={t.id}
-                template={t}
-                log={getLog(t.id)}
-                onToggle={onToggle}
-                onUpdateValue={onUpdateValue}
-              />
-            ))}
+          <div className="space-y-3">
+            {(meditation.hasStartDate || !showSpiritualEmpty) && (
+              <div className="rounded-xl bg-gray-50/60 dark:bg-[#1a1f29]/60 p-3 border border-gray-100 dark:border-[#262c38]">
+                <MeditationCard embedded />
+              </div>
+            )}
+            {(reading.hasStartDate || !showSpiritualEmpty) && (
+              <div className="rounded-xl bg-gray-50/60 dark:bg-[#1a1f29]/60 p-3 border border-gray-100 dark:border-[#262c38]">
+                <BibleReadingCard embedded />
+              </div>
+            )}
+            {spiritual.length > 0 && (
+              <div className="space-y-2">
+                {spiritual.map((t) => (
+                  <BasicsItem
+                    key={t.id}
+                    template={t}
+                    log={getLog(t.id)}
+                    onToggle={onToggle}
+                    onUpdateValue={onUpdateValue}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </Card>
       )}

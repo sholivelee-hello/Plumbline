@@ -11,7 +11,15 @@ import { ProgressBar } from "@/components/ui/progress-bar";
 import { vibrate, useToast } from "@/components/ui/toast";
 import { formatDateKR } from "@/lib/utils/date";
 
-export function BibleReadingCard() {
+interface BibleReadingCardProps {
+  embedded?: boolean;
+}
+
+function Wrapper({ embedded, children }: { embedded?: boolean; children: React.ReactNode }) {
+  return embedded ? <div className="space-y-2">{children}</div> : <Card>{children}</Card>;
+}
+
+export function BibleReadingCard({ embedded = false }: BibleReadingCardProps = {}) {
   const {
     loading,
     hasStartDate,
@@ -36,18 +44,20 @@ export function BibleReadingCard() {
 
   if (loading) {
     return (
-      <Card>
+      <Wrapper embedded={embedded}>
         <div className="h-24 animate-pulse bg-gray-100 dark:bg-[#1f242e] rounded-lg" />
-      </Card>
+      </Wrapper>
     );
   }
 
   if (!hasStartDate) {
     return (
-      <Card>
-        <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-1">
-          📖 통독
-        </h3>
+      <Wrapper embedded={embedded}>
+        {!embedded && (
+          <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-1">
+            📖 통독
+          </h3>
+        )}
         <p className="text-sm text-gray-400 dark:text-gray-500 mb-3">
           100일 1독 통독표를 매일 한 묶음씩 읽어요. 시작일을 정하면 오늘의 범위가 표시돼요.
         </p>
@@ -57,16 +67,18 @@ export function BibleReadingCard() {
         >
           시작일 설정하기 →
         </Link>
-      </Card>
+      </Wrapper>
     );
   }
 
   if (isFuture) {
     return (
-      <Card>
-        <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-1">
-          📖 통독
-        </h3>
+      <Wrapper embedded={embedded}>
+        {!embedded && (
+          <h3 className="font-semibold text-gray-700 dark:text-gray-200 mb-1">
+            📖 통독
+          </h3>
+        )}
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
           {startDate ? formatDateKR(startDate) : "시작일"}부터 시작돼요.
         </p>
@@ -76,7 +88,7 @@ export function BibleReadingCard() {
         >
           시작일 수정 →
         </Link>
-      </Card>
+      </Wrapper>
     );
   }
 
@@ -102,9 +114,9 @@ export function BibleReadingCard() {
   }
 
   return (
-    <Card>
+    <Wrapper embedded={embedded}>
       <div className="flex items-center justify-between mb-2">
-        <h3 className="font-semibold text-gray-700 dark:text-gray-200">
+        <h3 className="font-semibold text-gray-700 dark:text-gray-200 text-sm">
           📖 통독
         </h3>
         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 tabular-nums">
@@ -201,6 +213,6 @@ export function BibleReadingCard() {
           })}
         </div>
       )}
-    </Card>
+    </Wrapper>
   );
 }
